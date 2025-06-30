@@ -64,6 +64,7 @@ export default function Analytics() {
     const [yearlyStats, setYearlyStats] = useState([])
     const [countryStats, setCountryStats] = useState([])
     const [topArtists, setTopArtists] = useState([])
+    const [statsLoading, setStatsLoading] = useState(false)
     const [timelineData, setTimelineData] = useState<Array<{
         date: string
         plays: number
@@ -73,12 +74,12 @@ export default function Analytics() {
     const [availablePlatforms] = useState<string[]>([])
 
     // Fetch tracks with filters
-    const fetchTracks = async (page = 1) => {
+    const fetchTracks = async (page = 1, limit?: number) => {
         setLoading(true)
         try {
             const params = new URLSearchParams({
                 page: page.toString(),
-                limit: pagination.limit.toString(),
+                limit: (limit || pagination.limit).toString(),
                 search: filters.search,
                 minPlays: filters.minPlays.toString(),
                 sortBy: filters.sortBy,
@@ -105,8 +106,10 @@ export default function Analytics() {
 
     // Fetch statistics data
     const fetchStats = async () => {
+        setStatsLoading(true)
         try {
             const profileParam = selectedProfile ? `?profileId=${selectedProfile}` : ''
+
             const [yearlyRes, countryRes, artistsRes, timelineRes] = await Promise.all([
                 fetch(`/api/stats/yearly${profileParam}`),
                 fetch(`/api/stats/countries${profileParam}`),
@@ -143,6 +146,8 @@ export default function Analytics() {
             // Fallback na mock data w przypadku błędu
             const timeline = generateTimelineData()
             setTimelineData(timeline)
+        } finally {
+            setStatsLoading(false)
         }
     }
 
@@ -174,6 +179,11 @@ export default function Analytics() {
     const handlePageChange = (page: number) => {
         setPagination(prev => ({ ...prev, page }))
         fetchTracks(page)
+    }
+
+    const handlePageSizeChange = (newLimit: number) => {
+        setPagination(prev => ({ ...prev, limit: newLimit, page: 1 }))
+        fetchTracks(1, newLimit)
     }
 
     const handleSort = (field: string, order: 'asc' | 'desc') => {
@@ -233,7 +243,7 @@ export default function Analytics() {
                 <TabsContent value="overview">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <YearlyStatsChart data={yearlyStats} />
-                        <PlaysByCountryChart data={countryStats} />
+                        <PlaysByCountryChart data={countryStats} loading={statsLoading} />
                     </div>
                 </TabsContent>
 
@@ -241,8 +251,8 @@ export default function Analytics() {
                 <TabsContent value="charts">
                     <div className="space-y-6">
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <TopArtistsChart data={topArtists} />
-                            <PlaysByCountryChart data={countryStats} />
+                            <TopArtistsChart data={topArtists} loading={statsLoading} />
+                            <PlaysByCountryChart data={countryStats} loading={statsLoading} />
                         </div>
                         <YearlyStatsChart data={yearlyStats} />
                     </div>
@@ -279,6 +289,7 @@ export default function Analytics() {
                             profileId={selectedProfile || undefined}
                             pagination={pagination}
                             onPageChange={handlePageChange}
+                            onPageSizeChange={handlePageSizeChange}
                             onSort={handleSort}
                             currentSort={{
                                 field: filters.sortBy,
@@ -303,19 +314,19 @@ export default function Analytics() {
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div className="text-center">
                                         <div className="text-2xl font-bold text-spotify-green">
-                                            {Math.round(timelineData.reduce((acc: number, day: any) => acc + day.plays, 0) / timelineData.length)}
+                                            {timelineData.length > 0 ? Math.round(timelineData.reduce((acc: number, day: any) => acc + day.plays, 0) / timelineData.length) : 0}
                                         </div>
                                         <div className="text-sm text-muted-foreground">Średnie odtworzenia dziennie</div>
                                     </div>
                                     <div className="text-center">
                                         <div className="text-2xl font-bold text-spotify-green">
-                                            {Math.round(timelineData.reduce((acc: number, day: any) => acc + day.minutes, 0) / timelineData.length)}
+                                            {timelineData.length > 0 ? Math.round(timelineData.reduce((acc: number, day: any) => acc + day.minutes, 0) / timelineData.length) : 0}
                                         </div>
                                         <div className="text-sm text-muted-foreground">Średnie minuty dziennie</div>
                                     </div>
                                     <div className="text-center">
                                         <div className="text-2xl font-bold text-spotify-green">
-                                            {timelineData.length > 0 ? Math.max(...timelineData.map((day: any) => day.minutes)) : 0}
+                                            {timelineData.length > 0 ? Math.max(...timelineData.map((day: any) => day.minutes || 0)) : 0}
                                         </div>
                                         <div className="text-sm text-muted-foreground">Najdłuższa sesja (min)</div>
                                     </div>

@@ -35,6 +35,8 @@ const translations = {
         next: 'Następna',
         columns: 'Kolumny',
         selectColumns: 'Wybierz kolumny do wyświetlenia',
+        showing: 'Wyświetlono',
+        pageSize: 'Rozmiar strony',
 
         // Column names
         trackName: 'Utwór',
@@ -94,6 +96,8 @@ const translations = {
         next: 'Next',
         columns: 'Columns',
         selectColumns: 'Select columns to display',
+        showing: 'Showing',
+        pageSize: 'Page size',
 
         // Column names
         trackName: 'Track',

@@ -34,8 +34,10 @@ interface DetailedTrack {
 }
 
 interface Play {
+    id: string
     timestamp: Date
     msPlayed: number
+    durationMinutes: number
     platform?: string
     country?: string
     username?: string
@@ -50,8 +52,17 @@ interface Play {
 export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) {
     const { t } = useLanguage()
     const [track, setTrack] = useState<DetailedTrack | null>(null)
+    const [plays, setPlays] = useState<Play[]>([])
     const [timelineData, setTimelineData] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+    const [playsLoading, setPlaysLoading] = useState(false)
+    const [showPlays, setShowPlays] = useState(false)
+    const [playsPagination, setPlaysPagination] = useState({
+        page: 1,
+        limit: 50,
+        total: 0,
+        pages: 0
+    })
 
     useEffect(() => {
         fetchTrackDetails()
@@ -77,7 +88,7 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
             if (profileId) {
                 params.append('profileId', profileId)
             }
-            
+
             const response = await fetch(`/api/tracks/${trackId}/timeline?${params}`)
             if (response.ok) {
                 const data = await response.json()
@@ -88,13 +99,26 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
         }
     }
 
-    const fetchTrackPlays = async () => {
+    const fetchTrackPlays = async (page = 1) => {
         try {
-            // Tymczasowo używamy mock danych - można by dodać endpoint /api/tracks/:id/plays
-            // Obecnie nie używamy szczegółowych danych o pojedynczych odtworzeniach
+            setPlaysLoading(true)
+            const params = new URLSearchParams()
+            if (profileId) {
+                params.append('profileId', profileId)
+            }
+            params.append('page', page.toString())
+            params.append('limit', '50')
+
+            const response = await fetch(`/api/tracks/${trackId}/plays?${params}`)
+            if (response.ok) {
+                const data = await response.json()
+                setPlays(data.data || [])
+                setPlaysPagination(data.pagination || { page: 1, limit: 50, total: 0, pages: 0 })
+            }
         } catch (error) {
             console.error('Error fetching track plays:', error)
         } finally {
+            setPlaysLoading(false)
             setLoading(false)
         }
     }
@@ -133,7 +157,7 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
         <div className="space-y-6">
             {/* Header z przyciskiem powrotu */}
             <div className="flex items-center gap-4">
-                <button 
+                <button
                     onClick={onBack}
                     className="flex items-center gap-2 px-3 py-2 text-sm border rounded-md hover:bg-accent hover:text-accent-foreground"
                 >
@@ -187,11 +211,10 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
                         <Hash className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className={`text-2xl font-bold ${
-                            track.skipPercentage > 50 ? 'text-red-500' :
+                        <div className={`text-2xl font-bold ${track.skipPercentage > 50 ? 'text-red-500' :
                             track.skipPercentage > 20 ? 'text-yellow-500' :
-                            'text-green-500'
-                        }`}>
+                                'text-green-500'
+                            }`}>
                             {track.skipPercentage.toFixed(1)}%
                         </div>
                     </CardContent>
@@ -251,8 +274,8 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
                         <div>
                             <div className="text-sm font-medium text-muted-foreground">{t('platforms')}</div>
                             <div className="text-sm">
-                                {track.platforms && track.platforms.length > 0 
-                                    ? track.platforms.join(', ') 
+                                {track.platforms && track.platforms.length > 0
+                                    ? track.platforms.join(', ')
                                     : t('notAvailable')
                                 }
                             </div>
@@ -262,8 +285,8 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
                             <div className="text-sm font-medium text-muted-foreground">{t('countries')}</div>
                             <div className="text-sm flex items-center gap-1">
                                 <MapPin className="h-3 w-3" />
-                                {track.countries && track.countries.length > 0 
-                                    ? track.countries.join(', ') 
+                                {track.countries && track.countries.length > 0
+                                    ? track.countries.join(', ')
                                     : t('notAvailable')
                                 }
                             </div>
@@ -345,8 +368,8 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
                         <div>
                             <div className="text-sm font-medium text-muted-foreground">{t('reasonStart')}</div>
                             <div className="text-sm">
-                                {track.reasonStart && track.reasonStart.length > 0 
-                                    ? track.reasonStart.join(', ') 
+                                {track.reasonStart && track.reasonStart.length > 0
+                                    ? track.reasonStart.join(', ')
                                     : t('notAvailable')
                                 }
                             </div>
@@ -355,8 +378,8 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
                         <div>
                             <div className="text-sm font-medium text-muted-foreground">{t('reasonEnd')}</div>
                             <div className="text-sm">
-                                {track.reasonEnd && track.reasonEnd.length > 0 
-                                    ? track.reasonEnd.join(', ') 
+                                {track.reasonEnd && track.reasonEnd.length > 0
+                                    ? track.reasonEnd.join(', ')
                                     : t('notAvailable')
                                 }
                             </div>
@@ -364,6 +387,118 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Lista szczegółowych odtworzeń */}
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <CardTitle>Historia odtworzeń</CardTitle>
+                            <CardDescription>Szczegółowe informacje o każdym odtworzeniu</CardDescription>
+                        </div>
+                        <button
+                            onClick={() => {
+                                setShowPlays(!showPlays)
+                                if (!showPlays && plays.length === 0) {
+                                    fetchTrackPlays(1)
+                                }
+                            }}
+                            className="px-4 py-2 text-sm border rounded-md hover:bg-accent hover:text-accent-foreground"
+                        >
+                            {showPlays ? 'Ukryj' : 'Pokaż'} historię ({track.totalPlays})
+                        </button>
+                    </div>
+                </CardHeader>
+
+                {showPlays && (
+                    <CardContent>
+                        {playsLoading ? (
+                            <div className="text-center py-4">
+                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                                <p className="mt-2 text-sm text-muted-foreground">Ładowanie historii...</p>
+                            </div>
+                        ) : plays.length > 0 ? (
+                            <>
+                                <div className="space-y-2">
+                                    {plays.map((play) => (
+                                        <div key={play.id} className="border rounded-lg p-4 space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-4">
+                                                    <div>
+                                                        <div className="font-medium">
+                                                            {new Date(play.timestamp).toLocaleDateString('pl-PL')} {new Date(play.timestamp).toLocaleTimeString('pl-PL')}
+                                                        </div>
+                                                        <div className="text-sm text-muted-foreground">
+                                                            {play.durationMinutes} min • {play.platform} • {play.country}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    {play.shuffle && (
+                                                        <div className="flex items-center gap-1 text-xs bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded">
+                                                            <Shuffle className="h-3 w-3" />
+                                                            Losowo
+                                                        </div>
+                                                    )}
+                                                    {play.offline && (
+                                                        <div className="flex items-center gap-1 text-xs bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+                                                            <WifiOff className="h-3 w-3" />
+                                                            Offline
+                                                        </div>
+                                                    )}
+                                                    {play.incognitoMode && (
+                                                        <div className="flex items-center gap-1 text-xs bg-purple-100 dark:bg-purple-900 px-2 py-1 rounded">
+                                                            <EyeOff className="h-3 w-3" />
+                                                            Incognito
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {(play.reasonStart || play.reasonEnd) && (
+                                                <div className="text-xs text-muted-foreground border-t pt-2">
+                                                    {play.reasonStart && (
+                                                        <div>Start: {play.reasonStart}</div>
+                                                    )}
+                                                    {play.reasonEnd && (
+                                                        <div>Koniec: {play.reasonEnd}</div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {playsPagination.pages > 1 && (
+                                    <div className="flex items-center justify-center gap-2 mt-4">
+                                        <button
+                                            onClick={() => fetchTrackPlays(playsPagination.page - 1)}
+                                            disabled={playsPagination.page <= 1}
+                                            className="px-3 py-1 text-sm border rounded disabled:opacity-50"
+                                        >
+                                            Poprzednia
+                                        </button>
+                                        <span className="text-sm">
+                                            Strona {playsPagination.page} z {playsPagination.pages}
+                                        </span>
+                                        <button
+                                            onClick={() => fetchTrackPlays(playsPagination.page + 1)}
+                                            disabled={playsPagination.page >= playsPagination.pages}
+                                            className="px-3 py-1 text-sm border rounded disabled:opacity-50"
+                                        >
+                                            Następna
+                                        </button>
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <div className="text-center text-muted-foreground py-8">
+                                Nie znaleziono odtworzeń dla tego utworu
+                            </div>
+                        )}
+                    </CardContent>
+                )}
+            </Card>
         </div>
     )
 }

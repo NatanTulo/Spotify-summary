@@ -70,6 +70,7 @@ interface TracksListProps {
         pages: number
     }
     onPageChange?: (page: number) => void
+    onPageSizeChange?: (pageSize: number) => void
     onSort?: (field: string, order: 'asc' | 'desc') => void
     currentSort?: {
         field: string
@@ -83,6 +84,7 @@ export function TracksList({
     profileId,
     pagination,
     onPageChange,
+    onPageSizeChange,
     onSort,
     currentSort
 }: TracksListProps) {
@@ -99,8 +101,8 @@ export function TracksList({
     // Jeśli wybrano utwór do szczegółów, pokaż TrackDetails
     if (selectedTrackForDetails) {
         return (
-            <TrackDetails 
-                trackId={selectedTrackForDetails} 
+            <TrackDetails
+                trackId={selectedTrackForDetails}
                 profileId={profileId}
                 onBack={() => setSelectedTrackForDetails(null)}
             />
@@ -309,8 +311,8 @@ export function TracksList({
                                                             </div>
                                                         ) : columnKey === 'skipPercentage' ? (
                                                             <span className={`font-mono ${track.skipPercentage > 50 ? 'text-red-500' :
-                                                                    track.skipPercentage > 20 ? 'text-yellow-500' :
-                                                                        'text-green-500'
+                                                                track.skipPercentage > 20 ? 'text-yellow-500' :
+                                                                    'text-green-500'
                                                                 }`}>
                                                                 {formatCellValue(track, columnKey)}
                                                             </span>
@@ -381,46 +383,65 @@ export function TracksList({
                         </div>
 
                         {/* Paginacja */}
-                        {pagination && pagination.pages > 1 && (
+                        {pagination && (
                             <div className="flex items-center justify-between mt-4">
-                                <div className="text-sm text-muted-foreground">
-                                    {t('page')} {pagination.page} {t('of')} {pagination.pages}
-                                    ({pagination.total.toLocaleString()} {t('tracksCount')})
+                                <div className="flex items-center gap-4">
+                                    <div className="text-sm text-muted-foreground">
+                                        {t('page')} {pagination.page} {t('of')} {pagination.pages}
+                                        ({pagination.total.toLocaleString()} {t('tracksCount')})
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm text-muted-foreground">Na stronie:</span>
+                                        <select
+                                            value={pagination.limit}
+                                            onChange={(e) => onPageSizeChange?.(parseInt(e.target.value))}
+                                            className="text-sm border rounded px-2 py-1 bg-background"
+                                        >
+                                            <option value={10}>10</option>
+                                            <option value={20}>20</option>
+                                            <option value={50}>50</option>
+                                            <option value={100}>100</option>
+                                            <option value={200}>200</option>
+                                            <option value={500}>500</option>
+                                        </select>
+                                    </div>
                                 </div>
-                                <div className="flex space-x-2">
-                                    <button
-                                        className="px-3 py-1 text-sm border rounded disabled:opacity-50"
-                                        onClick={() => onPageChange?.(pagination.page - 1)}
-                                        disabled={pagination.page <= 1}
-                                    >
-                                        {t('previous')}
-                                    </button>
+                                {pagination.pages > 1 && (
+                                    <div className="flex space-x-2">
+                                        <button
+                                            className="px-3 py-1 text-sm border rounded disabled:opacity-50"
+                                            onClick={() => onPageChange?.(pagination.page - 1)}
+                                            disabled={pagination.page <= 1}
+                                        >
+                                            {t('previous')}
+                                        </button>
 
-                                    {/* Numeracja stron */}
-                                    {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
-                                        const page = Math.max(1, pagination.page - 2) + i
-                                        if (page > pagination.pages) return null
+                                        {/* Numeracja stron */}
+                                        {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
+                                            const page = Math.max(1, pagination.page - 2) + i
+                                            if (page > pagination.pages) return null
 
-                                        return (
-                                            <button
-                                                key={page}
-                                                className={`px-3 py-1 text-sm border rounded ${page === pagination.page ? 'bg-primary text-primary-foreground' : ''
-                                                    }`}
-                                                onClick={() => onPageChange?.(page)}
-                                            >
-                                                {page}
-                                            </button>
-                                        )
-                                    })}
+                                            return (
+                                                <button
+                                                    key={page}
+                                                    className={`px-3 py-1 text-sm border rounded ${page === pagination.page ? 'bg-primary text-primary-foreground' : ''
+                                                        }`}
+                                                    onClick={() => onPageChange?.(page)}
+                                                >
+                                                    {page}
+                                                </button>
+                                            )
+                                        })}
 
-                                    <button
-                                        className="px-3 py-1 text-sm border rounded disabled:opacity-50"
-                                        onClick={() => onPageChange?.(pagination.page + 1)}
-                                        disabled={pagination.page >= pagination.pages}
-                                    >
-                                        {t('next')}
-                                    </button>
-                                </div>
+                                        <button
+                                            className="px-3 py-1 text-sm border rounded disabled:opacity-50"
+                                            onClick={() => onPageChange?.(pagination.page + 1)}
+                                            disabled={pagination.page >= pagination.pages}
+                                        >
+                                            {t('next')}
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </>

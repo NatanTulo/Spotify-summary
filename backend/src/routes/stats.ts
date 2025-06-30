@@ -3,7 +3,7 @@ import { Track } from '../models/Track.js'
 import { Album } from '../models/Album.js'
 import { Artist } from '../models/Artist.js'
 import { Play } from '../models/Play.js'
-import { DailyStats, YearlyStats, CountryStats } from '../models/index.js'
+import { YearlyStats, CountryStats } from '../models/index.js'
 import mongoose from 'mongoose'
 
 const router = express.Router()
@@ -233,74 +233,54 @@ router.get('/timeline', async (req, res) => {
         const { profileId, days = 30 } = req.query
         const daysNum = parseInt(days as string)
 
-        if (profileId) {
-            // Użyj zagregowanych danych dla konkretnego profilu
-            const endDate = new Date()
-            const startDate = new Date()
-            startDate.setDate(endDate.getDate() - daysNum)
+        // Zawsze używaj agregacji na bieżąco - jest bardziej niezawodna
+        const endDate = new Date()
+        const startDate = new Date()
+        startDate.setDate(endDate.getDate() - daysNum)
 
-            const timelineStats = await DailyStats.find({
-                profileId: new mongoose.Types.ObjectId(profileId as string),
-                date: {
-                    $gte: startDate.toISOString().split('T')[0],
-                    $lte: endDate.toISOString().split('T')[0]
-                }
-            })
-                .sort({ date: 1 })
-                .lean()
-
-            const formattedStats = timelineStats.map(stat => ({
-                date: stat.date,
-                plays: stat.totalPlays,
-                minutes: stat.totalMinutes
-            }))
-
-            res.json({
-                success: true,
-                data: formattedStats
-            })
-        } else {
-            // Dla wszystkich profili - agreguj na bieżąco (można dodać cache)
-            const endDate = new Date()
-            const startDate = new Date()
-            startDate.setDate(endDate.getDate() - daysNum)
-
-            const timelineStats = await Play.aggregate([
-                {
-                    $match: {
-                        timestamp: {
-                            $gte: startDate,
-                            $lte: endDate
-                        }
-                    }
-                },
-                {
-                    $group: {
-                        _id: {
-                            $dateToString: {
-                                format: "%Y-%m-%d",
-                                date: "$timestamp"
-                            }
-                        },
-                        plays: { $sum: 1 },
-                        minutes: { $sum: "$msPlayed" }
-                    }
-                },
-                {
-                    $project: {
-                        date: "$_id",
-                        plays: 1,
-                        minutes: { $round: [{ $divide: ["$minutes", 60000] }, 0] }
-                    }
-                },
-                { $sort: { date: 1 } }
-            ])
-
-            res.json({
-                success: true,
-                data: timelineStats
-            })
+        const matchConditions: any = {
+            timestamp: {
+                $gte: startDate,
+                $lte: endDate
+            }
         }
+
+        // Add profile filter if provided
+        if (profileId) {
+            matchConditions.profileId = new mongoose.Types.ObjectId(profileId as string)
+        }
+
+        const timelineStats = await Play.aggregate([
+            {
+                $match: matchConditions
+            },
+            {
+                $group: {
+                    _id: {
+                        $dateToString: {
+                            format: "%Y-%m-%d",
+                            date: "$timestamp"
+                        }
+                    },
+                    plays: { $sum: 1 },
+                    minutes: { $sum: "$msPlayed" }
+                }
+            },
+            {
+                $project: {
+                    date: "$_id",
+                    plays: 1,
+                    minutes: { $round: [{ $divide: ["$minutes", 60000] }, 0] },
+                    _id: 0
+                }
+            },
+            { $sort: { date: 1 } }
+        ])
+
+        res.json({
+            success: true,
+            data: timelineStats
+        })
 
     } catch (error) {
         console.error('Error fetching timeline stats:', error)

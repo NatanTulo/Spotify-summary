@@ -529,4 +529,70 @@ router.get('/:id/timeline', async (req, res) => {
     }
 })
 
+// GET /api/tracks/:id/plays - Szczegółowe odtworzenia utworu
+router.get('/:id/plays', async (req, res) => {
+    try {
+        const { id } = req.params
+        const { profileId, page = 1, limit = 50 } = req.query
+
+        const pageNum = parseInt(page as string, 10)
+        const limitNum = parseInt(limit as string, 10)
+
+        const matchConditions: any = {
+            trackId: new mongoose.Types.ObjectId(id)
+        }
+
+        // Add profile filter if provided
+        if (profileId) {
+            matchConditions.profileId = new mongoose.Types.ObjectId(profileId as string)
+        }
+
+        // Get total count
+        const total = await Play.countDocuments(matchConditions)
+
+        // Get plays with pagination
+        const plays = await Play.find(matchConditions)
+            .sort({ timestamp: -1 }) // Najnowsze najpierw
+            .skip((pageNum - 1) * limitNum)
+            .limit(limitNum)
+            .lean()
+
+        // Format plays data
+        const formattedPlays = plays.map(play => ({
+            id: play._id,
+            timestamp: play.timestamp,
+            msPlayed: play.msPlayed,
+            durationMinutes: Math.round(play.msPlayed / 60000 * 10) / 10,
+            platform: play.platform || 'Unknown',
+            country: play.country || 'Unknown',
+            username: play.username,
+            reasonStart: play.reasonStart,
+            reasonEnd: play.reasonEnd,
+            shuffle: play.shuffle,
+            offline: play.offline,
+            incognitoMode: play.incognitoMode,
+            skipped: play.skipped
+        }))
+
+        res.json({
+            success: true,
+            data: formattedPlays,
+            pagination: {
+                page: pageNum,
+                limit: limitNum,
+                total,
+                pages: Math.ceil(total / limitNum)
+            }
+        })
+
+    } catch (error) {
+        console.error('Error fetching track plays:', error)
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch track plays',
+            message: error instanceof Error ? error.message : 'Unknown error'
+        })
+    }
+})
+
 export default router

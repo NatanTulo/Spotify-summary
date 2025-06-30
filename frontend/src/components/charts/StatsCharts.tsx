@@ -1,4 +1,4 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area, PieChart, Pie, Cell } from 'recharts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 interface PlaysByCountryProps {
@@ -7,15 +7,45 @@ interface PlaysByCountryProps {
         plays: number
         percentage: number
     }>
+    loading?: boolean
 }
 
-export function PlaysByCountryChart({ data }: PlaysByCountryProps) {
+export function PlaysByCountryChart({ data, loading = false }: PlaysByCountryProps) {
     // Sortujemy dane malejąco i pokazujemy wszystkie kraje
     // Dla lepszej czytelności małych wartości używamy poziomego układu
-    const sortedData = [...data].sort((a, b) => b.plays - a.plays)
+    const sortedData = [...(data || [])].sort((a, b) => b.plays - a.plays)
 
-    // Dynamiczna wysokość na podstawie liczby krajów
-    const chartHeight = Math.max(350, sortedData.length * 40)
+    if (loading) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Odtworzenia według krajów</CardTitle>
+                    <CardDescription>Kraje, w których słuchasz muzyki</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex items-center justify-center h-[350px]">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    </div>
+                </CardContent>
+            </Card>
+        )
+    }
+
+    if (sortedData.length === 0) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Odtworzenia według krajów</CardTitle>
+                    <CardDescription>Kraje, w których słuchasz muzyki</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex items-center justify-center h-[350px] text-muted-foreground">
+                        Brak danych do wyświetlenia
+                    </div>
+                </CardContent>
+            </Card>
+        )
+    }
 
     return (
         <Card>
@@ -24,52 +54,30 @@ export function PlaysByCountryChart({ data }: PlaysByCountryProps) {
                 <CardDescription>Kraje, w których słuchasz muzyki</CardDescription>
             </CardHeader>
             <CardContent>
-                <ResponsiveContainer width="100%" height={chartHeight}>
-                    <BarChart
-                        data={sortedData}
-                        layout="horizontal"
-                        margin={{ top: 5, right: 50, left: 80, bottom: 5 }}
-                    >
-                        <CartesianGrid
-                            strokeDasharray="3 3"
-                            stroke="hsl(var(--border))"
-                        />
-                        <XAxis
-                            type="number"
-                            tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }}
-                            axisLine={{ stroke: 'hsl(var(--border))' }}
-                            tickFormatter={(value) => value.toLocaleString()}
-                        />
-                        <YAxis
-                            dataKey="country"
-                            type="category"
-                            width={70}
-                            tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }}
-                            axisLine={{ stroke: 'hsl(var(--border))' }}
-                            interval={0}
-                        />
-                        <Tooltip
-                            formatter={(value: any, _name: string, props: any) => [
-                                `${value.toLocaleString()} odtworzeń (${props.payload.percentage.toFixed(1)}%)`,
-                                'Odtworzenia'
-                            ]}
-                            labelFormatter={(label) => `Kraj: ${label}`}
-                            contentStyle={{
-                                backgroundColor: 'hsl(var(--popover))',
-                                border: '1px solid hsl(var(--border))',
-                                borderRadius: 'var(--radius)',
-                                color: 'hsl(var(--popover-foreground))',
-                                fontSize: '14px',
-                                padding: '8px 12px'
-                            }}
-                        />
-                        <Bar
-                            dataKey="plays"
-                            fill="hsl(var(--primary))"
-                            radius={[0, 4, 4, 0]}
-                        />
-                    </BarChart>
-                </ResponsiveContainer>
+                <div className="space-y-3">
+                    {sortedData.slice(0, 10).map((country, index) => (
+                        <div key={country.country} className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
+                                    {index + 1}
+                                </div>
+                                <span className="font-medium">{country.country}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <div className="text-right">
+                                    <div className="font-semibold">{country.plays.toLocaleString()}</div>
+                                    <div className="text-xs text-muted-foreground">{country.percentage.toFixed(1)}%</div>
+                                </div>
+                                <div className="w-20 h-2 bg-secondary rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-primary rounded-full transition-all duration-300"
+                                        style={{ width: `${Math.min(100, (country.percentage / Math.max(...sortedData.map(c => c.percentage))) * 100)}%` }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </CardContent>
         </Card>
     )
@@ -141,9 +149,42 @@ interface TopArtistsProps {
         plays: number
         minutes: number
     }>
+    loading?: boolean
 }
 
-export function TopArtistsChart({ data }: TopArtistsProps) {
+export function TopArtistsChart({ data, loading = false }: TopArtistsProps) {
+    if (loading) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Top artyści</CardTitle>
+                    <CardDescription>Najczęściej słuchani wykonawcy</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex items-center justify-center h-[300px]">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    </div>
+                </CardContent>
+            </Card>
+        )
+    }
+
+    if (!data || data.length === 0) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Top artyści</CardTitle>
+                    <CardDescription>Najczęściej słuchani wykonawcy</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                        Brak danych do wyświetlenia
+                    </div>
+                </CardContent>
+            </Card>
+        )
+    }
+
     return (
         <Card>
             <CardHeader>
@@ -151,36 +192,32 @@ export function TopArtistsChart({ data }: TopArtistsProps) {
                 <CardDescription>Najczęściej słuchani wykonawcy</CardDescription>
             </CardHeader>
             <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={data} layout="horizontal">
-                        <CartesianGrid
-                            strokeDasharray="3 3"
-                            stroke="hsl(var(--border))"
-                        />
-                        <XAxis
-                            type="number"
-                            tick={{ fill: 'hsl(var(--foreground))' }}
-                            axisLine={{ stroke: 'hsl(var(--border))' }}
-                        />
-                        <YAxis
-                            dataKey="name"
-                            type="category"
-                            width={100}
-                            tick={{ fill: 'hsl(var(--foreground))' }}
-                            axisLine={{ stroke: 'hsl(var(--border))' }}
-                        />
-                        <Tooltip
-                            formatter={(value: any) => [value.toLocaleString(), 'Odtworzenia']}
-                            contentStyle={{
-                                backgroundColor: 'hsl(var(--card))',
-                                border: '1px solid hsl(var(--border))',
-                                borderRadius: 'var(--radius)',
-                                color: 'hsl(var(--foreground))'
-                            }}
-                        />
-                        <Bar dataKey="plays" fill="hsl(var(--primary))" />
-                    </BarChart>
-                </ResponsiveContainer>
+                <div className="space-y-3">
+                    {data.slice(0, 10).map((artist, index) => (
+                        <div key={artist.name} className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
+                                    {index + 1}
+                                </div>
+                                <span className="font-medium truncate max-w-[150px]" title={artist.name}>
+                                    {artist.name}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <div className="text-right">
+                                    <div className="font-semibold">{artist.plays.toLocaleString()}</div>
+                                    <div className="text-xs text-muted-foreground">{artist.minutes.toLocaleString()} min</div>
+                                </div>
+                                <div className="w-20 h-2 bg-secondary rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-primary rounded-full transition-all duration-300"
+                                        style={{ width: `${Math.min(100, (artist.plays / Math.max(...data.map(a => a.plays))) * 100)}%` }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </CardContent>
         </Card>
     )
