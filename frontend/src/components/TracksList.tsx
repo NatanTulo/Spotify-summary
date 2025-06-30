@@ -48,8 +48,18 @@ const availableColumns: ColumnConfig[] = [
     { key: 'albumName', sortable: true, label: { pl: 'Album', en: 'Album' } },
     { key: 'totalPlays', sortable: true, label: { pl: 'Odtworz.', en: 'Plays' } },
     { key: 'totalMinutes', sortable: true, label: { pl: 'Czas (min)', en: 'Time (min)' } },
-    { key: 'avgPlayDuration', sortable: true, format: (val) => `${Math.floor(val / 60)}:${Math.floor(val % 60).toString().padStart(2, '0')}`, label: { pl: 'Śr. czas', en: 'Avg Time' } },
-    { key: 'skipPercentage', sortable: true, format: (val) => `${(val || 0).toFixed(1)}%`, label: { pl: 'Pomiń. (%)', en: 'Skip (%)' } },
+    {
+        key: 'avgPlayDuration', sortable: true, format: (val) => {
+            const duration = Number(val) || 0;
+            return `${Math.floor(duration / 60)}:${Math.floor(duration % 60).toString().padStart(2, '0')}`;
+        }, label: { pl: 'Śr. czas', en: 'Avg Time' }
+    },
+    {
+        key: 'skipPercentage', sortable: true, format: (val) => {
+            const percentage = Number(val) || 0;
+            return `${percentage.toFixed(1)}%`;
+        }, label: { pl: 'Pomiń. (%)', en: 'Skip (%)' }
+    },
     { key: 'firstPlay', sortable: true, format: (val) => val ? new Date(val).toLocaleDateString() : '', label: { pl: 'Pierwsze', en: 'First Play' } },
     { key: 'lastPlay', sortable: true, format: (val) => val ? new Date(val).toLocaleDateString() : '', label: { pl: 'Ostatnie', en: 'Last Play' } },
     { key: 'platforms', sortable: false, format: (val) => val && val.length > 0 ? val.join(', ') : '', label: { pl: 'Platformy', en: 'Platforms' } },

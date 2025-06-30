@@ -67,11 +67,11 @@ router.get('/', async (req, res) => {
                 SELECT 
                     "trackId",
                     COUNT(*) as total_plays,
-                    ROUND(SUM("msPlayed") / 60000.0, 2) as total_minutes,
-                    ROUND(AVG("msPlayed"), 0) as avg_play_duration,
+                    ROUND((SUM("msPlayed") / 60000.0)::numeric, 2) as total_minutes,
+                    ROUND(AVG("msPlayed")::numeric, 0) as avg_play_duration,
                     ROUND(
-                        COUNT(CASE WHEN skipped = true THEN 1 END)::float / 
-                        NULLIF(COUNT(*), 0) * 100, 
+                        (COUNT(CASE WHEN skipped = true THEN 1 END)::float / 
+                        NULLIF(COUNT(*), 0) * 100)::numeric, 
                         2
                     ) as skip_percentage
                 FROM plays 
@@ -120,15 +120,15 @@ router.get('/', async (req, res) => {
                 id: track.albumId,
                 name: track.albumName
             },
-            totalPlays: track.totalPlays,
-            totalMinutes: track.totalMinutes,
-            avgPlayDuration: track.avgPlayDuration,
-            skipPercentage: track.skipPercentage,
+            totalPlays: parseInt(track.totalPlays) || 0,
+            totalMinutes: parseFloat(track.totalMinutes) || 0,
+            avgPlayDuration: parseFloat(track.avgPlayDuration) || 0,
+            skipPercentage: parseFloat(track.skipPercentage) || 0,
             stats: {
-                totalPlays: track.totalPlays,
-                totalMinutes: track.totalMinutes,
-                avgPlayDuration: track.avgPlayDuration,
-                skipPercentage: track.skipPercentage
+                totalPlays: parseInt(track.totalPlays) || 0,
+                totalMinutes: parseFloat(track.totalMinutes) || 0,
+                avgPlayDuration: parseFloat(track.avgPlayDuration) || 0,
+                skipPercentage: parseFloat(track.skipPercentage) || 0
             }
         }))
 
@@ -200,7 +200,7 @@ router.get('/:id', async (req, res) => {
         // Get recent plays
         const recentPlays = await Play.findAll({
             where: playCondition,
-            order: [['playedAt', 'DESC']],
+            order: [['timestamp', 'DESC']],
             limit: 10,
             include: [
                 {
@@ -223,7 +223,7 @@ router.get('/:id', async (req, res) => {
                 },
                 recentPlays: recentPlays.map(play => ({
                     id: play.id,
-                    playedAt: (play as any).playedAt,
+                    playedAt: (play as any).timestamp,
                     msPlayed: play.msPlayed,
                     skipped: play.skipped,
                     platform: play.platform,
@@ -256,8 +256,8 @@ router.get('/:id/timeline', async (req, res) => {
             attributes: [
                 [
                     interval === 'month' ?
-                        fn('DATE_TRUNC', 'month', col('playedAt')) :
-                        fn('DATE_TRUNC', 'day', col('playedAt')),
+                        fn('DATE_TRUNC', 'month', col('timestamp')) :
+                        fn('DATE_TRUNC', 'day', col('timestamp')),
                     'period'
                 ],
                 [fn('COUNT', col('id')), 'plays'],
@@ -312,7 +312,7 @@ router.get('/:id/plays', async (req, res) => {
                     attributes: ['id', 'name']
                 }
             ],
-            order: [['playedAt', 'DESC']],
+            order: [['timestamp', 'DESC']],
             limit: limitNum,
             offset: (pageNum - 1) * limitNum
         })
@@ -321,7 +321,7 @@ router.get('/:id/plays', async (req, res) => {
             success: true,
             data: plays.rows.map(play => ({
                 id: play.id,
-                playedAt: (play as any).playedAt,
+                playedAt: (play as any).timestamp,
                 msPlayed: play.msPlayed,
                 skipped: play.skipped,
                 platform: play.platform,

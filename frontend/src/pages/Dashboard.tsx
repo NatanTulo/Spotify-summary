@@ -49,9 +49,9 @@ const Dashboard = () => {
             if (tracksRes.ok) {
                 const tracksData = await tracksRes.json()
                 setTopTracks(tracksData.data?.map((track: any) => ({
-                    name: track.trackName,
-                    artist: track.artistName,
-                    plays: track.totalPlays
+                    name: track.name,
+                    artist: track.artist?.name || 'Unknown Artist',
+                    plays: parseInt(track.totalPlays) || 0
                 })) || [])
             }
 

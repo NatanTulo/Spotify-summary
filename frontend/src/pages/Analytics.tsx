@@ -134,7 +134,12 @@ export default function Analytics() {
 
             if (timelineRes.ok) {
                 const timelineData = await timelineRes.json()
-                setTimelineData(timelineData.data || [])
+                const mappedData = (timelineData.data || []).map((item: any) => ({
+                    date: item.period,
+                    plays: Number(item.plays) || 0,
+                    minutes: Number(item.totalMinutes) || 0
+                }))
+                setTimelineData(mappedData)
             } else {
                 // Fallback na mock data jeśli endpoint nie działa
                 const timeline = generateTimelineData()
@@ -314,19 +319,19 @@ export default function Analytics() {
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div className="text-center">
                                         <div className="text-2xl font-bold text-spotify-green">
-                                            {timelineData.length > 0 ? Math.round(timelineData.reduce((acc: number, day: any) => acc + day.plays, 0) / timelineData.length) : 0}
+                                            {timelineData.length > 0 ? Math.round(timelineData.reduce((acc: number, day: any) => acc + (Number(day.plays) || 0), 0) / timelineData.length) : 0}
                                         </div>
                                         <div className="text-sm text-muted-foreground">Średnie odtworzenia dziennie</div>
                                     </div>
                                     <div className="text-center">
                                         <div className="text-2xl font-bold text-spotify-green">
-                                            {timelineData.length > 0 ? Math.round(timelineData.reduce((acc: number, day: any) => acc + day.minutes, 0) / timelineData.length) : 0}
+                                            {timelineData.length > 0 ? Math.round(timelineData.reduce((acc: number, day: any) => acc + (Number(day.minutes) || 0), 0) / timelineData.length) : 0}
                                         </div>
                                         <div className="text-sm text-muted-foreground">Średnie minuty dziennie</div>
                                     </div>
                                     <div className="text-center">
                                         <div className="text-2xl font-bold text-spotify-green">
-                                            {timelineData.length > 0 ? Math.max(...timelineData.map((day: any) => day.minutes || 0)) : 0}
+                                            {timelineData.length > 0 ? Math.max(...timelineData.map((day: any) => Number(day.minutes) || 0)) : 0}
                                         </div>
                                         <div className="text-sm text-muted-foreground">Najdłuższa sesja (min)</div>
                                     </div>
