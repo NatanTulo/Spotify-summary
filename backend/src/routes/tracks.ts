@@ -100,6 +100,13 @@ router.get('/', async (req, res) => {
             }
         })
 
+        console.log('Tracks query debug:', {
+            profileId,
+            profileIdType: typeof profileId,
+            foundTracks: tracks.length,
+            firstTrackPlays: tracks[0] ? (tracks[0] as any).totalPlays : 'none'
+        })
+
         const countResult = await sequelize.query(countQuery, {
             type: QueryTypes.SELECT
         }) as any[]
@@ -109,9 +116,13 @@ router.get('/', async (req, res) => {
         // Format the response
         const formattedTracks = tracks.map((track: any) => ({
             id: track.id,
-            name: track.trackName,
+            trackId: track.id.toString(),
+            trackName: track.trackName,
+            name: track.trackName, // Backward compatibility
             duration: track.duration,
             uri: track.uri,
+            artistName: track.artistName,
+            albumName: track.albumName,
             artist: {
                 id: track.artistId,
                 name: track.artistName

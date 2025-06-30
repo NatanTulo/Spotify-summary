@@ -48,8 +48,8 @@ export const connectDB = async (): Promise<void> => {
 
         // Synchronize database in development
         if (process.env.NODE_ENV === 'development') {
-            await sequelize.sync({ alter: true })
-            console.log('✅ Database synchronized')
+            // await sequelize.sync({ alter: true })
+            console.log('✅ Database sync skipped (schema issues)')
         }
 
         // Graceful shutdown
