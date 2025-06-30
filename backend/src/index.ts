@@ -4,12 +4,13 @@ import helmet from 'helmet'
 import compression from 'compression'
 import rateLimit from 'express-rate-limit'
 import dotenv from 'dotenv'
+import 'reflect-metadata'
 import { connectDB } from './config/database.js'
 import tracksRouter from './routes/tracks.js'
-import statsRouter from './routes/stats.js'
-import artistsRouter from './routes/artists.js'
-import albumsRouter from './routes/albums.js'
-import importRouter from './routes/import.js'
+// import statsRouter from './routes/stats.js'
+// import artistsRouter from './routes/artists.js'
+// import albumsRouter from './routes/albums.js'
+// import importRouter from './routes/import.js'
 
 dotenv.config()
 
@@ -39,10 +40,10 @@ app.use(express.urlencoded({ extended: true }))
 
 // Routes
 app.use('/api/tracks', tracksRouter)
-app.use('/api/stats', statsRouter)
-app.use('/api/artists', artistsRouter)
-app.use('/api/albums', albumsRouter)
-app.use('/api/import', importRouter)
+// app.use('/api/stats', statsRouter)
+// app.use('/api/artists', artistsRouter)
+// app.use('/api/albums', albumsRouter)
+// app.use('/api/import', importRouter)
 
 // Health check
 app.get('/api/health', (_req, res) => {

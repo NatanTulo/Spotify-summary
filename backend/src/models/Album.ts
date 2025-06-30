@@ -1,35 +1,41 @@
-import mongoose, { Schema, Document } from 'mongoose'
+import { Table, Column, Model, DataType, CreatedAt, UpdatedAt, PrimaryKey, AutoIncrement, ForeignKey, BelongsTo } from 'sequelize-typescript'
+import { Artist } from './Artist'
 
-export interface IAlbum extends Document {
-    _id: string
-    name: string
-    artistId: mongoose.Types.ObjectId
-    createdAt: Date
-    updatedAt: Date
-}
-
-const albumSchema = new Schema<IAlbum>({
-    name: {
-        type: String,
-        required: true,
-        trim: true,
-        index: true
-    },
-    artistId: {
-        type: Schema.Types.ObjectId,
-        ref: 'Artist',
-        required: true,
-        index: true
-    }
-}, {
+@Table({
+    tableName: 'albums',
     timestamps: true,
-    collection: 'albums'
+    indexes: [
+        {
+            unique: true,
+            fields: ['name', 'artistId']
+        }
+    ]
 })
+export class Album extends Model {
+    @PrimaryKey
+    @AutoIncrement
+    @Column(DataType.INTEGER)
+    id!: number
 
-// Compound index for artist + album name uniqueness
-albumSchema.index({ name: 1, artistId: 1 }, { unique: true })
+    @Column({
+        type: DataType.STRING(500),
+        allowNull: false
+    })
+    name!: string
 
-// Index for search
-albumSchema.index({ name: 'text' })
+    @ForeignKey(() => Artist)
+    @Column({
+        type: DataType.INTEGER,
+        allowNull: false
+    })
+    artistId!: number
 
-export const Album = mongoose.model<IAlbum>('Album', albumSchema)
+    @BelongsTo(() => Artist)
+    artist!: Artist
+
+    @CreatedAt
+    createdAt!: Date
+
+    @UpdatedAt
+    updatedAt!: Date
+}

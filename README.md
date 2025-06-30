@@ -1,6 +1,6 @@
 # Spotify Analytics - Modern Web Application
 
-Nowoczesna aplikacja webowa do analizy danych ze Spotify, przepisana z PHP na React + TypeScript + MongoDB.
+Nowoczesna aplikacja webowa do analizy danych ze Spotify, przepisana z PHP na React + TypeScript + PostgreSQL.
 
 **Aplikacja jest tylko do odczytu** - umożliwia analizę danych ze Spotify GDPR Export bez możliwości edycji lub modyfikacji danych.
 
@@ -27,7 +27,7 @@ Nowoczesna aplikacja webowa do analizy danych ze Spotify, przepisana z PHP na Re
 ### 📈 Dashboard i statystyki
 - **Statystyki roczne i krajowe** - Zagregowane dane z wykresami
 - **Top artyści i albumy** - Najpopularniejsze treści
-- **Timeline analysis** - Historia słuchania w czasie
+- **Timeline analysis** - Historia słuchania w czasie z funkcją zoom
 - **Skip rate analysis** - Analiza pomijanych utworów
 
 ## Technologie
@@ -38,13 +38,14 @@ Nowoczesna aplikacja webowa do analizy danych ze Spotify, przepisana z PHP na Re
 - **Vite** - Szybkie narzędzie budowania
 - **shadcn/ui** - Komponenty UI
 - **Tailwind CSS** - Style i responsywność
-- **React Query** - Zarządzanie stanem serwera
+- **Recharts** - Wykresy z funkcją zoom
 
 ### Backend
 - **Node.js 18+** - Środowisko runtime
 - **Express + TypeScript** - Framework serwera
-- **MongoDB + Mongoose** - Baza danych NoSQL z ODM
+- **PostgreSQL + Sequelize** - Relacyjna baza danych z ORM
 - **Zagregowane statystyki** - Pre-computed models dla wydajności
+- **JSONB support** - Szybkie zapytania na danych JSON
 
 ### Dodatkowe narzędzia
 - **Concurrently** - Równoczesne uruchamianie frontend/backend
@@ -87,7 +88,7 @@ Aplikacja obsługuje wszystkie pola z plików `Streaming_History_Audio_*.json`:
 ## Wymagania systemowe
 
 - **Node.js** 18+ (https://nodejs.org)
-- **MongoDB** 6+ (https://www.mongodb.com/try/download/community)
+- **PostgreSQL** 17+ (https://www.postgresql.org/download/)
 - **Git** (opcjonalnie)
 
 ## 🚀 Instalacja i uruchomienie
@@ -101,9 +102,9 @@ cd spotify-analytics
 # 2. Instalacja wszystkich zależności
 npm run install:all
 
-# 3. Uruchomienie MongoDB (Windows - jako serwis, Linux - systemctl)
-# Windows: MongoDB powinno uruchomić się automatycznie jako serwis
-# Linux: sudo systemctl start mongod
+# 3. Uruchomienie PostgreSQL (Windows - jako serwis, Linux - systemctl)
+# Windows: PostgreSQL powinno uruchomić się automatycznie jako serwis
+# Linux: sudo systemctl start postgresql
 
 # 4. Uruchomienie aplikacji (frontend + backend)
 npm run dev
@@ -115,7 +116,7 @@ Aplikacja będzie dostępna pod adresem: http://localhost:5173
 
 #### 1. Wymagania systemowe
 - **Node.js 18+** - https://nodejs.org (pobierz wersję LTS)
-- **MongoDB 6+** - https://www.mongodb.com/try/download/community
+- **PostgreSQL 17+** - https://www.postgresql.org/download/
 - **Git** (opcjonalnie) - do klonowania repozytorium
 
 #### 2. Instalacja Node.js
@@ -130,20 +131,20 @@ curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
 sudo apt-get install -y nodejs
 ```
 
-#### 3. Instalacja MongoDB
+#### 3. Instalacja PostgreSQL
 **Windows:**
-1. Pobierz MongoDB Community Server z oficjalnej strony
-2. Zainstaluj z opcją "Install MongoDB as a Service"
-3. MongoDB uruchomi się automatycznie
+1. Pobierz PostgreSQL z oficjalnej strony
+2. Zainstaluj z opcją "Install PostgreSQL as a Service"
+3. Zapamiętaj hasło dla użytkownika postgres
+4. Utwórz bazę danych: `createdb -U postgres spotify_analytics`
 
 **Ubuntu/Debian:**
 ```bash
-wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | sudo apt-key add -
-echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
-sudo apt-get update
-sudo apt-get install -y mongodb-org
-sudo systemctl start mongod
-sudo systemctl enable mongod
+sudo apt update
+sudo apt install postgresql postgresql-contrib
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
+sudo -u postgres createdb spotify_analytics
 ```
 
 #### 4. Konfiguracja projektu
@@ -236,7 +237,7 @@ npm start
 ### Dostępne porty
 - **Frontend**: http://localhost:5173 (dev) / http://localhost:5000 (prod)
 - **Backend API**: http://localhost:5000/api
-- **MongoDB**: mongodb://localhost:27017/spotify-analytics
+- **PostgreSQL**: postgresql://localhost:5432/spotify_analytics
 
 ## 🎛️ Instrukcja obsługi
 
@@ -318,7 +319,7 @@ spotify-analytics/
 │       ├── index.ts      # Server entry point
 │       ├── config/
 │       │   └── database.ts
-│       ├── models/       # Mongoose schemas
+│       ├── models/       # Sequelize models
 │       │   ├── Track.ts
 │       │   ├── Artist.ts
 │       │   ├── Album.ts
@@ -441,19 +442,19 @@ taskkill /F /PID (netstat -ano | findstr :5000)
 lsof -ti:5000 | xargs kill -9
 ```
 
-### MongoDB nie uruchamia się
+### PostgreSQL nie uruchamia się
 ```bash
 # Windows - restart serwisu
-net stop MongoDB && net start MongoDB
+net stop postgresql-x64-17 && net start postgresql-x64-17
 
 # Linux
-sudo systemctl restart mongod
-sudo systemctl status mongod
+sudo systemctl restart postgresql
+sudo systemctl status postgresql
 ```
 
 ### Błędy importu danych
 1. Sprawdź czy pliki JSON są w poprawnym formacie Spotify
-2. Upewnij się że MongoDB działa
+2. Upewnij się że PostgreSQL działa i baza danych spotify_analytics istnieje
 3. Sprawdź logi w konsoli podczas importu
 4. Spróbuj wyczyścić bazę: kliknij "Wyczyść dane" w interfejsie
 
@@ -488,7 +489,7 @@ Po zaimportowaniu danych zobaczysz m.in.:
 ## 🔐 Prywatność i bezpieczeństwo
 
 - **Tylko lokalne dane** - nic nie jest wysyłane do zewnętrznych serwerów
-- **Baza danych lokalna** - MongoDB na Twoim komputerze
+- **Baza danych lokalna** - PostgreSQL na Twoim komputerze
 - **Brak rejestracji** - nie potrzebujesz konta ani logowania
 - **Open source** - kod jest dostępny do przeglądu
 - **Read-only** - aplikacja tylko odczytuje dane, nie modyfikuje
@@ -497,19 +498,19 @@ Po zaimportowaniu danych zobaczysz m.in.:
 
 ### Wymagania deweloperskie
 - Node.js 18+
-- MongoDB 6+
+- PostgreSQL 17+
 - Git
 - VS Code (zalecane) z rozszerzeniami TypeScript i React
 
 ### Struktura bazy danych
-- **Kolekcje**: artists, albums, tracks, plays, profiles
-- **Agregowane statystyki**: dailyStats, yearlyStats, countryStats, artistStats
+- **Tabele**: artists, albums, tracks, plays, profiles
+- **Agregowane statystyki**: daily_stats, yearly_stats, country_stats, artist_stats
 - **Indeksy**: Zoptymalizowane dla częstych zapytań
 
 ### Architektura
 - **Frontend**: React SPA z client-side routing
 - **Backend**: RESTful API z Express
-- **Database**: MongoDB z agregowanymi widokami
+- **Database**: PostgreSQL z zagregowanymi widokami
 - **Real-time**: Progress tracking podczas importu
 
 ## 📄 Licencja

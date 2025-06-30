@@ -1,7 +1,6 @@
 import express from 'express'
-import mongoose from 'mongoose'
-import { Track } from '../models/Track.js'
-import { Play } from '../models/Play.js'
+import { Op, fn, col, literal } from 'sequelize'
+import { Track, Album, Artist, Play, Profile } from '../models/index.js'
 
 const router = express.Router()
 
@@ -22,305 +21,123 @@ router.get('/', async (req, res) => {
         const limitNum = parseInt(limit as string)
         const minPlaysNum = parseInt(minPlays as string)
 
-        // Base match condition for plays
-        const playMatchCondition: any = {}
-        if (profileId) {
-            playMatchCondition.profileId = new mongoose.Types.ObjectId(profileId as string)
-        }
+        // Build where condition for search
+        const searchCondition = search ? {
+            [Op.or]: [
+                { name: { [Op.iLike]: `%${search}%` } },
+                { '$album.name$': { [Op.iLike]: `%${search}%` } },
+                { '$album.artist.name$': { [Op.iLike]: `%${search}%` } }
+            ]
+        } : {}
 
-        // Aggregation pipeline
-        const pipeline: any[] = [
-            // Join with albums
-            {
-                $lookup: {
-                    from: 'albums',
-                    localField: 'albumId',
-                    foreignField: '_id',
-                    as: 'album'
-                }
-            },
-            { $unwind: '$album' },
+        // Build where condition for plays
+        const playCondition = profileId ? { profileId } : {}
 
-            // Join with artists
-            {
-                $lookup: {
-                    from: 'artists',
-                    localField: 'album.artistId',
-                    foreignField: '_id',
-                    as: 'artist'
-                }
-            },
-            { $unwind: '$artist' },
-
-            // Join with plays - filter by profile if provided
-            {
-                $lookup: {
-                    from: 'plays',
-                    let: { trackId: '$_id' },
-                    pipeline: [
+        // Get tracks with aggregated data
+        const { rows: tracks, count: totalCount } = await Track.findAndCountAll({
+            include: [
+                {
+                    model: Album,
+                    as: 'album',
+                    include: [
                         {
-                            $match: {
-                                $expr: { $eq: ['$trackId', '$$trackId'] },
-                                ...playMatchCondition
-                            }
+                            model: Artist,
+                            as: 'artist'
                         }
-                    ],
-                    as: 'plays'
-                }
-            },
-
-            // Calculate statistics
-            {
-                $addFields: {
-                    totalPlays: { $size: '$plays' },
-                    totalMinutes: {
-                        $divide: [
-                            { $sum: '$plays.msPlayed' },
-                            60000
-                        ]
-                    },
-                    avgPlayDuration: {
-                        $cond: {
-                            if: { $gt: [{ $size: '$plays' }, 0] },
-                            then: {
-                                $divide: [
-                                    { $avg: '$plays.msPlayed' },
-                                    1000
-                                ]
-                            },
-                            else: 0
-                        }
-                    },
-                    skipPercentage: {
-                        $cond: {
-                            if: { $gt: [{ $size: '$plays' }, 0] },
-                            then: {
-                                $multiply: [
-                                    {
-                                        $divide: [
-                                            { $size: { $filter: { input: '$plays', cond: { $eq: ['$$this.skipped', true] } } } },
-                                            { $size: '$plays' }
-                                        ]
-                                    },
-                                    100
-                                ]
-                            },
-                            else: 0
-                        }
-                    }
-                }
-            },
-
-            // Filter by minimum plays
-            {
-                $match: {
-                    totalPlays: { $gte: minPlaysNum }
-                }
-            },
-
-            // Search filter
-            ...(search ? [{
-                $match: {
-                    $or: [
-                        { name: { $regex: search, $options: 'i' } },
-                        { 'artist.name': { $regex: search, $options: 'i' } },
-                        { 'album.name': { $regex: search, $options: 'i' } }
                     ]
+                },
+                {
+                    model: Play,
+                    as: 'plays',
+                    where: playCondition,
+                    required: false,
+                    attributes: []
                 }
-            }] : []),
+            ],
+            where: searchCondition,
+            attributes: [
+                'id',
+                'name',
+                'duration',
+                'explicit',
+                'popularity',
+                'previewUrl',
+                'spotifyId',
+                [fn('COUNT', col('plays.id')), 'totalPlays'],
+                [fn('COALESCE', fn('SUM', col('plays.msPlayed')), 0), 'totalMsPlayed'],
+                [fn('COALESCE', fn('AVG', col('plays.msPlayed')), 0), 'avgMsPlayed'],
+                [
+                    literal(`COALESCE(
+                        (SELECT COUNT(*)::float / NULLIF(COUNT(plays.id), 0) * 100
+                         FROM plays 
+                         WHERE plays."trackId" = "Track".id 
+                         AND plays.skipped = true
+                         ${profileId ? `AND plays."profileId" = '${profileId}'` : ''}), 
+                        0
+                    )`),
+                    'skipPercentage'
+                ]
+            ],
+            group: [
+                'Track.id',
+                'album.id',
+                'album.artist.id'
+            ],
+            having: literal(`COUNT(plays.id) >= ${minPlaysNum}`),
+            order: [
+                [
+                    sortBy === 'totalPlays' ? fn('COUNT', col('plays.id')) :
+                        sortBy === 'totalMinutes' ? fn('SUM', col('plays.msPlayed')) :
+                            sortBy === 'avgPlayDuration' ? fn('AVG', col('plays.msPlayed')) :
+                                String(sortBy),
+                    String(sortOrder).toUpperCase()
+                ]
+            ],
+            limit: limitNum,
+            offset: (pageNum - 1) * limitNum,
+            subQuery: false,
+            distinct: true
+        })
 
-            // Add detailed fields calculation
-            {
-                $addFields: {
-                    platforms: {
-                        $reduce: {
-                            input: { $filter: { input: '$plays.platform', cond: { $ne: ['$$this', null] } } },
-                            initialValue: [],
-                            in: {
-                                $cond: {
-                                    if: { $in: ['$$this', '$$value'] },
-                                    then: '$$value',
-                                    else: { $concatArrays: ['$$value', ['$$this']] }
-                                }
-                            }
-                        }
-                    },
-                    countries: {
-                        $reduce: {
-                            input: { $filter: { input: '$plays.country', cond: { $ne: ['$$this', null] } } },
-                            initialValue: [],
-                            in: {
-                                $cond: {
-                                    if: { $in: ['$$this', '$$value'] },
-                                    then: '$$value',
-                                    else: { $concatArrays: ['$$value', ['$$this']] }
-                                }
-                            }
-                        }
-                    },
-                    reasonStart: {
-                        $reduce: {
-                            input: { $filter: { input: '$plays.reasonStart', cond: { $ne: ['$$this', null] } } },
-                            initialValue: [],
-                            in: {
-                                $cond: {
-                                    if: { $in: ['$$this', '$$value'] },
-                                    then: '$$value',
-                                    else: { $concatArrays: ['$$value', ['$$this']] }
-                                }
-                            }
-                        }
-                    },
-                    reasonEnd: {
-                        $reduce: {
-                            input: { $filter: { input: '$plays.reasonEnd', cond: { $ne: ['$$this', null] } } },
-                            initialValue: [],
-                            in: {
-                                $cond: {
-                                    if: { $in: ['$$this', '$$value'] },
-                                    then: '$$value',
-                                    else: { $concatArrays: ['$$value', ['$$this']] }
-                                }
-                            }
-                        }
-                    },
-                    firstPlay: { $min: '$plays.timestamp' },
-                    lastPlay: { $max: '$plays.timestamp' },
-                    username: { $first: { $filter: { input: '$plays.username', cond: { $ne: ['$$this', null] } } } },
-                    shuffle: {
-                        $let: {
-                            vars: {
-                                shuffleValues: {
-                                    $filter: {
-                                        input: '$plays.shuffle',
-                                        cond: { $ne: ['$$this', null] }
-                                    }
-                                }
-                            },
-                            in: {
-                                $cond: {
-                                    if: { $gt: [{ $size: '$$shuffleValues' }, 0] },
-                                    then: {
-                                        $gt: [
-                                            { $size: { $filter: { input: '$$shuffleValues', cond: { $eq: ['$$this', true] } } } },
-                                            { $size: { $filter: { input: '$$shuffleValues', cond: { $eq: ['$$this', false] } } } }
-                                        ]
-                                    },
-                                    else: null
-                                }
-                            }
-                        }
-                    },
-                    offline: {
-                        $let: {
-                            vars: {
-                                offlineValues: {
-                                    $filter: {
-                                        input: '$plays.offline',
-                                        cond: { $ne: ['$$this', null] }
-                                    }
-                                }
-                            },
-                            in: {
-                                $cond: {
-                                    if: { $gt: [{ $size: '$$offlineValues' }, 0] },
-                                    then: {
-                                        $gt: [
-                                            { $size: { $filter: { input: '$$offlineValues', cond: { $eq: ['$$this', true] } } } },
-                                            { $size: { $filter: { input: '$$offlineValues', cond: { $eq: ['$$this', false] } } } }
-                                        ]
-                                    },
-                                    else: null
-                                }
-                            }
-                        }
-                    },
-                    incognitoMode: {
-                        $let: {
-                            vars: {
-                                incognitoValues: {
-                                    $filter: {
-                                        input: '$plays.incognitoMode',
-                                        cond: { $ne: ['$$this', null] }
-                                    }
-                                }
-                            },
-                            in: {
-                                $cond: {
-                                    if: { $gt: [{ $size: '$$incognitoValues' }, 0] },
-                                    then: {
-                                        $gt: [
-                                            { $size: { $filter: { input: '$$incognitoValues', cond: { $eq: ['$$this', true] } } } },
-                                            { $size: { $filter: { input: '$$incognitoValues', cond: { $eq: ['$$this', false] } } } }
-                                        ]
-                                    },
-                                    else: null
-                                }
-                            }
-                        }
-                    }
-                }
+        // Format the response
+        const formattedTracks = tracks.map((track: any) => ({
+            id: track.id,
+            name: track.name,
+            duration: track.duration,
+            explicit: track.explicit,
+            popularity: track.popularity,
+            previewUrl: track.previewUrl,
+            spotifyId: track.spotifyId,
+            artist: {
+                id: track.album.artist.id,
+                name: track.album.artist.name,
+                spotifyId: track.album.artist.spotifyId
             },
-
-            // Project final fields
-            {
-                $project: {
-                    trackId: '$_id',
-                    trackName: '$name',
-                    artistName: '$artist.name',
-                    albumName: '$album.name',
-                    uri: 1,
-                    duration: 1,
-                    totalPlays: 1,
-                    totalMinutes: { $round: ['$totalMinutes', 1] },
-                    avgPlayDuration: { $round: ['$avgPlayDuration', 1] },
-                    skipPercentage: { $round: ['$skipPercentage', 1] },
-                    platforms: 1,
-                    countries: 1,
-                    firstPlay: 1,
-                    lastPlay: 1,
-                    username: 1,
-                    reasonStart: 1,
-                    reasonEnd: 1,
-                    shuffle: 1,
-                    offline: 1,
-                    incognitoMode: 1
-                }
+            album: {
+                id: track.album.id,
+                name: track.album.name,
+                spotifyId: track.album.spotifyId,
+                imageUrl: track.album.imageUrl,
+                releaseDate: track.album.releaseDate
             },
-
-            // Sort
-            {
-                $sort: {
-                    [sortBy as string]: sortOrder === 'desc' ? -1 : 1
-                }
+            stats: {
+                totalPlays: parseInt(track.getDataValue('totalPlays')) || 0,
+                totalMinutes: Math.round((parseInt(track.getDataValue('totalMsPlayed')) || 0) / 60000),
+                avgPlayDuration: Math.round((parseInt(track.getDataValue('avgMsPlayed')) || 0) / 1000),
+                skipPercentage: Math.round(parseFloat(track.getDataValue('skipPercentage')) || 0)
             }
-        ]
-
-        // Get total count for pagination
-        const countPipeline = [...pipeline, { $count: 'total' }]
-        const countResult = await Track.aggregate(countPipeline)
-        const total = countResult[0]?.total || 0
-
-        // Add pagination
-        const dataPipeline = [
-            ...pipeline,
-            { $skip: (pageNum - 1) * limitNum },
-            { $limit: limitNum }
-        ]
-
-        const tracks = await Track.aggregate(dataPipeline)
+        }))
 
         res.json({
             success: true,
-            data: tracks,
+            data: formattedTracks,
             pagination: {
                 page: pageNum,
                 limit: limitNum,
-                total,
-                pages: Math.ceil(total / limitNum)
+                total: Array.isArray(totalCount) ? totalCount.length : totalCount,
+                pages: Math.ceil((Array.isArray(totalCount) ? totalCount.length : totalCount) / limitNum)
             }
         })
-
     } catch (error) {
         console.error('Error fetching tracks:', error)
         res.status(500).json({
@@ -331,126 +148,26 @@ router.get('/', async (req, res) => {
     }
 })
 
-// GET /api/tracks/:id - Szczegóły utworu
+// GET /api/tracks/:id - Szczegóły konkretnego utworu
 router.get('/:id', async (req, res) => {
     try {
         const { id } = req.params
+        const { profileId } = req.query
 
-        const pipeline = [
-            { $match: { _id: new mongoose.Types.ObjectId(id) } },
-
-            // Join with albums
-            {
-                $lookup: {
-                    from: 'albums',
-                    localField: 'albumId',
-                    foreignField: '_id',
-                    as: 'album'
-                }
-            },
-            { $unwind: '$album' },
-
-            // Join with artists
-            {
-                $lookup: {
-                    from: 'artists',
-                    localField: 'album.artistId',
-                    foreignField: '_id',
-                    as: 'artist'
-                }
-            },
-            { $unwind: '$artist' },
-
-            // Join with plays
-            {
-                $lookup: {
-                    from: 'plays',
-                    localField: '_id',
-                    foreignField: 'trackId',
-                    as: 'plays'
-                }
-            },
-
-            // Calculate detailed statistics
-            {
-                $addFields: {
-                    totalPlays: { $size: '$plays' },
-                    totalMinutes: { $divide: [{ $sum: '$plays.msPlayed' }, 60000] },
-                    avgPlayDuration: {
-                        $cond: {
-                            if: { $gt: [{ $size: '$plays' }, 0] },
-                            then: { $divide: [{ $avg: '$plays.msPlayed' }, 1000] },
-                            else: 0
+        const track = await Track.findByPk(id, {
+            include: [
+                {
+                    model: Album,
+                    as: 'album',
+                    include: [
+                        {
+                            model: Artist,
+                            as: 'artist'
                         }
-                    },
-                    skipPercentage: {
-                        $cond: {
-                            if: { $gt: [{ $size: '$plays' }, 0] },
-                            then: {
-                                $multiply: [
-                                    {
-                                        $divide: [
-                                            { $size: { $filter: { input: '$plays', cond: { $eq: ['$$this.skipped', true] } } } },
-                                            { $size: '$plays' }
-                                        ]
-                                    },
-                                    100
-                                ]
-                            },
-                            else: 0
-                        }
-                    },
-                    platforms: {
-                        $reduce: {
-                            input: '$plays.platform',
-                            initialValue: [],
-                            in: {
-                                $cond: {
-                                    if: { $in: ['$$this', '$$value'] },
-                                    then: '$$value',
-                                    else: { $concatArrays: ['$$value', ['$$this']] }
-                                }
-                            }
-                        }
-                    },
-                    countries: {
-                        $reduce: {
-                            input: '$plays.country',
-                            initialValue: [],
-                            in: {
-                                $cond: {
-                                    if: { $in: ['$$this', '$$value'] },
-                                    then: '$$value',
-                                    else: { $concatArrays: ['$$value', ['$$this']] }
-                                }
-                            }
-                        }
-                    }
+                    ]
                 }
-            },
-
-            {
-                $project: {
-                    trackId: '$_id',
-                    trackName: '$name',
-                    artistName: '$artist.name',
-                    albumName: '$album.name',
-                    uri: 1,
-                    duration: 1,
-                    totalPlays: 1,
-                    totalMinutes: { $round: ['$totalMinutes', 1] },
-                    avgPlayDuration: { $round: ['$avgPlayDuration', 1] },
-                    skipPercentage: { $round: ['$skipPercentage', 1] },
-                    platforms: 1,
-                    countries: 1,
-                    firstPlay: { $min: '$plays.timestamp' },
-                    lastPlay: { $max: '$plays.timestamp' }
-                }
-            }
-        ]
-
-        const result = await Track.aggregate(pipeline)
-        const track = result[0]
+            ]
+        })
 
         if (!track) {
             return res.status(404).json({
@@ -459,11 +176,58 @@ router.get('/:id', async (req, res) => {
             })
         }
 
-        res.json({
-            success: true,
-            data: track
+        // Get plays statistics
+        const playCondition = profileId ? { profileId, trackId: id } : { trackId: id }
+
+        const playsStats = await Play.findOne({
+            where: playCondition,
+            attributes: [
+                [fn('COUNT', col('id')), 'totalPlays'],
+                [fn('COALESCE', fn('SUM', col('msPlayed')), 0), 'totalMsPlayed'],
+                [fn('COALESCE', fn('AVG', col('msPlayed')), 0), 'avgMsPlayed'],
+                [
+                    literal(`COALESCE(COUNT(CASE WHEN skipped = true THEN 1 END)::float / NULLIF(COUNT(*), 0) * 100, 0)`),
+                    'skipPercentage'
+                ]
+            ],
+            raw: true
         })
 
+        // Get recent plays
+        const recentPlays = await Play.findAll({
+            where: playCondition,
+            order: [['playedAt', 'DESC']],
+            limit: 10,
+            include: [
+                {
+                    model: Profile,
+                    as: 'profile',
+                    attributes: ['id', 'name']
+                }
+            ]
+        })
+
+        res.json({
+            success: true,
+            data: {
+                ...track.toJSON(),
+                stats: {
+                    totalPlays: parseInt((playsStats as any)?.totalPlays as string) || 0,
+                    totalMinutes: Math.round((parseInt((playsStats as any)?.totalMsPlayed as string) || 0) / 60000),
+                    avgPlayDuration: Math.round((parseInt((playsStats as any)?.avgMsPlayed as string) || 0) / 1000),
+                    skipPercentage: Math.round(parseFloat((playsStats as any)?.skipPercentage as string) || 0)
+                },
+                recentPlays: recentPlays.map(play => ({
+                    id: play.id,
+                    playedAt: (play as any).playedAt,
+                    msPlayed: play.msPlayed,
+                    skipped: play.skipped,
+                    platform: play.platform,
+                    country: play.country,
+                    profile: play.profile
+                }))
+            }
+        })
     } catch (error) {
         console.error('Error fetching track details:', error)
         res.status(500).json({
@@ -474,51 +238,42 @@ router.get('/:id', async (req, res) => {
     }
 })
 
-// GET /api/tracks/:id/timeline - Timeline odtworzeń dla konkretnego utworu
+// GET /api/tracks/:id/timeline - Timeline odtwarzania utworu
 router.get('/:id/timeline', async (req, res) => {
     try {
         const { id } = req.params
-        const { profileId } = req.query
+        const { profileId, interval = 'day' } = req.query
 
-        const matchConditions: any = {
-            trackId: new mongoose.Types.ObjectId(id)
-        }
+        const playCondition = profileId ? { profileId, trackId: id } : { trackId: id }
 
-        // Add profile filter if provided
-        if (profileId) {
-            matchConditions.profileId = new mongoose.Types.ObjectId(profileId as string)
-        }
+        // Group plays by time interval
+        const timelineData = await Play.findAll({
+            where: playCondition,
+            attributes: [
+                [
+                    interval === 'month' ?
+                        fn('DATE_TRUNC', 'month', col('playedAt')) :
+                        fn('DATE_TRUNC', 'day', col('playedAt')),
+                    'period'
+                ],
+                [fn('COUNT', col('id')), 'plays'],
+                [fn('COALESCE', fn('SUM', col('msPlayed')), 0), 'totalMsPlayed']
+            ],
+            group: ['period'],
+            order: [['period', 'ASC']],
+            raw: true
+        })
 
-        const timeline = await Play.aggregate([
-            {
-                $match: matchConditions
-            },
-            {
-                $group: {
-                    _id: {
-                        $dateToString: {
-                            format: "%Y-%m-%d",
-                            date: "$timestamp"
-                        }
-                    },
-                    plays: { $sum: 1 }
-                }
-            },
-            {
-                $project: {
-                    date: "$_id",
-                    plays: 1,
-                    _id: 0
-                }
-            },
-            { $sort: { date: 1 } }
-        ])
+        const formattedData = timelineData.map((item: any) => ({
+            period: item.period,
+            plays: parseInt(item.plays),
+            minutes: Math.round(parseInt(item.totalMsPlayed) / 60000)
+        }))
 
         res.json({
             success: true,
-            data: timeline
+            data: formattedData
         })
-
     } catch (error) {
         console.error('Error fetching track timeline:', error)
         res.status(500).json({
@@ -529,62 +284,53 @@ router.get('/:id/timeline', async (req, res) => {
     }
 })
 
-// GET /api/tracks/:id/plays - Szczegółowe odtworzenia utworu
+// GET /api/tracks/:id/plays - Lista odtworzeń utworu
 router.get('/:id/plays', async (req, res) => {
     try {
         const { id } = req.params
-        const { profileId, page = 1, limit = 50 } = req.query
+        const {
+            page = 1,
+            limit = 50,
+            profileId
+        } = req.query
 
-        const pageNum = parseInt(page as string, 10)
-        const limitNum = parseInt(limit as string, 10)
+        const pageNum = parseInt(page as string)
+        const limitNum = parseInt(limit as string)
 
-        const matchConditions: any = {
-            trackId: new mongoose.Types.ObjectId(id)
-        }
+        const playCondition = profileId ? { profileId, trackId: id } : { trackId: id }
 
-        // Add profile filter if provided
-        if (profileId) {
-            matchConditions.profileId = new mongoose.Types.ObjectId(profileId as string)
-        }
-
-        // Get total count
-        const total = await Play.countDocuments(matchConditions)
-
-        // Get plays with pagination
-        const plays = await Play.find(matchConditions)
-            .sort({ timestamp: -1 }) // Najnowsze najpierw
-            .skip((pageNum - 1) * limitNum)
-            .limit(limitNum)
-            .lean()
-
-        // Format plays data
-        const formattedPlays = plays.map(play => ({
-            id: play._id,
-            timestamp: play.timestamp,
-            msPlayed: play.msPlayed,
-            durationMinutes: Math.round(play.msPlayed / 60000 * 10) / 10,
-            platform: play.platform || 'Unknown',
-            country: play.country || 'Unknown',
-            username: play.username,
-            reasonStart: play.reasonStart,
-            reasonEnd: play.reasonEnd,
-            shuffle: play.shuffle,
-            offline: play.offline,
-            incognitoMode: play.incognitoMode,
-            skipped: play.skipped
-        }))
+        const plays = await Play.findAndCountAll({
+            where: playCondition,
+            include: [
+                {
+                    model: Profile,
+                    as: 'profile',
+                    attributes: ['id', 'name']
+                }
+            ],
+            order: [['playedAt', 'DESC']],
+            limit: limitNum,
+            offset: (pageNum - 1) * limitNum
+        })
 
         res.json({
             success: true,
-            data: formattedPlays,
+            data: plays.rows.map(play => ({
+                id: play.id,
+                playedAt: (play as any).playedAt,
+                msPlayed: play.msPlayed,
+                skipped: play.skipped,
+                platform: play.platform,
+                country: play.country,
+                profile: play.profile
+            })),
             pagination: {
                 page: pageNum,
                 limit: limitNum,
-                total,
-                pages: Math.ceil(total / limitNum)
+                total: plays.count,
+                pages: Math.ceil(plays.count / limitNum)
             }
         })
-
     } catch (error) {
         console.error('Error fetching track plays:', error)
         res.status(500).json({

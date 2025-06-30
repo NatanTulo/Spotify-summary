@@ -1,48 +1,82 @@
-import mongoose from 'mongoose'
+import { Column, Model, Table, DataType, ForeignKey, BelongsTo, Index } from 'sequelize-typescript'
+import { Profile } from './Profile.js'
 
-const dailyStatsSchema = new mongoose.Schema({
-    profileId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Profile',
-        required: true,
-        index: true
-    },
-    date: {
-        type: String, // Format: YYYY-MM-DD
-        required: true,
-        index: true
-    },
-    totalPlays: {
-        type: Number,
-        default: 0
-    },
-    totalMinutes: {
-        type: Number,
-        default: 0
-    },
-    uniqueTracks: {
-        type: Number,
-        default: 0
-    },
-    uniqueArtists: {
-        type: Number,
-        default: 0
-    },
-    topArtist: {
-        name: String,
-        plays: Number
-    },
-    topTrack: {
-        name: String,
-        artist: String,
-        plays: Number
-    }
-}, {
-    timestamps: true
+interface TopArtist {
+    name: string
+    plays: number
+}
+
+interface TopTrack {
+    name: string
+    artist: string
+    plays: number
+}
+
+@Table({
+    tableName: 'daily_stats',
+    timestamps: true,
+    indexes: [
+        {
+            unique: true,
+            fields: ['profileId', 'date']
+        },
+        {
+            fields: ['date', 'profileId']
+        }
+    ]
 })
+export class DailyStats extends Model {
+    @ForeignKey(() => Profile)
+    @Column({
+        type: DataType.INTEGER,
+        allowNull: false
+    })
+    @Index
+    profileId!: number
 
-// Compound index dla wydajnych zapytań
-dailyStatsSchema.index({ profileId: 1, date: 1 }, { unique: true })
-dailyStatsSchema.index({ date: 1, profileId: 1 })
+    @Column({
+        type: DataType.DATEONLY,
+        allowNull: false
+    })
+    @Index
+    date!: string
 
-export const DailyStats = mongoose.model('DailyStats', dailyStatsSchema)
+    @Column({
+        type: DataType.INTEGER,
+        defaultValue: 0
+    })
+    totalPlays!: number
+
+    @Column({
+        type: DataType.INTEGER,
+        defaultValue: 0
+    })
+    totalMinutes!: number
+
+    @Column({
+        type: DataType.INTEGER,
+        defaultValue: 0
+    })
+    uniqueTracks!: number
+
+    @Column({
+        type: DataType.INTEGER,
+        defaultValue: 0
+    })
+    uniqueArtists!: number
+
+    @Column({
+        type: DataType.JSONB,
+        allowNull: true
+    })
+    topArtist?: TopArtist
+
+    @Column({
+        type: DataType.JSONB,
+        allowNull: true
+    })
+    topTrack?: TopTrack
+
+    @BelongsTo(() => Profile)
+    profile!: Profile
+}

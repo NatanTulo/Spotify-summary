@@ -4,13 +4,12 @@
         "lib": [
             "ES2020"
         ],
-        "module": "ESNext",
+        "module": "CommonJS",
         "skipLibCheck": true,
-        "moduleResolution": "bundler",
-        "allowImportingTsExtensions": true,
+        "moduleResolution": "node",
         "resolveJsonModule": true,
         "isolatedModules": true,
-        "noEmit": true,
+        "noEmit": false,
         "strict": true,
         "noUnusedLocals": true,
         "noUnusedParameters": true,
@@ -20,7 +19,9 @@
         "forceConsistentCasingInFileNames": true,
         "declaration": true,
         "outDir": "./dist",
-        "rootDir": "./src"
+        "rootDir": "./src",
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true
     },
     "include": [
         "src/**/*"

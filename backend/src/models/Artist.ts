@@ -1,26 +1,25 @@
-import mongoose, { Schema, Document } from 'mongoose'
+import { Table, Column, Model, DataType, CreatedAt, UpdatedAt, PrimaryKey, AutoIncrement } from 'sequelize-typescript'
 
-export interface IArtist extends Document {
-    _id: string
-    name: string
-    createdAt: Date
-    updatedAt: Date
-}
-
-const artistSchema = new Schema<IArtist>({
-    name: {
-        type: String,
-        required: true,
-        unique: true,
-        trim: true,
-        index: true
-    }
-}, {
-    timestamps: true,
-    collection: 'artists'
+@Table({
+    tableName: 'artists',
+    timestamps: true
 })
+export class Artist extends Model {
+    @PrimaryKey
+    @AutoIncrement
+    @Column(DataType.INTEGER)
+    id!: number
 
-// Index for search
-artistSchema.index({ name: 'text' })
+    @Column({
+        type: DataType.STRING(500),
+        allowNull: false,
+        unique: true
+    })
+    name!: string
 
-export const Artist = mongoose.model<IArtist>('Artist', artistSchema)
+    @CreatedAt
+    createdAt!: Date
+
+    @UpdatedAt
+    updatedAt!: Date
+}

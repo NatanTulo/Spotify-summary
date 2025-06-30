@@ -1,46 +1,59 @@
-import mongoose, { Schema, Document } from 'mongoose'
+import { Table, Column, Model, DataType, CreatedAt, UpdatedAt, PrimaryKey, AutoIncrement, ForeignKey, BelongsTo } from 'sequelize-typescript'
+import { Album } from './Album'
 
-export interface ITrack extends Document {
-    _id: string
-    name: string
-    albumId: mongoose.Types.ObjectId
-    uri?: string
-    duration?: number
-    createdAt: Date
-    updatedAt: Date
-}
-
-const trackSchema = new Schema<ITrack>({
-    name: {
-        type: String,
-        required: true,
-        trim: true,
-        index: true
-    },
-    albumId: {
-        type: Schema.Types.ObjectId,
-        ref: 'Album',
-        required: true,
-        index: true
-    },
-    uri: {
-        type: String,
-        sparse: true,
-        index: true
-    },
-    duration: {
-        type: Number,
-        min: 0
-    }
-}, {
+@Table({
+    tableName: 'tracks',
     timestamps: true,
-    collection: 'tracks'
+    indexes: [
+        {
+            unique: true,
+            fields: ['name', 'albumId']
+        },
+        {
+            fields: ['uri']
+        }
+    ]
 })
+export class Track extends Model {
+    @PrimaryKey
+    @AutoIncrement
+    @Column(DataType.INTEGER)
+    id!: number
 
-// Compound index for album + track name uniqueness
-trackSchema.index({ name: 1, albumId: 1 }, { unique: true })
+    @Column({
+        type: DataType.STRING(500),
+        allowNull: false
+    })
+    name!: string
 
-// Index for search
-trackSchema.index({ name: 'text' })
+    @ForeignKey(() => Album)
+    @Column({
+        type: DataType.INTEGER,
+        allowNull: false
+    })
+    albumId!: number
 
-export const Track = mongoose.model<ITrack>('Track', trackSchema)
+    @Column({
+        type: DataType.TEXT,
+        allowNull: true
+    })
+    uri?: string
+
+    @Column({
+        type: DataType.INTEGER,
+        allowNull: true,
+        validate: {
+            min: 0
+        }
+    })
+    duration?: number
+
+    @BelongsTo(() => Album)
+    album!: Album
+
+    @CreatedAt
+    createdAt!: Date
+
+    @UpdatedAt
+    updatedAt!: Date
+}

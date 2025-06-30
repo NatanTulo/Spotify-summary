@@ -1,46 +1,57 @@
-import mongoose, { Schema, Document } from 'mongoose'
+import { Table, Column, Model, DataType, CreatedAt, UpdatedAt, PrimaryKey, AutoIncrement } from 'sequelize-typescript'
 
-export interface IProfile extends Document {
-    _id: string
-    name: string
+@Table({
+    tableName: 'profiles',
+    timestamps: true
+})
+export class Profile extends Model {
+    @PrimaryKey
+    @AutoIncrement
+    @Column(DataType.INTEGER)
+    id!: number
+
+    @Column({
+        type: DataType.STRING(255),
+        allowNull: false,
+        unique: true
+    })
+    name!: string
+
+    @Column({
+        type: DataType.STRING(255),
+        allowNull: true
+    })
     username?: string
+
+    @Column({
+        type: DataType.DATE,
+        allowNull: true
+    })
     lastImport?: Date
-    statistics: {
+
+    // Statistics stored as JSONB for better performance
+    @Column({
+        type: DataType.JSONB,
+        allowNull: false,
+        defaultValue: {
+            totalPlays: 0,
+            totalMinutes: 0,
+            uniqueTracks: 0,
+            uniqueArtists: 0,
+            uniqueAlbums: 0
+        }
+    })
+    statistics!: {
         totalPlays: number
         totalMinutes: number
         uniqueTracks: number
         uniqueArtists: number
         uniqueAlbums: number
     }
-    createdAt: Date
-    updatedAt: Date
+
+    @CreatedAt
+    createdAt!: Date
+
+    @UpdatedAt
+    updatedAt!: Date
 }
-
-const profileSchema = new Schema<IProfile>({
-    name: {
-        type: String,
-        required: true,
-        unique: true,
-        trim: true,
-        index: true
-    },
-    username: {
-        type: String,
-        trim: true
-    },
-    lastImport: {
-        type: Date
-    },
-    statistics: {
-        totalPlays: { type: Number, default: 0 },
-        totalMinutes: { type: Number, default: 0 },
-        uniqueTracks: { type: Number, default: 0 },
-        uniqueArtists: { type: Number, default: 0 },
-        uniqueAlbums: { type: Number, default: 0 }
-    }
-}, {
-    timestamps: true,
-    collection: 'profiles'
-})
-
-export const Profile = mongoose.model<IProfile>('Profile', profileSchema)

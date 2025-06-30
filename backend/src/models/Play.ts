@@ -1,111 +1,142 @@
-import mongoose, { Schema, Document } from 'mongoose'
+import { Table, Column, Model, DataType, CreatedAt, UpdatedAt, PrimaryKey, AutoIncrement, ForeignKey, BelongsTo } from 'sequelize-typescript'
+import { Track } from './Track'
+import { Profile } from './Profile'
 
-export interface IPlay extends Document {
-    _id: string
-    trackId: mongoose.Types.ObjectId
-    profileId?: mongoose.Types.ObjectId
-    timestamp: Date
-    msPlayed: number
-    username?: string
-    platform?: string
-    country?: string
-    ipAddress?: string
-    userAgent?: string
-    reasonStart?: string
-    reasonEnd?: string
-    shuffle?: boolean
-    skipped?: boolean
-    offline?: boolean
-    offlineTimestamp?: Date
-    incognitoMode?: boolean
-    createdAt: Date
-    updatedAt: Date
-}
-
-const playSchema = new Schema<IPlay>({
-    trackId: {
-        type: Schema.Types.ObjectId,
-        ref: 'Track',
-        required: true,
-        index: true
-    },
-    profileId: {
-        type: Schema.Types.ObjectId,
-        ref: 'Profile',
-        index: true
-    },
-    timestamp: {
-        type: Date,
-        required: true,
-        index: true
-    },
-    msPlayed: {
-        type: Number,
-        required: true,
-        min: 0,
-        index: true
-    },
-    username: {
-        type: String,
-        trim: true
-    },
-    platform: {
-        type: String,
-        trim: true,
-        index: true
-    },
-    country: {
-        type: String,
-        trim: true,
-        index: true,
-        uppercase: true,
-        maxlength: 2
-    },
-    ipAddress: {
-        type: String,
-        trim: true
-    },
-    userAgent: {
-        type: String,
-        trim: true
-    },
-    reasonStart: {
-        type: String,
-        trim: true
-    },
-    reasonEnd: {
-        type: String,
-        trim: true
-    },
-    shuffle: {
-        type: Boolean,
-        index: true
-    },
-    skipped: {
-        type: Boolean,
-        index: true
-    },
-    offline: {
-        type: Boolean,
-        index: true
-    },
-    offlineTimestamp: {
-        type: Date
-    },
-    incognitoMode: {
-        type: Boolean,
-        index: true
-    }
-}, {
+@Table({
+    tableName: 'plays',
     timestamps: true,
-    collection: 'plays'
+    indexes: [
+        { fields: ['trackId', 'timestamp'] },
+        { fields: ['timestamp', 'country'] },
+        { fields: ['timestamp', 'platform'] },
+        { fields: ['profileId', 'timestamp'] },
+        { fields: ['profileId', 'trackId'] },
+        { fields: ['timestamp'] },
+        { fields: ['msPlayed'] },
+        { fields: ['platform'] },
+        { fields: ['country'] },
+        { fields: ['shuffle'] },
+        { fields: ['skipped'] },
+        { fields: ['offline'] },
+        { fields: ['incognitoMode'] }
+    ]
 })
+export class Play extends Model {
+    @PrimaryKey
+    @AutoIncrement
+    @Column(DataType.INTEGER)
+    id!: number
 
-// Compound indexes for common queries
-playSchema.index({ trackId: 1, timestamp: -1 })
-playSchema.index({ timestamp: -1, country: 1 })
-playSchema.index({ timestamp: -1, platform: 1 })
-playSchema.index({ profileId: 1, timestamp: -1 })
-playSchema.index({ profileId: 1, trackId: 1 })
+    @ForeignKey(() => Track)
+    @Column({
+        type: DataType.INTEGER,
+        allowNull: false
+    })
+    trackId!: number
 
-export const Play = mongoose.model<IPlay>('Play', playSchema)
+    @ForeignKey(() => Profile)
+    @Column({
+        type: DataType.INTEGER,
+        allowNull: true
+    })
+    profileId?: number
+
+    @Column({
+        type: DataType.DATE,
+        allowNull: false
+    })
+    timestamp!: Date
+
+    @Column({
+        type: DataType.INTEGER,
+        allowNull: false,
+        validate: {
+            min: 0
+        }
+    })
+    msPlayed!: number
+
+    @Column({
+        type: DataType.STRING(255),
+        allowNull: true
+    })
+    username?: string
+
+    @Column({
+        type: DataType.STRING(255),
+        allowNull: true
+    })
+    platform?: string
+
+    @Column({
+        type: DataType.STRING(2),
+        allowNull: true
+    })
+    country?: string
+
+    @Column({
+        type: DataType.STRING(45),
+        allowNull: true
+    })
+    ipAddress?: string
+
+    @Column({
+        type: DataType.TEXT,
+        allowNull: true
+    })
+    userAgent?: string
+
+    @Column({
+        type: DataType.STRING(100),
+        allowNull: true
+    })
+    reasonStart?: string
+
+    @Column({
+        type: DataType.STRING(100),
+        allowNull: true
+    })
+    reasonEnd?: string
+
+    @Column({
+        type: DataType.BOOLEAN,
+        allowNull: true
+    })
+    shuffle?: boolean
+
+    @Column({
+        type: DataType.BOOLEAN,
+        allowNull: true
+    })
+    skipped?: boolean
+
+    @Column({
+        type: DataType.BOOLEAN,
+        allowNull: true
+    })
+    offline?: boolean
+
+    @Column({
+        type: DataType.DATE,
+        allowNull: true
+    })
+    offlineTimestamp?: Date
+
+    @Column({
+        type: DataType.BOOLEAN,
+        allowNull: true
+    })
+    incognitoMode?: boolean
+
+    @BelongsTo(() => Track)
+    track!: Track
+
+    @BelongsTo(() => Profile)
+    profile!: Profile
+
+    @CreatedAt
+    createdAt!: Date
+
+    @UpdatedAt
+    updatedAt!: Date
+}
