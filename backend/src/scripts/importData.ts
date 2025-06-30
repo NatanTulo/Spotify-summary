@@ -1,7 +1,8 @@
 import fs from 'fs'
 import path from 'path'
 import dotenv from 'dotenv'
-import { connectDB } from '../config/database.js'
+import { connectDB, sequelize } from '../config/database.js'
+import { QueryTypes } from 'sequelize'
 import { Artist } from '../models/Artist.js'
 import { Album } from '../models/Album.js'
 import { Track } from '../models/Track.js'
@@ -421,7 +422,9 @@ class SpotifyDataImporter {
         const [
             totalPlays,
             totalMsPlayed,
-            uniqueTracks
+            uniqueTracks,
+            uniqueArtists,
+            uniqueAlbums
         ] = await Promise.all([
             Play.count({ where: { profileId: this.profileId } }),
             Play.sum('msPlayed', { where: { profileId: this.profileId } }),
@@ -429,14 +432,42 @@ class SpotifyDataImporter {
                 where: { profileId: this.profileId },
                 distinct: true,
                 col: 'trackId'
-            })
+            }),
+            // Policz unikalnych artystów
+            sequelize.query(`
+                SELECT COUNT(DISTINCT artists.id) as count 
+                FROM plays 
+                JOIN tracks ON plays."trackId" = tracks.id
+                JOIN albums ON tracks."albumId" = albums.id  
+                JOIN artists ON albums."artistId" = artists.id
+                WHERE plays."profileId" = :profileId
+            `, {
+                replacements: { profileId: this.profileId },
+                type: QueryTypes.SELECT
+            }).then(result => parseInt((result[0] as any).count)),
+            // Policz unikalne albumy
+            sequelize.query(`
+                SELECT COUNT(DISTINCT albums.id) as count 
+                FROM plays 
+                JOIN tracks ON plays."trackId" = tracks.id
+                JOIN albums ON tracks."albumId" = albums.id  
+                WHERE plays."profileId" = :profileId
+            `, {
+                replacements: { profileId: this.profileId },
+                type: QueryTypes.SELECT
+            }).then(result => parseInt((result[0] as any).count))
         ])
 
+        // Aktualizuj pole statistics w profilu
         await Profile.update({
-            totalPlays: totalPlays || 0,
-            totalMinutes: Math.round((totalMsPlayed || 0) / 60000),
-            uniqueTracks: uniqueTracks || 0,
-            updatedAt: new Date()
+            statistics: {
+                totalPlays: totalPlays || 0,
+                totalMinutes: Math.round((totalMsPlayed || 0) / 60000),
+                uniqueTracks: uniqueTracks || 0,
+                uniqueArtists: uniqueArtists || 0,
+                uniqueAlbums: uniqueAlbums || 0
+            },
+            lastImport: new Date()
         }, {
             where: { id: this.profileId }
         })

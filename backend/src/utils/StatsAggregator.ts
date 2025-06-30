@@ -1,8 +1,6 @@
 import { DailyStats, YearlyStats, CountryStats, ArtistStats, Play } from '../models/index.js'
-import { Track } from '../models/Track.js'
-import { Album } from '../models/Album.js'
-import { Artist } from '../models/Artist.js'
-import { fn, col, Op, literal } from 'sequelize'
+import { fn, col, Op, literal, QueryTypes } from 'sequelize'
+import { sequelize } from '../config/database.js'
 
 export class StatsAggregator {
     private profileId: number
@@ -161,44 +159,29 @@ export class StatsAggregator {
     private async aggregateArtistStats(): Promise<void> {
         console.log('🎤 Aggregating artist stats...')
 
-        // Najpierw pobieramy dane o artystach
-        const artistData = await Play.findAll({
-            where: { profileId: this.profileId },
-            include: [
-                {
-                    model: Track,
-                    as: 'track',
-                    include: [
-                        {
-                            model: Album,
-                            as: 'album',
-                            include: [
-                                {
-                                    model: Artist,
-                                    as: 'artist'
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ],
-            attributes: [
-                [fn('COUNT', col('Play.id')), 'totalPlays'],
-                [fn('SUM', col('Play.msPlayed')), 'totalMsPlayed']
-            ],
-            group: [
-                'track.album.artist.id',
-                'track.album.artist.name'
-            ],
-            order: [[fn('COUNT', col('Play.id')), 'DESC']],
-            raw: true
+        // Używamy surowego SQL query dla lepszej kontroli
+        const [artistData] = await sequelize.query(`
+            SELECT 
+                artists.name as artist_name,
+                COUNT(plays.id) as total_plays,
+                SUM(plays."msPlayed") as total_ms_played
+            FROM plays
+            JOIN tracks ON plays."trackId" = tracks.id
+            JOIN albums ON tracks."albumId" = albums.id  
+            JOIN artists ON albums."artistId" = artists.id
+            WHERE plays."profileId" = :profileId
+            GROUP BY artists.id, artists.name
+            ORDER BY COUNT(plays.id) DESC
+        `, {
+            replacements: { profileId: this.profileId },
+            type: QueryTypes.SELECT
         })
 
         const artistStats = (artistData as any[]).map(artist => ({
             profileId: this.profileId,
-            artistName: artist['track.album.artist.name'],
-            totalPlays: parseInt(artist.totalPlays),
-            totalMinutes: Math.round(parseInt(artist.totalMsPlayed) / 60000),
+            artistName: artist.artist_name,
+            totalPlays: parseInt(artist.total_plays),
+            totalMinutes: Math.round(parseInt(artist.total_ms_played) / 60000),
             createdAt: new Date(),
             updatedAt: new Date()
         }))

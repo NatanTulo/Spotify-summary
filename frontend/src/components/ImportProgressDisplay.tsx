@@ -44,7 +44,7 @@ export const ImportProgressDisplay = ({ profileName, onClose, className }: Impor
     const fetchProgress = async () => {
         try {
             const url = profileName
-                ? `/api/import/progress?profileName=${profileName}`
+                ? `/api/import/progress/${profileName}`
                 : '/api/import/progress'
 
             const response = await fetch(url)

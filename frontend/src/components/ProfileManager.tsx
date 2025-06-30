@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Button } from './ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Calendar, User, Play, Clock, Music, Users } from 'lucide-react'
+import { ImportProgressDisplay } from './ImportProgressDisplay'
 
 interface Profile {
     _id: string
@@ -37,13 +38,14 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
     const [availableProfiles, setAvailableProfiles] = useState<Array<{ name: string, files: any[] }>>([])
     const [isLoadingProfiles, setIsLoadingProfiles] = useState(false)
     const [importingProfile, setImportingProfile] = useState<string | null>(null)
+    const [activeImportProfile, setActiveImportProfile] = useState<string | null>(null)
 
     const fetchProfiles = async () => {
         setIsLoadingProfiles(true)
         try {
-            const [profilesRes, statusRes] = await Promise.all([
+            const [profilesRes, availableRes] = await Promise.all([
                 fetch('/api/import/profiles'),
-                fetch('/api/import/status')
+                fetch('/api/import/available')
             ])
 
             if (profilesRes.ok) {
@@ -51,9 +53,9 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                 setProfiles(profilesData.data || [])
             }
 
-            if (statusRes.ok) {
-                const statusData = await statusRes.json()
-                setAvailableProfiles(statusData.data?.profiles || [])
+            if (availableRes.ok) {
+                const availableData = await availableRes.json()
+                setAvailableProfiles(availableData.data || [])
             }
         } catch (error) {
             console.error('Error fetching profiles:', error)
@@ -74,6 +76,10 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
             })
 
             if (response.ok) {
+                const data = await response.json()
+                if (data.success && data.data.importStarted) {
+                    setActiveImportProfile(profileName)
+                }
                 onImportProfile(profileName)
                 // Refresh profiles after a delay to allow import to start
                 setTimeout(fetchProfiles, 2000)
@@ -162,6 +168,14 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                 </CardContent>
             </Card>
 
+            {/* Active Import Progress */}
+            {activeImportProfile && (
+                <ImportProgressDisplay
+                    profileName={activeImportProfile}
+                    onClose={() => setActiveImportProfile(null)}
+                />
+            )}
+
             {/* Available Data Sources */}
             {availableProfiles.length > 0 && (
                 <Card>
@@ -241,19 +255,19 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                                     <div className="grid grid-cols-2 gap-2 text-sm">
                                         <div className="flex items-center gap-1">
                                             <Play className="h-3 w-3" />
-                                            {profile.statistics.totalPlays.toLocaleString()} odtworzeń
+                                            {(profile.statistics?.totalPlays || 0).toLocaleString()} odtworzeń
                                         </div>
                                         <div className="flex items-center gap-1">
                                             <Clock className="h-3 w-3" />
-                                            {formatDuration(profile.statistics.totalMinutes)}
+                                            {formatDuration(profile.statistics?.totalMinutes || 0)}
                                         </div>
                                         <div className="flex items-center gap-1">
                                             <Music className="h-3 w-3" />
-                                            {profile.statistics.uniqueTracks.toLocaleString()} utworów
+                                            {(profile.statistics?.uniqueTracks || 0).toLocaleString()} utworów
                                         </div>
                                         <div className="flex items-center gap-1">
                                             <User className="h-3 w-3" />
-                                            {profile.statistics.uniqueArtists.toLocaleString()} artystów
+                                            {(profile.statistics?.uniqueArtists || 0).toLocaleString()} artystów
                                         </div>
                                     </div>
                                 </div>
