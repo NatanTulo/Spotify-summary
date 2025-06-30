@@ -1,7 +1,14 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
-const COLORS = ['#1DB954', '#191414', '#1ed760', '#1aa34a', '#169c46', '#137d3c']
+const COLORS = [
+    'hsl(var(--chart-1))',
+    'hsl(var(--chart-2))',
+    'hsl(var(--chart-3))',
+    'hsl(var(--chart-4))',
+    'hsl(var(--chart-5))',
+    'hsl(var(--primary))'
+]
 
 interface PlaysByCountryProps {
     data: Array<{
@@ -35,7 +42,15 @@ export function PlaysByCountryChart({ data }: PlaysByCountryProps) {
                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                             ))}
                         </Pie>
-                        <Tooltip formatter={(value: any) => [value.toLocaleString(), 'Odtworzenia']} />
+                        <Tooltip
+                            formatter={(value: any) => [value.toLocaleString(), 'Odtworzenia']}
+                            contentStyle={{
+                                backgroundColor: 'hsl(var(--card))',
+                                border: '1px solid hsl(var(--border))',
+                                borderRadius: 'var(--radius)',
+                                color: 'hsl(var(--foreground))'
+                            }}
+                        />
                     </PieChart>
                 </ResponsiveContainer>
             </CardContent>
@@ -62,18 +77,40 @@ export function YearlyStatsChart({ data }: YearlyStatsProps) {
             <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={data}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="year" />
-                        <YAxis yAxisId="left" />
-                        <YAxis yAxisId="right" orientation="right" />
+                        <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="hsl(var(--border))"
+                        />
+                        <XAxis
+                            dataKey="year"
+                            tick={{ fill: 'hsl(var(--foreground))' }}
+                            axisLine={{ stroke: 'hsl(var(--border))' }}
+                        />
+                        <YAxis
+                            yAxisId="left"
+                            tick={{ fill: 'hsl(var(--foreground))' }}
+                            axisLine={{ stroke: 'hsl(var(--border))' }}
+                        />
+                        <YAxis
+                            yAxisId="right"
+                            orientation="right"
+                            tick={{ fill: 'hsl(var(--foreground))' }}
+                            axisLine={{ stroke: 'hsl(var(--border))' }}
+                        />
                         <Tooltip
                             formatter={(value: any, name: string) => [
                                 name === 'plays' ? value.toLocaleString() : `${Math.round(value).toLocaleString()} min`,
                                 name === 'plays' ? 'Odtworzenia' : 'Minuty'
                             ]}
+                            contentStyle={{
+                                backgroundColor: 'hsl(var(--card))',
+                                border: '1px solid hsl(var(--border))',
+                                borderRadius: 'var(--radius)',
+                                color: 'hsl(var(--foreground))'
+                            }}
                         />
-                        <Bar yAxisId="left" dataKey="plays" fill="#1DB954" name="plays" />
-                        <Bar yAxisId="right" dataKey="minutes" fill="#1aa34a" name="minutes" />
+                        <Bar yAxisId="left" dataKey="plays" fill="hsl(var(--primary))" name="plays" />
+                        <Bar yAxisId="right" dataKey="minutes" fill="hsl(var(--chart-2))" name="minutes" />
                     </BarChart>
                 </ResponsiveContainer>
             </CardContent>
@@ -99,11 +136,32 @@ export function TopArtistsChart({ data }: TopArtistsProps) {
             <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={data} layout="horizontal">
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis type="number" />
-                        <YAxis dataKey="name" type="category" width={100} />
-                        <Tooltip formatter={(value: any) => [value.toLocaleString(), 'Odtworzenia']} />
-                        <Bar dataKey="plays" fill="#1DB954" />
+                        <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="hsl(var(--border))"
+                        />
+                        <XAxis
+                            type="number"
+                            tick={{ fill: 'hsl(var(--foreground))' }}
+                            axisLine={{ stroke: 'hsl(var(--border))' }}
+                        />
+                        <YAxis
+                            dataKey="name"
+                            type="category"
+                            width={100}
+                            tick={{ fill: 'hsl(var(--foreground))' }}
+                            axisLine={{ stroke: 'hsl(var(--border))' }}
+                        />
+                        <Tooltip
+                            formatter={(value: any) => [value.toLocaleString(), 'Odtworzenia']}
+                            contentStyle={{
+                                backgroundColor: 'hsl(var(--card))',
+                                border: '1px solid hsl(var(--border))',
+                                borderRadius: 'var(--radius)',
+                                color: 'hsl(var(--foreground))'
+                            }}
+                        />
+                        <Bar dataKey="plays" fill="hsl(var(--primary))" />
                     </BarChart>
                 </ResponsiveContainer>
             </CardContent>
@@ -129,17 +187,33 @@ export function ListeningTimelineChart({ data }: ListeningTimelineProps) {
             <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
                     <LineChart data={data}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="date" />
-                        <YAxis />
+                        <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="hsl(var(--border))"
+                        />
+                        <XAxis
+                            dataKey="date"
+                            tick={{ fill: 'hsl(var(--foreground))' }}
+                            axisLine={{ stroke: 'hsl(var(--border))' }}
+                        />
+                        <YAxis
+                            tick={{ fill: 'hsl(var(--foreground))' }}
+                            axisLine={{ stroke: 'hsl(var(--border))' }}
+                        />
                         <Tooltip
                             formatter={(value: any, name: string) => [
                                 name === 'plays' ? value.toLocaleString() : `${Math.round(value).toLocaleString()} min`,
                                 name === 'plays' ? 'Odtworzenia' : 'Minuty'
                             ]}
+                            contentStyle={{
+                                backgroundColor: 'hsl(var(--card))',
+                                border: '1px solid hsl(var(--border))',
+                                borderRadius: 'var(--radius)',
+                                color: 'hsl(var(--foreground))'
+                            }}
                         />
-                        <Line type="monotone" dataKey="plays" stroke="#1DB954" strokeWidth={2} />
-                        <Line type="monotone" dataKey="minutes" stroke="#1aa34a" strokeWidth={2} />
+                        <Line type="monotone" dataKey="plays" stroke="hsl(var(--primary))" strokeWidth={2} />
+                        <Line type="monotone" dataKey="minutes" stroke="hsl(var(--chart-2))" strokeWidth={2} />
                     </LineChart>
                 </ResponsiveContainer>
             </CardContent>

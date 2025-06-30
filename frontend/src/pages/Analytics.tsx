@@ -278,6 +278,7 @@ export default function Analytics() {
                         <TracksList
                             tracks={tracks}
                             loading={loading}
+                            profileId={selectedProfile || undefined}
                             pagination={pagination}
                             onPageChange={handlePageChange}
                             onSort={handleSort}

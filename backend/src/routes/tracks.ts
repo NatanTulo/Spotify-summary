@@ -14,12 +14,19 @@ router.get('/', async (req, res) => {
             search = '',
             minPlays = 0,
             sortBy = 'totalPlays',
-            sortOrder = 'desc'
+            sortOrder = 'desc',
+            profileId
         } = req.query
 
         const pageNum = parseInt(page as string)
         const limitNum = parseInt(limit as string)
         const minPlaysNum = parseInt(minPlays as string)
+
+        // Base match condition for plays
+        const playMatchCondition: any = {}
+        if (profileId) {
+            playMatchCondition.profileId = new mongoose.Types.ObjectId(profileId as string)
+        }
 
         // Aggregation pipeline
         const pipeline: any[] = [
@@ -45,12 +52,19 @@ router.get('/', async (req, res) => {
             },
             { $unwind: '$artist' },
 
-            // Join with plays to get statistics
+            // Join with plays - filter by profile if provided
             {
                 $lookup: {
                     from: 'plays',
-                    localField: '_id',
-                    foreignField: 'trackId',
+                    let: { trackId: '$_id' },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: { $eq: ['$trackId', '$$trackId'] },
+                                ...playMatchCondition
+                            }
+                        }
+                    ],
                     as: 'plays'
                 }
             },
@@ -115,6 +129,88 @@ router.get('/', async (req, res) => {
                 }
             }] : []),
 
+            // Add detailed fields calculation
+            {
+                $addFields: {
+                    platforms: {
+                        $reduce: {
+                            input: { $filter: { input: '$plays.platform', cond: { $ne: ['$$this', null] } } },
+                            initialValue: [],
+                            in: {
+                                $cond: {
+                                    if: { $in: ['$$this', '$$value'] },
+                                    then: '$$value',
+                                    else: { $concatArrays: ['$$value', ['$$this']] }
+                                }
+                            }
+                        }
+                    },
+                    countries: {
+                        $reduce: {
+                            input: { $filter: { input: '$plays.country', cond: { $ne: ['$$this', null] } } },
+                            initialValue: [],
+                            in: {
+                                $cond: {
+                                    if: { $in: ['$$this', '$$value'] },
+                                    then: '$$value',
+                                    else: { $concatArrays: ['$$value', ['$$this']] }
+                                }
+                            }
+                        }
+                    },
+                    reasonStart: {
+                        $reduce: {
+                            input: { $filter: { input: '$plays.reasonStart', cond: { $ne: ['$$this', null] } } },
+                            initialValue: [],
+                            in: {
+                                $cond: {
+                                    if: { $in: ['$$this', '$$value'] },
+                                    then: '$$value',
+                                    else: { $concatArrays: ['$$value', ['$$this']] }
+                                }
+                            }
+                        }
+                    },
+                    reasonEnd: {
+                        $reduce: {
+                            input: { $filter: { input: '$plays.reasonEnd', cond: { $ne: ['$$this', null] } } },
+                            initialValue: [],
+                            in: {
+                                $cond: {
+                                    if: { $in: ['$$this', '$$value'] },
+                                    then: '$$value',
+                                    else: { $concatArrays: ['$$value', ['$$this']] }
+                                }
+                            }
+                        }
+                    },
+                    firstPlay: { $min: '$plays.timestamp' },
+                    lastPlay: { $max: '$plays.timestamp' },
+                    username: { $first: { $filter: { input: '$plays.username', cond: { $ne: ['$$this', null] } } } },
+                    shuffle: {
+                        $cond: {
+                            if: { $gt: [{ $size: { $filter: { input: '$plays.shuffle', cond: { $ne: ['$$this', null] } } } }, 0] },
+                            then: { $avg: { $filter: { input: '$plays.shuffle', cond: { $ne: ['$$this', null] } } } },
+                            else: null
+                        }
+                    },
+                    offline: {
+                        $cond: {
+                            if: { $gt: [{ $size: { $filter: { input: '$plays.offline', cond: { $ne: ['$$this', null] } } } }, 0] },
+                            then: { $avg: { $filter: { input: '$plays.offline', cond: { $ne: ['$$this', null] } } } },
+                            else: null
+                        }
+                    },
+                    incognitoMode: {
+                        $cond: {
+                            if: { $gt: [{ $size: { $filter: { input: '$plays.incognitoMode', cond: { $ne: ['$$this', null] } } } }, 0] },
+                            then: { $avg: { $filter: { input: '$plays.incognitoMode', cond: { $ne: ['$$this', null] } } } },
+                            else: null
+                        }
+                    }
+                }
+            },
+
             // Project final fields
             {
                 $project: {
@@ -122,10 +218,22 @@ router.get('/', async (req, res) => {
                     trackName: '$name',
                     artistName: '$artist.name',
                     albumName: '$album.name',
+                    uri: 1,
+                    duration: 1,
                     totalPlays: 1,
                     totalMinutes: { $round: ['$totalMinutes', 1] },
                     avgPlayDuration: { $round: ['$avgPlayDuration', 1] },
-                    skipPercentage: { $round: ['$skipPercentage', 1] }
+                    skipPercentage: { $round: ['$skipPercentage', 1] },
+                    platforms: 1,
+                    countries: 1,
+                    firstPlay: 1,
+                    lastPlay: 1,
+                    username: 1,
+                    reasonStart: 1,
+                    reasonEnd: 1,
+                    shuffle: { $cond: { if: { $eq: ['$shuffle', null] }, then: null, else: { $gt: ['$shuffle', 0.5] } } },
+                    offline: { $cond: { if: { $eq: ['$offline', null] }, then: null, else: { $gt: ['$offline', 0.5] } } },
+                    incognitoMode: { $cond: { if: { $eq: ['$incognitoMode', null] }, then: null, else: { $gt: ['$incognitoMode', 0.5] } } }
                 }
             },
 
@@ -319,22 +427,20 @@ router.get('/:id', async (req, res) => {
 router.get('/:id/timeline', async (req, res) => {
     try {
         const { id } = req.params
-        const { days = 30 } = req.query
-        const daysNum = parseInt(days as string)
+        const { profileId } = req.query
 
-        const endDate = new Date()
-        const startDate = new Date()
-        startDate.setDate(endDate.getDate() - daysNum)
+        const matchConditions: any = {
+            trackId: new mongoose.Types.ObjectId(id)
+        }
+
+        // Add profile filter if provided
+        if (profileId) {
+            matchConditions.profileId = new mongoose.Types.ObjectId(profileId as string)
+        }
 
         const timeline = await Play.aggregate([
             {
-                $match: {
-                    trackId: new mongoose.Types.ObjectId(id),
-                    timestamp: {
-                        $gte: startDate,
-                        $lte: endDate
-                    }
-                }
+                $match: matchConditions
             },
             {
                 $group: {

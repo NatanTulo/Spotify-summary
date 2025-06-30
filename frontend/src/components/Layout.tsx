@@ -2,9 +2,11 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Music } from 'lucide-react'
 import { useProfile } from '../context/ProfileContext'
+import { useLanguage } from '../context/LanguageContext'
 import { ThemeToggle } from './theme/ThemeToggle'
 import { HeaderProfileSelector } from './HeaderProfileSelector'
 import { ProfileManager } from './ProfileManager'
+import { Button } from './ui/button'
 
 interface LayoutProps {
     children: React.ReactNode
@@ -12,6 +14,7 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
     const { selectedProfile, setSelectedProfile } = useProfile()
+    const { language, setLanguage, t } = useLanguage()
     const [showProfileManager, setShowProfileManager] = useState(false)
 
     const handleImportRequested = () => {
@@ -64,6 +67,15 @@ const Layout = ({ children }: LayoutProps) => {
                         </div>
 
                         <div className="flex items-center space-x-4">
+                            {/* Wybór języka */}
+                            <Button
+                                onClick={() => setLanguage(language === 'pl' ? 'en' : 'pl')}
+                                variant="outline"
+                                size="sm"
+                            >
+                                {language === 'pl' ? 'EN' : 'PL'}
+                            </Button>
+
                             <HeaderProfileSelector
                                 selectedProfile={selectedProfile}
                                 onProfileSelect={setSelectedProfile}
