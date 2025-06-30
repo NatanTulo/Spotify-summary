@@ -23,11 +23,8 @@ const Layout = ({ children }: LayoutProps) => {
 
     const handleProfileImport = (profileName: string) => {
         console.log('Importing profile:', profileName)
-        setShowProfileManager(false)
-        // Refresh data after import
-        setTimeout(() => {
-            window.location.reload()
-        }, 2000)
+        // Nie zamykamy modalu od razu - pozwalamy progress bar się pokazać
+        // Modal zostanie zamknięty automatycznie po zakończeniu importu lub przez użytkownika
     }
 
     const handleProfileClear = (profileId: string) => {

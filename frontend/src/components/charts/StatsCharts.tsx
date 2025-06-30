@@ -6,15 +6,22 @@ interface PlaysByCountryProps {
     data: Array<{
         country: string
         plays: number
-        percentage: number
+        percentage?: number
     }>
     loading?: boolean
 }
 
 export function PlaysByCountryChart({ data, loading = false }: PlaysByCountryProps) {
-    // Sortujemy dane malejąco i pokazujemy wszystkie kraje
-    // Dla lepszej czytelności małych wartości używamy poziomego układu
-    const sortedData = [...(data || [])].sort((a, b) => b.plays - a.plays)
+    // Obliczamy procenty w frontendzie
+    const totalPlays = (data || []).reduce((sum, country) => sum + country.plays, 0)
+
+    // Sortujemy dane malejąco i dodajemy procenty
+    const sortedData = [...(data || [])]
+        .map(country => ({
+            ...country,
+            percentage: totalPlays > 0 ? (country.plays / totalPlays) * 100 : 0
+        }))
+        .sort((a, b) => b.plays - a.plays)
 
     if (loading) {
         return (
@@ -67,12 +74,12 @@ export function PlaysByCountryChart({ data, loading = false }: PlaysByCountryPro
                             <div className="flex items-center gap-3">
                                 <div className="text-right">
                                     <div className="font-semibold">{country.plays.toLocaleString()}</div>
-                                    <div className="text-xs text-muted-foreground">{country.percentage.toFixed(1)}%</div>
+                                    <div className="text-xs text-muted-foreground">{(country.percentage || 0).toFixed(1)}%</div>
                                 </div>
                                 <div className="w-20 h-2 bg-secondary rounded-full overflow-hidden">
                                     <div
                                         className="h-full bg-primary rounded-full transition-all duration-300"
-                                        style={{ width: `${Math.min(100, (country.percentage / Math.max(...sortedData.map(c => c.percentage))) * 100)}%` }}
+                                        style={{ width: `${Math.min(100, ((country.percentage || 0) / Math.max(...sortedData.map(c => c.percentage || 0))) * 100)}%` }}
                                     />
                                 </div>
                             </div>
@@ -206,13 +213,13 @@ export function TopArtistsChart({ data, loading = false }: TopArtistsProps) {
                             </div>
                             <div className="flex items-center gap-3">
                                 <div className="text-right">
-                                    <div className="font-semibold">{artist.plays.toLocaleString()}</div>
-                                    <div className="text-xs text-muted-foreground">{artist.minutes.toLocaleString()} min</div>
+                                    <div className="font-semibold">{(artist.plays || 0).toLocaleString()}</div>
+                                    <div className="text-xs text-muted-foreground">{(artist.minutes || 0).toLocaleString()} min</div>
                                 </div>
                                 <div className="w-20 h-2 bg-secondary rounded-full overflow-hidden">
                                     <div
                                         className="h-full bg-primary rounded-full transition-all duration-300"
-                                        style={{ width: `${Math.min(100, (artist.plays / Math.max(...data.map(a => a.plays))) * 100)}%` }}
+                                        style={{ width: `${Math.min(100, ((artist.plays || 0) / Math.max(...data.map(a => a.plays || 0))) * 100)}%` }}
                                     />
                                 </div>
                             </div>

@@ -1,8 +1,6 @@
 import express from 'express'
-import { Op, fn, col } from 'sequelize'
-import { Track } from '../models/Track.js'
-import { Album } from '../models/Album.js'
-import { Artist } from '../models/Artist.js'
+import { Op, fn, col, QueryTypes } from 'sequelize'
+import { sequelize } from '../config/database.js'
 import { Play } from '../models/Play.js'
 
 console.log('Stats router loaded')
@@ -15,10 +13,12 @@ router.get('/test', (_req, res) => {
 
 // GET /api/stats/overview - Ogólne statystyki
 router.get('/overview', async (req, res) => {
-    console.log('Stats overview endpoint called')
     try {
         const { profileId } = req.query
-        const filter = profileId ? { profileId } : {}
+
+        // Jeśli profileId = 'all' lub brak profileId, agreguj wszystkie profile
+        // Jeśli jest konkretny profileId, filtruj po nim
+        const filter = profileId && profileId !== 'all' ? { profileId } : {}
 
         const [
             totalPlays,
@@ -34,38 +34,27 @@ router.get('/overview', async (req, res) => {
                 distinct: true,
                 col: 'trackId'
             }),
-            profileId ?
-                Play.count({
-                    where: filter,
-                    include: [
-                        {
-                            model: Track,
-                            as: 'track',
-                            include: [
-                                {
-                                    model: Album,
-                                    as: 'album'
-                                }
-                            ]
-                        }
-                    ],
-                    distinct: true,
-                    col: 'track.album.artistId'
-                }) :
-                Artist.count(),
-            profileId ?
-                Play.count({
-                    where: filter,
-                    include: [
-                        {
-                            model: Track,
-                            as: 'track'
-                        }
-                    ],
-                    distinct: true,
-                    col: 'track.albumId'
-                }) :
-                Album.count()
+            sequelize.query(`
+                SELECT COUNT(DISTINCT artists.id) as count
+                FROM plays
+                JOIN tracks ON plays."trackId" = tracks.id
+                JOIN albums ON tracks."albumId" = albums.id  
+                JOIN artists ON albums."artistId" = artists.id
+                ${profileId && profileId !== 'all' ? 'WHERE plays."profileId" = :profileId' : ''}
+            `, {
+                replacements: profileId && profileId !== 'all' ? { profileId } : {},
+                type: QueryTypes.SELECT
+            }).then((result: any[]) => parseInt(result[0]?.count) || 0),
+            sequelize.query(`
+                SELECT COUNT(DISTINCT albums.id) as count
+                FROM plays
+                JOIN tracks ON plays."trackId" = tracks.id
+                JOIN albums ON tracks."albumId" = albums.id
+                ${profileId && profileId !== 'all' ? 'WHERE plays."profileId" = :profileId' : ''}
+            `, {
+                replacements: profileId && profileId !== 'all' ? { profileId } : {},
+                type: QueryTypes.SELECT
+            }).then((result: any[]) => parseInt(result[0]?.count) || 0)
         ])
 
         // Get top country
@@ -100,7 +89,7 @@ router.get('/overview', async (req, res) => {
             uniqueArtists: uniqueArtists || 0,
             uniqueAlbums: uniqueAlbums || 0,
             avgSessionDuration: Math.round((parseFloat((avgSessionData[0] as any)?.avgDuration) || 0) / 1000),
-            topCountry: topCountryData[0]?.country || 'Unknown'
+            topCountry: topCountryData[0]?.country || null
         }
 
         res.json({
@@ -112,6 +101,139 @@ router.get('/overview', async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Failed to fetch overview statistics'
+        })
+    }
+})
+
+// GET /api/stats/yearly - Statystyki roczne
+router.get('/yearly', async (req, res) => {
+    console.log('Yearly stats endpoint called')
+    try {
+        const { profileId } = req.query
+        const filter = profileId ? { profileId: parseInt(profileId as string) } : {}
+
+        const yearlyStats = await Play.findAll({
+            where: filter,
+            attributes: [
+                [fn('DATE_PART', 'year', col('timestamp')), 'year'],
+                [fn('COUNT', col('id')), 'plays'],
+                [fn('SUM', col('msPlayed')), 'totalMs']
+            ],
+            group: [fn('DATE_PART', 'year', col('timestamp'))],
+            order: [[fn('DATE_PART', 'year', col('timestamp')), 'ASC']],
+            raw: true
+        })
+
+        const formattedStats = yearlyStats.map((stat: any) => ({
+            year: parseInt(stat.year),
+            plays: parseInt(stat.plays),
+            totalMinutes: Math.round(stat.totalMs / 60000)
+        }))
+
+        res.json({
+            success: true,
+            data: formattedStats
+        })
+    } catch (error) {
+        console.error('Error fetching yearly stats:', error)
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch yearly statistics'
+        })
+    }
+})
+
+// GET /api/stats/countries - Statystyki krajów
+router.get('/countries', async (req, res) => {
+    console.log('Countries stats endpoint called')
+    try {
+        const { profileId } = req.query
+        const filter = profileId ? { profileId: parseInt(profileId as string) } : {}
+
+        const countryStats = await Play.findAll({
+            where: {
+                ...filter,
+                country: { [Op.ne]: null }
+            },
+            attributes: [
+                'country',
+                [fn('COUNT', col('id')), 'plays'],
+                [fn('SUM', col('msPlayed')), 'totalMs']
+            ],
+            group: ['country'],
+            order: [[fn('COUNT', col('id')), 'DESC']],
+            limit: 20,
+            raw: true
+        })
+
+        const formattedStats = countryStats.map((stat: any) => ({
+            country: stat.country,
+            plays: parseInt(stat.plays),
+            totalMinutes: Math.round(stat.totalMs / 60000)
+        }))
+
+        res.json({
+            success: true,
+            data: formattedStats
+        })
+    } catch (error) {
+        console.error('Error fetching countries stats:', error)
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch countries statistics'
+        })
+    }
+})
+
+// GET /api/stats/timeline - Statystyki timeline (miesięczne)
+router.get('/timeline', async (req, res) => {
+    console.log('Timeline stats endpoint called')
+    try {
+        const { profileId, period = 'month' } = req.query
+        const filter = profileId ? { profileId: parseInt(profileId as string) } : {}
+
+        let dateFormat: string
+        switch (period) {
+            case 'day':
+                dateFormat = 'YYYY-MM-DD'
+                break
+            case 'week':
+                dateFormat = 'YYYY-WW'
+                break
+            case 'year':
+                dateFormat = 'YYYY'
+                break
+            default:
+                dateFormat = 'YYYY-MM'
+        }
+
+        const timelineStats = await Play.findAll({
+            where: filter,
+            attributes: [
+                [fn('TO_CHAR', col('timestamp'), dateFormat), 'period'],
+                [fn('COUNT', col('id')), 'plays'],
+                [fn('SUM', col('msPlayed')), 'totalMs']
+            ],
+            group: [fn('TO_CHAR', col('timestamp'), dateFormat)],
+            order: [[fn('TO_CHAR', col('timestamp'), dateFormat), 'ASC']],
+            raw: true
+        })
+
+        const formattedStats = timelineStats.map((stat: any) => ({
+            period: stat.period,
+            plays: parseInt(stat.plays),
+            totalMinutes: Math.round(stat.totalMs / 60000)
+        }))
+
+        res.json({
+            success: true,
+            data: formattedStats
+        })
+    } catch (error) {
+        console.error('Error fetching timeline stats:', error)
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch timeline statistics'
         })
     }
 })

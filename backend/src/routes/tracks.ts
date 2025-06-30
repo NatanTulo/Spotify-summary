@@ -1,5 +1,6 @@
 import express from 'express'
-import { Op, fn, col, literal } from 'sequelize'
+import { fn, col, literal, QueryTypes } from 'sequelize'
+import { sequelize } from '../config/database.js'
 import { Track } from '../models/Track.js'
 import { Album } from '../models/Album.js'
 import { Artist } from '../models/Artist.js'
@@ -14,66 +15,120 @@ router.get('/', async (req, res) => {
         const {
             page = 1,
             limit = 20,
-            search = ''
+            search = '',
+            sortBy = 'id',
+            sortOrder = 'DESC',
+            profileId
         } = req.query
 
         const pageNum = parseInt(page as string)
         const limitNum = parseInt(limit as string)
 
-        // Build where condition for search
-        const searchCondition = search ? {
-            [Op.or]: [
-                { name: { [Op.iLike]: `%${search}%` } },
-                { '$album.name$': { [Op.iLike]: `%${search}%` } },
-                { '$album.artist.name$': { [Op.iLike]: `%${search}%` } }
-            ]
-        } : {}
+        // Build search condition for tracks
+        const searchCondition = search ? `
+            AND (t.name ILIKE '%${search}%' 
+                 OR al.name ILIKE '%${search}%' 
+                 OR ar.name ILIKE '%${search}%')
+        ` : ''
 
-        // Get tracks with basic data (without plays aggregation for now)
-        const { rows: tracks, count: totalCount } = await Track.findAndCountAll({
-            include: [
-                {
-                    model: Album,
-                    as: 'album',
-                    include: [
-                        {
-                            model: Artist,
-                            as: 'artist'
-                        }
-                    ]
-                }
-            ],
-            where: searchCondition,
-            attributes: [
-                'id',
-                'name',
-                'duration',
-                'uri'
-            ],
-            limit: limitNum,
-            offset: (pageNum - 1) * limitNum,
-            order: [['id', 'DESC']] // Simple order for now
+        // Build ORDER BY clause
+        let orderBy = ''
+        if (sortBy === 'totalPlays') {
+            orderBy = `ORDER BY total_plays ${sortOrder}`
+        } else if (sortBy === 'totalMinutes') {
+            orderBy = `ORDER BY total_minutes ${sortOrder}`
+        } else if (sortBy === 'name') {
+            orderBy = `ORDER BY t.name ${sortOrder}`
+        } else if (sortBy === 'artist') {
+            orderBy = `ORDER BY ar.name ${sortOrder}`
+        } else {
+            orderBy = `ORDER BY t.id ${sortOrder}`
+        }
+
+        // Use raw query to get tracks with aggregated play statistics
+        const tracksQuery = `
+            SELECT 
+                t.id,
+                t.name as "trackName",
+                t.duration,
+                t.uri,
+                ar.id as "artistId",
+                ar.name as "artistName",
+                al.id as "albumId",
+                al.name as "albumName",
+                COALESCE(p.total_plays, 0) as "totalPlays",
+                COALESCE(p.total_minutes, 0) as "totalMinutes",
+                COALESCE(p.avg_play_duration, 0) as "avgPlayDuration",
+                COALESCE(p.skip_percentage, 0) as "skipPercentage"
+            FROM tracks t
+            JOIN albums al ON t."albumId" = al.id
+            JOIN artists ar ON al."artistId" = ar.id
+            LEFT JOIN (
+                SELECT 
+                    "trackId",
+                    COUNT(*) as total_plays,
+                    ROUND(SUM("msPlayed") / 60000.0, 2) as total_minutes,
+                    ROUND(AVG("msPlayed"), 0) as avg_play_duration,
+                    ROUND(
+                        COUNT(CASE WHEN skipped = true THEN 1 END)::float / 
+                        NULLIF(COUNT(*), 0) * 100, 
+                        2
+                    ) as skip_percentage
+                FROM plays 
+                ${profileId ? `WHERE "profileId" = :profileId` : ''}
+                GROUP BY "trackId"
+            ) p ON t.id = p."trackId"
+            WHERE 1=1 ${searchCondition}
+            ${orderBy}
+            LIMIT :limit OFFSET :offset
+        `
+
+        const countQuery = `
+            SELECT COUNT(*) as total
+            FROM tracks t
+            JOIN albums al ON t."albumId" = al.id
+            JOIN artists ar ON al."artistId" = ar.id
+            WHERE 1=1 ${searchCondition}
+        `
+
+        const tracks = await sequelize.query(tracksQuery, {
+            type: QueryTypes.SELECT,
+            replacements: {
+                profileId: profileId || null,
+                limit: limitNum,
+                offset: (pageNum - 1) * limitNum
+            }
         })
 
-        // Format the response (simplified without play stats for now)
+        const countResult = await sequelize.query(countQuery, {
+            type: QueryTypes.SELECT
+        }) as any[]
+
+        const totalCount = parseInt(countResult[0]?.total || '0')
+
+        // Format the response
         const formattedTracks = tracks.map((track: any) => ({
             id: track.id,
-            name: track.name,
+            name: track.trackName,
             duration: track.duration,
             uri: track.uri,
             artist: {
-                id: track.album.artist.id,
-                name: track.album.artist.name
+                id: track.artistId,
+                name: track.artistName
             },
             album: {
-                id: track.album.id,
-                name: track.album.name
+                id: track.albumId,
+                name: track.albumName
             },
+            totalPlays: track.totalPlays,
+            totalMinutes: track.totalMinutes,
+            avgPlayDuration: track.avgPlayDuration,
+            skipPercentage: track.skipPercentage,
             stats: {
-                totalPlays: 0, // TODO: Calculate from plays table
-                totalMinutes: 0,
-                avgPlayDuration: 0,
-                skipPercentage: 0
+                totalPlays: track.totalPlays,
+                totalMinutes: track.totalMinutes,
+                avgPlayDuration: track.avgPlayDuration,
+                skipPercentage: track.skipPercentage
             }
         }))
 

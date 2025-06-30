@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, Fragment } from 'react'
 import { ChevronUp, ChevronDown, Play, TrendingUp, Settings2, Eye } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
@@ -49,7 +49,7 @@ const availableColumns: ColumnConfig[] = [
     { key: 'totalPlays', sortable: true, label: { pl: 'Odtworz.', en: 'Plays' } },
     { key: 'totalMinutes', sortable: true, label: { pl: 'Czas (min)', en: 'Time (min)' } },
     { key: 'avgPlayDuration', sortable: true, format: (val) => `${Math.floor(val / 60)}:${Math.floor(val % 60).toString().padStart(2, '0')}`, label: { pl: 'Śr. czas', en: 'Avg Time' } },
-    { key: 'skipPercentage', sortable: true, format: (val) => `${val.toFixed(1)}%`, label: { pl: 'Pomiń. (%)', en: 'Skip (%)' } },
+    { key: 'skipPercentage', sortable: true, format: (val) => `${(val || 0).toFixed(1)}%`, label: { pl: 'Pomiń. (%)', en: 'Skip (%)' } },
     { key: 'firstPlay', sortable: true, format: (val) => val ? new Date(val).toLocaleDateString() : '', label: { pl: 'Pierwsze', en: 'First Play' } },
     { key: 'lastPlay', sortable: true, format: (val) => val ? new Date(val).toLocaleDateString() : '', label: { pl: 'Ostatnie', en: 'Last Play' } },
     { key: 'platforms', sortable: false, format: (val) => val && val.length > 0 ? val.join(', ') : '', label: { pl: 'Platformy', en: 'Platforms' } },
@@ -183,7 +183,7 @@ export function TracksList({
         }
 
         if (typeof value === 'number') {
-            return value.toLocaleString()
+            return isNaN(value) ? t('notAvailable') : value.toLocaleString()
         }
 
         return value?.toString() || t('notAvailable')
@@ -287,9 +287,8 @@ export function TracksList({
                                 </thead>
                                 <tbody>
                                     {tracks.map((track) => (
-                                        <>
+                                        <Fragment key={track.trackId}>
                                             <tr
-                                                key={track.trackId}
                                                 className="border-b hover:bg-muted/50 cursor-pointer"
                                                 onClick={() => toggleTrackExpansion(track.trackId)}
                                             >
@@ -376,7 +375,7 @@ export function TracksList({
                                                     </td>
                                                 </tr>
                                             )}
-                                        </>
+                                        </Fragment>
                                     ))}
                                 </tbody>
                             </table>

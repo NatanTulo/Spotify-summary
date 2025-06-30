@@ -160,8 +160,9 @@ export class StatsAggregator {
         console.log('🎤 Aggregating artist stats...')
 
         // Używamy surowego SQL query dla lepszej kontroli
-        const [artistData] = await sequelize.query(`
+        const artistData = await sequelize.query(`
             SELECT 
+                artists.id as artist_id,
                 artists.name as artist_name,
                 COUNT(plays.id) as total_plays,
                 SUM(plays."msPlayed") as total_ms_played
@@ -179,6 +180,7 @@ export class StatsAggregator {
 
         const artistStats = (artistData as any[]).map(artist => ({
             profileId: this.profileId,
+            artistId: parseInt(artist.artist_id),
             artistName: artist.artist_name,
             totalPlays: parseInt(artist.total_plays),
             totalMinutes: Math.round(parseInt(artist.total_ms_played) / 60000),

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Button } from './ui/button'
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Calendar, User, Play, Clock, Music, Users } from 'lucide-react'
 import { ImportProgressDisplay } from './ImportProgressDisplay'
@@ -145,24 +145,29 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                 </CardHeader>
                 <CardContent>
                     <div className="flex flex-wrap gap-2">
-                        <Button
-                            variant={selectedProfile === null ? "default" : "outline"}
+                        <button
+                            className={`px-4 py-2 rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${selectedProfile === null
+                                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                                    : "border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                                }`}
                             onClick={() => onProfileSelect(null)}
                             disabled={isLoading}
                         >
                             Wszystkie Profile
-                        </Button>
+                        </button>
                         {profiles.map((profile) => (
-                            <Button
+                            <button
                                 key={profile._id}
-                                variant={selectedProfile === profile._id ? "default" : "outline"}
+                                className={`px-4 py-2 rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 flex items-center gap-2 ${selectedProfile === profile._id
+                                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                                        : "border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                                    }`}
                                 onClick={() => onProfileSelect(profile._id)}
                                 disabled={isLoading}
-                                className="flex items-center gap-2"
                             >
                                 <User className="h-4 w-4" />
                                 {profile.name}
-                            </Button>
+                            </button>
                         ))}
                     </div>
                 </CardContent>
@@ -194,13 +199,13 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                                 >
                                     <div className="flex items-center justify-between">
                                         <h4 className="font-medium">{profile.name}</h4>
-                                        <Button
-                                            size="sm"
+                                        <button
+                                            className="h-9 rounded-md px-3 text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground"
                                             onClick={() => handleImportProfile(profile.name)}
                                             disabled={importingProfile === profile.name}
                                         >
                                             {importingProfile === profile.name ? 'Importowanie...' : 'Importuj'}
-                                        </Button>
+                                        </button>
                                     </div>
                                     <p className="text-sm text-muted-foreground">
                                         {profile.files.length} plików JSON
@@ -236,13 +241,12 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                                             <User className="h-4 w-4" />
                                             {profile.name}
                                         </h4>
-                                        <Button
-                                            size="sm"
-                                            variant="destructive"
+                                        <button
+                                            className="h-9 rounded-md px-3 text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                             onClick={() => handleClearProfile(profile._id)}
                                         >
                                             Usuń
-                                        </Button>
+                                        </button>
                                     </div>
 
                                     {profile.lastImport && (
@@ -286,9 +290,13 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                         <p className="text-muted-foreground text-center mb-4">
                             Umieść foldery z danymi Spotify w folderze /data aby rozpocząć import
                         </p>
-                        <Button onClick={fetchProfiles} disabled={isLoadingProfiles}>
+                        <button
+                            onClick={fetchProfiles}
+                            disabled={isLoadingProfiles}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
                             Odśwież
-                        </Button>
+                        </button>
                     </CardContent>
                 </Card>
             )}

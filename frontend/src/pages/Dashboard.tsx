@@ -11,8 +11,10 @@ const Dashboard = () => {
         totalMinutes: 0,
         uniqueTracks: 0,
         uniqueArtists: 0,
+        uniqueAlbums: 0,
         topCountry: '——',
-        avgSessionLength: 0
+        avgSessionLength: 0,
+        avgSessionDuration: 0
     })
     const [topTracks, setTopTracks] = useState<Array<{ name: string, artist: string, plays: number }>>([])
     const [topArtists, setTopArtists] = useState<Array<{ name: string, plays: number }>>([])
@@ -29,13 +31,16 @@ const Dashboard = () => {
             const statsRes = await fetch(`/api/stats/overview${profileParam}`)
             if (statsRes.ok) {
                 const statsData = await statsRes.json()
-                setStats(statsData.data || {
-                    totalPlays: 0,
-                    totalMinutes: 0,
-                    uniqueTracks: 0,
-                    uniqueArtists: 0,
-                    topCountry: '——',
-                    avgSessionLength: 0
+                const apiStats = statsData.data || {}
+                setStats({
+                    totalPlays: apiStats.totalPlays || 0,
+                    totalMinutes: apiStats.totalMinutes || 0,
+                    uniqueTracks: apiStats.uniqueTracks || 0,
+                    uniqueArtists: apiStats.uniqueArtists || 0,
+                    uniqueAlbums: apiStats.uniqueAlbums || 0,
+                    topCountry: apiStats.topCountry || '——',
+                    avgSessionLength: apiStats.avgSessionDuration || 0,
+                    avgSessionDuration: apiStats.avgSessionDuration || 0
                 })
             }
 

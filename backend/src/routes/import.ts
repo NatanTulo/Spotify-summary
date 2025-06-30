@@ -313,18 +313,108 @@ router.delete('/clear', async (req, res) => {
             })
         }
 
-        // TODO: Usuń wszystkie powiązane dane (plays, tracks, albums, artists)
-        await profile.destroy()
+        // Usuń wszystkie powiązane dane używając raw SQL (szybsze dla dużych zbiorów)
+        const transaction = await sequelize.transaction()
 
-        res.json({
-            success: true,
-            message: 'Profile deleted successfully'
-        })
+        try {
+            // Usuń wszystkie powiązane tabele statystyk
+            await sequelize.query(`
+                DELETE FROM "yearly_stats" WHERE "profileId" = :profileId
+            `, {
+                replacements: { profileId },
+                transaction
+            })
+
+            await sequelize.query(`
+                DELETE FROM "daily_stats" WHERE "profileId" = :profileId
+            `, {
+                replacements: { profileId },
+                transaction
+            })
+
+            await sequelize.query(`
+                DELETE FROM "country_stats" WHERE "profileId" = :profileId
+            `, {
+                replacements: { profileId },
+                transaction
+            })
+
+            await sequelize.query(`
+                DELETE FROM "artist_stats" WHERE "profileId" = :profileId
+            `, {
+                replacements: { profileId },
+                transaction
+            })
+
+            // Usuń wszystkie plays dla tego profilu
+            await sequelize.query(`
+                DELETE FROM plays WHERE "profileId" = :profileId
+            `, {
+                replacements: { profileId },
+                transaction
+            })
+
+            // Usuń profil
+            await profile.destroy({ transaction })
+
+            await transaction.commit()
+
+            res.json({
+                success: true,
+                message: 'Profile and all associated data deleted successfully'
+            })
+        } catch (error) {
+            await transaction.rollback()
+            throw error
+        }
+
     } catch (error) {
         console.error('Error clearing profile:', error)
         res.status(500).json({
             success: false,
             error: 'Failed to clear profile',
+            message: error instanceof Error ? error.message : 'Unknown error'
+        })
+    }
+})
+
+// DELETE /api/import/clear-all - Usuń wszystkie dane z bazy (wszystkie profile)
+router.delete('/clear-all', async (_req, res) => {
+    try {
+        console.log('Clearing all data from database...')
+
+        const transaction = await sequelize.transaction()
+
+        try {
+            // Usuń wszystkie rekordy ze wszystkich tabel w odpowiedniej kolejności
+            await sequelize.query('DELETE FROM "yearly_stats"', { transaction })
+            await sequelize.query('DELETE FROM "daily_stats"', { transaction })
+            await sequelize.query('DELETE FROM "country_stats"', { transaction })
+            await sequelize.query('DELETE FROM "artist_stats"', { transaction })
+            await sequelize.query('DELETE FROM "plays"', { transaction })
+            await sequelize.query('DELETE FROM "tracks"', { transaction })
+            await sequelize.query('DELETE FROM "albums"', { transaction })
+            await sequelize.query('DELETE FROM "artists"', { transaction })
+            await sequelize.query('DELETE FROM "profiles"', { transaction })
+
+            await transaction.commit()
+
+            console.log('All data cleared successfully')
+
+            res.json({
+                success: true,
+                message: 'All data cleared successfully'
+            })
+
+        } catch (error) {
+            await transaction.rollback()
+            throw error
+        }
+    } catch (error) {
+        console.error('Error clearing all data:', error)
+        res.status(500).json({
+            success: false,
+            error: 'Failed to clear all data',
             message: error instanceof Error ? error.message : 'Unknown error'
         })
     }
