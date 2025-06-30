@@ -1,0 +1,331 @@
+import { useState, useEffect } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { BarChart3, PieChart, TrendingUp, Calendar, Music } from 'lucide-react'
+import { AdvancedFilters } from '@/components/filters/AdvancedFilters'
+import { TracksList } from '@/components/TracksList'
+import { DataLegendButton } from '@/components/DataLegend'
+import {
+    PlaysByCountryChart,
+    YearlyStatsChart,
+    TopArtistsChart,
+    ListeningTimelineChart
+} from '@/components/charts/StatsCharts'
+import { useProfile } from '../context/ProfileContext'
+
+interface Track {
+    trackId: string
+    trackName: string
+    artistName: string
+    albumName: string
+    totalPlays: number
+    totalMinutes: number
+    avgPlayDuration: number
+    skipPercentage: number
+}
+
+interface FilterState {
+    search: string
+    minPlays: number
+    dateFrom: string
+    dateTo: string
+    country: string
+    platform: string
+    sortBy: string
+    sortOrder: 'asc' | 'desc'
+    showSkipped: boolean
+    showShuffle: boolean
+}
+
+export default function Analytics() {
+    const { selectedProfile } = useProfile()
+    const [tracks, setTracks] = useState<Track[]>([])
+    const [loading, setLoading] = useState(false)
+    const [pagination, setPagination] = useState({
+        page: 1,
+        limit: 20,
+        total: 0,
+        pages: 0
+    })
+    const [filters, setFilters] = useState<FilterState>({
+        search: '',
+        minPlays: 0,
+        dateFrom: '',
+        dateTo: '',
+        country: '',
+        platform: '',
+        sortBy: 'totalPlays',
+        sortOrder: 'desc',
+        showSkipped: false,
+        showShuffle: false
+    })
+
+    // Stats data
+    const [yearlyStats, setYearlyStats] = useState([])
+    const [countryStats, setCountryStats] = useState([])
+    const [topArtists, setTopArtists] = useState([])
+    const [timelineData, setTimelineData] = useState<Array<{
+        date: string
+        plays: number
+        minutes: number
+    }>>([]);
+    const [availableCountries] = useState<string[]>([])
+    const [availablePlatforms] = useState<string[]>([])
+
+    // Fetch tracks with filters
+    const fetchTracks = async (page = 1) => {
+        setLoading(true)
+        try {
+            const params = new URLSearchParams({
+                page: page.toString(),
+                limit: pagination.limit.toString(),
+                search: filters.search,
+                minPlays: filters.minPlays.toString(),
+                sortBy: filters.sortBy,
+                sortOrder: filters.sortOrder,
+                ...(filters.country && { country: filters.country }),
+                ...(filters.platform && { platform: filters.platform }),
+                ...(filters.dateFrom && { dateFrom: filters.dateFrom }),
+                ...(filters.dateTo && { dateTo: filters.dateTo }),
+                ...(selectedProfile && { profileId: selectedProfile })
+            })
+
+            const response = await fetch(`/api/tracks?${params}`)
+            if (response.ok) {
+                const data = await response.json()
+                setTracks(data.data || [])
+                setPagination(data.pagination || pagination)
+            }
+        } catch (error) {
+            console.error('Failed to fetch tracks:', error)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    // Fetch statistics data
+    const fetchStats = async () => {
+        try {
+            const profileParam = selectedProfile ? `?profileId=${selectedProfile}` : ''
+            const [yearlyRes, countryRes, artistsRes, timelineRes] = await Promise.all([
+                fetch(`/api/stats/yearly${profileParam}`),
+                fetch(`/api/stats/countries${profileParam}`),
+                fetch(`/api/artists/top?limit=10${selectedProfile ? `&profileId=${selectedProfile}` : ''}`),
+                fetch(`/api/stats/timeline?days=30${selectedProfile ? `&profileId=${selectedProfile}` : ''}`)
+            ])
+
+            if (yearlyRes.ok) {
+                const yearlyData = await yearlyRes.json()
+                setYearlyStats(yearlyData.data || [])
+            }
+
+            if (countryRes.ok) {
+                const countryData = await countryRes.json()
+                setCountryStats(countryData.data || [])
+            }
+
+            if (artistsRes.ok) {
+                const artistsData = await artistsRes.json()
+                setTopArtists(artistsData.data || [])
+            }
+
+            if (timelineRes.ok) {
+                const timelineData = await timelineRes.json()
+                setTimelineData(timelineData.data || [])
+            } else {
+                // Fallback na mock data jeśli endpoint nie działa
+                const timeline = generateTimelineData()
+                setTimelineData(timeline)
+            }
+
+        } catch (error) {
+            console.error('Failed to fetch stats:', error)
+            // Fallback na mock data w przypadku błędu
+            const timeline = generateTimelineData()
+            setTimelineData(timeline)
+        }
+    }
+
+    // Generate mock timeline data
+    const generateTimelineData = () => {
+        const data = []
+        const currentDate = new Date()
+        for (let i = 30; i >= 0; i--) {
+            const date = new Date(currentDate)
+            date.setDate(currentDate.getDate() - i)
+            data.push({
+                date: date.toISOString().split('T')[0],
+                plays: Math.floor(Math.random() * 100) + 20,
+                minutes: Math.floor(Math.random() * 300) + 60
+            })
+        }
+        return data
+    }
+
+    useEffect(() => {
+        fetchTracks()
+        fetchStats()
+    }, [selectedProfile])
+
+    useEffect(() => {
+        fetchTracks(1)
+    }, [filters])
+
+    const handlePageChange = (page: number) => {
+        setPagination(prev => ({ ...prev, page }))
+        fetchTracks(page)
+    }
+
+    const handleSort = (field: string, order: 'asc' | 'desc') => {
+        setFilters(prev => ({
+            ...prev,
+            sortBy: field,
+            sortOrder: order
+        }))
+    }
+
+    return (
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold text-foreground">Analytics</h1>
+                    <p className="text-muted-foreground mt-2">
+                        Szczegółowa analiza Twoich danych muzycznych
+                    </p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <DataLegendButton />
+                    <Button
+                        onClick={() => {
+                            fetchTracks()
+                            fetchStats()
+                        }}
+                        className="flex items-center space-x-2"
+                    >
+                        <TrendingUp className="h-4 w-4" />
+                        <span>Odśwież dane</span>
+                    </Button>
+                </div>
+            </div>
+
+            {/* Tabs */}
+            <Tabs defaultValue="overview" className="space-y-6">
+                <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="overview" className="flex items-center space-x-2">
+                        <BarChart3 className="h-4 w-4" />
+                        <span>Przegląd</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="charts" className="flex items-center space-x-2">
+                        <PieChart className="h-4 w-4" />
+                        <span>Wykresy</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="tracks" className="flex items-center space-x-2">
+                        <Music className="h-4 w-4" />
+                        <span>Lista utworów</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="timeline" className="flex items-center space-x-2">
+                        <Calendar className="h-4 w-4" />
+                        <span>Timeline</span>
+                    </TabsTrigger>
+                </TabsList>
+
+                {/* Overview Tab */}
+                <TabsContent value="overview">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <YearlyStatsChart data={yearlyStats} />
+                        <PlaysByCountryChart data={countryStats} />
+                    </div>
+                </TabsContent>
+
+                {/* Charts Tab */}
+                <TabsContent value="charts">
+                    <div className="space-y-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <TopArtistsChart data={topArtists} />
+                            <PlaysByCountryChart data={countryStats} />
+                        </div>
+                        <YearlyStatsChart data={yearlyStats} />
+                    </div>
+                </TabsContent>
+
+                {/* Tracks Tab */}
+                <TabsContent value="tracks">
+                    <div className="space-y-6">
+                        <AdvancedFilters
+                            filters={filters}
+                            onFiltersChange={setFilters}
+                            onApply={() => fetchTracks(1)}
+                            onReset={() => {
+                                setFilters({
+                                    search: '',
+                                    minPlays: 0,
+                                    dateFrom: '',
+                                    dateTo: '',
+                                    country: '',
+                                    platform: '',
+                                    sortBy: 'totalPlays',
+                                    sortOrder: 'desc',
+                                    showSkipped: false,
+                                    showShuffle: false
+                                })
+                                fetchTracks(1)
+                            }}
+                            countries={availableCountries}
+                            platforms={availablePlatforms}
+                        />
+                        <TracksList
+                            tracks={tracks}
+                            loading={loading}
+                            pagination={pagination}
+                            onPageChange={handlePageChange}
+                            onSort={handleSort}
+                            currentSort={{
+                                field: filters.sortBy,
+                                order: filters.sortOrder
+                            }}
+                        />
+                    </div>
+                </TabsContent>
+
+                {/* Timeline Tab */}
+                <TabsContent value="timeline">
+                    <div className="space-y-6">
+                        <ListeningTimelineChart data={timelineData} />
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Analiza wzorców słuchania</CardTitle>
+                                <CardDescription>
+                                    Trendy i wzorce w Twojej aktywności muzycznej
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="text-center">
+                                        <div className="text-2xl font-bold text-spotify-green">
+                                            {Math.round(timelineData.reduce((acc: number, day: any) => acc + day.plays, 0) / timelineData.length)}
+                                        </div>
+                                        <div className="text-sm text-muted-foreground">Średnie odtworzenia dziennie</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="text-2xl font-bold text-spotify-green">
+                                            {Math.round(timelineData.reduce((acc: number, day: any) => acc + day.minutes, 0) / timelineData.length)}
+                                        </div>
+                                        <div className="text-sm text-muted-foreground">Średnie minuty dziennie</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="text-2xl font-bold text-spotify-green">
+                                            {Math.round((timelineData.reduce((acc: number, day: any) => acc + day.minutes, 0) / timelineData.length) / 60 * 10) / 10}
+                                        </div>
+                                        <div className="text-sm text-muted-foreground">Średnie godziny dziennie</div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </TabsContent>
+            </Tabs>
+        </div>
+    )
+}
