@@ -222,13 +222,13 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
             </div>
 
             {/* Timeline odtworzeń */}
-            {timelineData.length > 0 && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>{t('timelineTitle')}</CardTitle>
-                        <CardDescription>{t('playHistoryDescription')}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
+            <Card>
+                <CardHeader>
+                    <CardTitle>{t('timelineTitle')}</CardTitle>
+                    <CardDescription>{t('playHistoryDescription')}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {timelineData.length > 0 ? (
                         <ResponsiveContainer width="100%" height={300}>
                             <BarChart data={timelineData}>
                                 <CartesianGrid
@@ -256,9 +256,17 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
                                 <Bar dataKey="plays" fill="hsl(var(--primary))" />
                             </BarChart>
                         </ResponsiveContainer>
-                    </CardContent>
-                </Card>
-            )}
+                    ) : (
+                        <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                            {loading ? (
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                            ) : (
+                                'Brak danych timeline do wyświetlenia'
+                            )}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
 
             {/* Szczegółowe informacje */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

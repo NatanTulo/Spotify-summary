@@ -230,20 +230,10 @@ router.get('/countries', async (req, res) => {
 // GET /api/stats/timeline - Dzienne statystyki dla timeline
 router.get('/timeline', async (req, res) => {
     try {
-        const { profileId, days = 30 } = req.query
-        const daysNum = parseInt(days as string)
+        const { profileId } = req.query
+        // Usuwamy ograniczenie days - zawsze zwracamy wszystkie dane
 
-        // Zawsze używaj agregacji na bieżąco - jest bardziej niezawodna
-        const endDate = new Date()
-        const startDate = new Date()
-        startDate.setDate(endDate.getDate() - daysNum)
-
-        const matchConditions: any = {
-            timestamp: {
-                $gte: startDate,
-                $lte: endDate
-            }
-        }
+        const matchConditions: any = {}
 
         // Add profile filter if provided
         if (profileId) {
