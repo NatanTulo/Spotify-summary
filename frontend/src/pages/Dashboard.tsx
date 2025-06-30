@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Play, Users, Music, Clock, Globe } from 'lucide-react'
 import { useProfile } from '../context/ProfileContext'
-import { DataLegendButton } from '@/components/DataLegend'
 import { DataImportGuide } from '@/components/DataImportGuide'
 
 const Dashboard = () => {
@@ -75,9 +74,6 @@ const Dashboard = () => {
                     <p className="text-muted-foreground mt-2">
                         Przegląd Twoich statystyk słuchania muzyki
                     </p>
-                </div>
-                <div className="flex items-center gap-4">
-                    <DataLegendButton />
                 </div>
             </div>
 
@@ -187,7 +183,7 @@ const Dashboard = () => {
                             {topTracks.length > 0 ? (
                                 topTracks.map((track, index) => (
                                     <div key={index} className="flex items-center space-x-4">
-                                        <div className="flex-shrink-0 w-8 h-8 bg-spotify-green text-white rounded-full flex items-center justify-center text-sm font-bold">
+                                        <div className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
                                             {index + 1}
                                         </div>
                                         <div className="flex-1 min-w-0">
@@ -227,7 +223,7 @@ const Dashboard = () => {
                             {topArtists.length > 0 ? (
                                 topArtists.map((artist, index) => (
                                     <div key={index} className="flex items-center space-x-4">
-                                        <div className="flex-shrink-0 w-8 h-8 bg-spotify-green text-white rounded-full flex items-center justify-center text-sm font-bold">
+                                        <div className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
                                             {index + 1}
                                         </div>
                                         <div className="flex-1 min-w-0">

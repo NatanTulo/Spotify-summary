@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { ChevronUp, ChevronDown, Play, TrendingUp, Settings2 } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { ChevronUp, ChevronDown, Play, TrendingUp, Settings2, Eye } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
+import { Button } from './ui/button'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { useLanguage } from '../context/LanguageContext'
+import { TrackDetails } from './TrackDetails'
 
 // Rozszerzony interface dla utworu z wszystkimi dostępnymi danymi
 interface ExtendedTrack {
@@ -49,18 +50,13 @@ const availableColumns: ColumnConfig[] = [
     { key: 'totalMinutes', sortable: true, label: { pl: 'Czas (min)', en: 'Time (min)' } },
     { key: 'avgPlayDuration', sortable: true, format: (val) => `${Math.floor(val / 60)}:${Math.floor(val % 60).toString().padStart(2, '0')}`, label: { pl: 'Śr. czas', en: 'Avg Time' } },
     { key: 'skipPercentage', sortable: true, format: (val) => `${val.toFixed(1)}%`, label: { pl: 'Pomiń. (%)', en: 'Skip (%)' } },
-    { key: 'duration', sortable: true, format: (val) => val ? `${Math.floor(val / 60000)}:${Math.floor((val % 60000) / 1000).toString().padStart(2, '0')}` : '', label: { pl: 'Długość', en: 'Duration' } },
     { key: 'firstPlay', sortable: true, format: (val) => val ? new Date(val).toLocaleDateString() : '', label: { pl: 'Pierwsze', en: 'First Play' } },
     { key: 'lastPlay', sortable: true, format: (val) => val ? new Date(val).toLocaleDateString() : '', label: { pl: 'Ostatnie', en: 'Last Play' } },
     { key: 'platforms', sortable: false, format: (val) => val && val.length > 0 ? val.join(', ') : '', label: { pl: 'Platformy', en: 'Platforms' } },
     { key: 'countries', sortable: false, format: (val) => val && val.length > 0 ? val.join(', ') : '', label: { pl: 'Kraje', en: 'Countries' } },
     { key: 'uri', sortable: false, label: { pl: 'URI', en: 'URI' } },
-    { key: 'username', sortable: false, label: { pl: 'Użytkownik', en: 'Username' } },
     { key: 'reasonStart', sortable: false, format: (val) => val && val.length > 0 ? val.join(', ') : '', label: { pl: 'Przyczyna start', en: 'Reason Start' } },
     { key: 'reasonEnd', sortable: false, format: (val) => val && val.length > 0 ? val.join(', ') : '', label: { pl: 'Przyczyna koniec', en: 'Reason End' } },
-    { key: 'shuffle', sortable: false, label: { pl: 'Losowo', en: 'Shuffle' } },
-    { key: 'offline', sortable: false, label: { pl: 'Offline', en: 'Offline' } },
-    { key: 'incognitoMode', sortable: false, label: { pl: 'Tryb incognito', en: 'Incognito Mode' } },
 ]
 
 interface TracksListProps {
@@ -90,14 +86,26 @@ export function TracksList({
     onSort,
     currentSort
 }: TracksListProps) {
-    const { language, setLanguage, t } = useLanguage()
+    const { language, t } = useLanguage()
 
     const [expandedTrack, setExpandedTrack] = useState<string | null>(null)
     const [trackTimelineData, setTrackTimelineData] = useState<any[]>([])
+    const [selectedTrackForDetails, setSelectedTrackForDetails] = useState<string | null>(null)
     const [visibleColumns, setVisibleColumns] = useState<(keyof ExtendedTrack)[]>([
         'trackName', 'artistName', 'albumName', 'totalPlays', 'totalMinutes', 'avgPlayDuration', 'skipPercentage'
     ])
     const [showColumnSelector, setShowColumnSelector] = useState(false)
+
+    // Jeśli wybrano utwór do szczegółów, pokaż TrackDetails
+    if (selectedTrackForDetails) {
+        return (
+            <TrackDetails 
+                trackId={selectedTrackForDetails} 
+                profileId={profileId}
+                onBack={() => setSelectedTrackForDetails(null)}
+            />
+        )
+    }
 
     const handleSort = (field: string) => {
         if (!onSort) return
@@ -208,17 +216,8 @@ export function TracksList({
                         </CardTitle>
                         <CardDescription>
                             {t('clickHeaders')}
-                        </CardDescription>
-                    </div>
+                        </CardDescription>                    </div>
                     <div className="flex items-center space-x-2">
-                        {/* Wybór języka */}
-                        <Button
-                            onClick={() => setLanguage(language === 'pl' ? 'en' : 'pl')}
-                            className="px-3 py-1 text-xs"
-                        >
-                            {language === 'pl' ? 'EN' : 'PL'}
-                        </Button>
-
                         {/* Wybór kolumn */}
                         <Button
                             onClick={() => setShowColumnSelector(!showColumnSelector)}
@@ -298,6 +297,15 @@ export function TracksList({
                                                             <div className="flex items-center gap-2">
                                                                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
                                                                 <div className="font-medium">{track.trackName}</div>
+                                                                <button
+                                                                    className="ml-auto h-6 w-6 hover:bg-accent hover:text-accent-foreground rounded flex items-center justify-center"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation()
+                                                                        setSelectedTrackForDetails(track.trackId)
+                                                                    }}
+                                                                >
+                                                                    <Eye className="h-3 w-3" />
+                                                                </button>
                                                             </div>
                                                         ) : columnKey === 'skipPercentage' ? (
                                                             <span className={`font-mono ${track.skipPercentage > 50 ? 'text-red-500' :

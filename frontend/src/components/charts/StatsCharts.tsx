@@ -1,14 +1,5 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-
-const COLORS = [
-    'hsl(var(--chart-1))',
-    'hsl(var(--chart-2))',
-    'hsl(var(--chart-3))',
-    'hsl(var(--chart-4))',
-    'hsl(var(--chart-5))',
-    'hsl(var(--primary))'
-]
 
 interface PlaysByCountryProps {
     data: Array<{
@@ -19,39 +10,65 @@ interface PlaysByCountryProps {
 }
 
 export function PlaysByCountryChart({ data }: PlaysByCountryProps) {
+    // Sortujemy dane malejąco i pokazujemy wszystkie kraje
+    // Dla lepszej czytelności małych wartości używamy poziomego układu
+    const sortedData = [...data].sort((a, b) => b.plays - a.plays)
+
+    // Dynamiczna wysokość na podstawie liczby krajów
+    const chartHeight = Math.max(350, sortedData.length * 40)
+
     return (
         <Card>
             <CardHeader>
                 <CardTitle>Odtworzenia według krajów</CardTitle>
-                <CardDescription>Top kraje, w których słuchasz muzyki</CardDescription>
+                <CardDescription>Kraje, w których słuchasz muzyki</CardDescription>
             </CardHeader>
             <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                        <Pie
-                            data={data}
-                            cx="50%"
-                            cy="50%"
-                            labelLine={false}
-                            label={({ country, percentage }) => `${country} ${percentage.toFixed(1)}%`}
-                            outerRadius={80}
-                            fill="#8884d8"
-                            dataKey="plays"
-                        >
-                            {data.map((_entry, index) => (
-                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                            ))}
-                        </Pie>
+                <ResponsiveContainer width="100%" height={chartHeight}>
+                    <BarChart
+                        data={sortedData}
+                        layout="horizontal"
+                        margin={{ top: 5, right: 50, left: 80, bottom: 5 }}
+                    >
+                        <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="hsl(var(--border))"
+                        />
+                        <XAxis
+                            type="number"
+                            tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }}
+                            axisLine={{ stroke: 'hsl(var(--border))' }}
+                            tickFormatter={(value) => value.toLocaleString()}
+                        />
+                        <YAxis
+                            dataKey="country"
+                            type="category"
+                            width={70}
+                            tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }}
+                            axisLine={{ stroke: 'hsl(var(--border))' }}
+                            interval={0}
+                        />
                         <Tooltip
-                            formatter={(value: any) => [value.toLocaleString(), 'Odtworzenia']}
+                            formatter={(value: any, _name: string, props: any) => [
+                                `${value.toLocaleString()} odtworzeń (${props.payload.percentage.toFixed(1)}%)`,
+                                'Odtworzenia'
+                            ]}
+                            labelFormatter={(label) => `Kraj: ${label}`}
                             contentStyle={{
-                                backgroundColor: 'hsl(var(--card))',
+                                backgroundColor: 'hsl(var(--popover))',
                                 border: '1px solid hsl(var(--border))',
                                 borderRadius: 'var(--radius)',
-                                color: 'hsl(var(--foreground))'
+                                color: 'hsl(var(--popover-foreground))',
+                                fontSize: '14px',
+                                padding: '8px 12px'
                             }}
                         />
-                    </PieChart>
+                        <Bar
+                            dataKey="plays"
+                            fill="hsl(var(--primary))"
+                            radius={[0, 4, 4, 0]}
+                        />
+                    </BarChart>
                 </ResponsiveContainer>
             </CardContent>
         </Card>

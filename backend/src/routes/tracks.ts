@@ -188,24 +188,75 @@ router.get('/', async (req, res) => {
                     lastPlay: { $max: '$plays.timestamp' },
                     username: { $first: { $filter: { input: '$plays.username', cond: { $ne: ['$$this', null] } } } },
                     shuffle: {
-                        $cond: {
-                            if: { $gt: [{ $size: { $filter: { input: '$plays.shuffle', cond: { $ne: ['$$this', null] } } } }, 0] },
-                            then: { $avg: { $filter: { input: '$plays.shuffle', cond: { $ne: ['$$this', null] } } } },
-                            else: null
+                        $let: {
+                            vars: {
+                                shuffleValues: {
+                                    $filter: {
+                                        input: '$plays.shuffle',
+                                        cond: { $ne: ['$$this', null] }
+                                    }
+                                }
+                            },
+                            in: {
+                                $cond: {
+                                    if: { $gt: [{ $size: '$$shuffleValues' }, 0] },
+                                    then: {
+                                        $gt: [
+                                            { $size: { $filter: { input: '$$shuffleValues', cond: { $eq: ['$$this', true] } } } },
+                                            { $size: { $filter: { input: '$$shuffleValues', cond: { $eq: ['$$this', false] } } } }
+                                        ]
+                                    },
+                                    else: null
+                                }
+                            }
                         }
                     },
                     offline: {
-                        $cond: {
-                            if: { $gt: [{ $size: { $filter: { input: '$plays.offline', cond: { $ne: ['$$this', null] } } } }, 0] },
-                            then: { $avg: { $filter: { input: '$plays.offline', cond: { $ne: ['$$this', null] } } } },
-                            else: null
+                        $let: {
+                            vars: {
+                                offlineValues: {
+                                    $filter: {
+                                        input: '$plays.offline',
+                                        cond: { $ne: ['$$this', null] }
+                                    }
+                                }
+                            },
+                            in: {
+                                $cond: {
+                                    if: { $gt: [{ $size: '$$offlineValues' }, 0] },
+                                    then: {
+                                        $gt: [
+                                            { $size: { $filter: { input: '$$offlineValues', cond: { $eq: ['$$this', true] } } } },
+                                            { $size: { $filter: { input: '$$offlineValues', cond: { $eq: ['$$this', false] } } } }
+                                        ]
+                                    },
+                                    else: null
+                                }
+                            }
                         }
                     },
                     incognitoMode: {
-                        $cond: {
-                            if: { $gt: [{ $size: { $filter: { input: '$plays.incognitoMode', cond: { $ne: ['$$this', null] } } } }, 0] },
-                            then: { $avg: { $filter: { input: '$plays.incognitoMode', cond: { $ne: ['$$this', null] } } } },
-                            else: null
+                        $let: {
+                            vars: {
+                                incognitoValues: {
+                                    $filter: {
+                                        input: '$plays.incognitoMode',
+                                        cond: { $ne: ['$$this', null] }
+                                    }
+                                }
+                            },
+                            in: {
+                                $cond: {
+                                    if: { $gt: [{ $size: '$$incognitoValues' }, 0] },
+                                    then: {
+                                        $gt: [
+                                            { $size: { $filter: { input: '$$incognitoValues', cond: { $eq: ['$$this', true] } } } },
+                                            { $size: { $filter: { input: '$$incognitoValues', cond: { $eq: ['$$this', false] } } } }
+                                        ]
+                                    },
+                                    else: null
+                                }
+                            }
                         }
                     }
                 }
@@ -231,9 +282,9 @@ router.get('/', async (req, res) => {
                     username: 1,
                     reasonStart: 1,
                     reasonEnd: 1,
-                    shuffle: { $cond: { if: { $eq: ['$shuffle', null] }, then: null, else: { $gt: ['$shuffle', 0.5] } } },
-                    offline: { $cond: { if: { $eq: ['$offline', null] }, then: null, else: { $gt: ['$offline', 0.5] } } },
-                    incognitoMode: { $cond: { if: { $eq: ['$incognitoMode', null] }, then: null, else: { $gt: ['$incognitoMode', 0.5] } } }
+                    shuffle: 1,
+                    offline: 1,
+                    incognitoMode: 1
                 }
             },
 
@@ -286,7 +337,7 @@ router.get('/:id', async (req, res) => {
         const { id } = req.params
 
         const pipeline = [
-            { $match: { _id: new Track().constructor.prototype.constructor.ObjectId(id) } },
+            { $match: { _id: new mongoose.Types.ObjectId(id) } },
 
             // Join with albums
             {

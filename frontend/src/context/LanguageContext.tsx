@@ -61,7 +61,12 @@ const translations = {
         yes: 'Tak',
         no: 'Nie',
         unknown: 'Nieznane',
-        notAvailable: 'Niedostępne'
+        notAvailable: 'Niedostępne',
+        back: 'Powrót',
+        hours: 'godzin',
+        technicalInfo: 'Informacje techniczne',
+        listeningBehavior: 'Zachowania słuchania',
+        playHistoryDescription: 'Wykres odtworzeń w czasie'
     },
     en: {
         // Navigation
@@ -115,7 +120,12 @@ const translations = {
         yes: 'Yes',
         no: 'No',
         unknown: 'Unknown',
-        notAvailable: 'N/A'
+        notAvailable: 'N/A',
+        back: 'Back',
+        hours: 'hours',
+        technicalInfo: 'Technical Information',
+        listeningBehavior: 'Listening Behavior',
+        playHistoryDescription: 'Play count over time'
     }
 }
 

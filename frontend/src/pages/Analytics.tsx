@@ -5,7 +5,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { BarChart3, PieChart, TrendingUp, Calendar, Music } from 'lucide-react'
 import { AdvancedFilters } from '@/components/filters/AdvancedFilters'
 import { TracksList } from '@/components/TracksList'
-import { DataLegendButton } from '@/components/DataLegend'
 import {
     PlaysByCountryChart,
     YearlyStatsChart,
@@ -196,7 +195,6 @@ export default function Analytics() {
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <DataLegendButton />
                     <Button
                         onClick={() => {
                             fetchTracks()
@@ -317,9 +315,9 @@ export default function Analytics() {
                                     </div>
                                     <div className="text-center">
                                         <div className="text-2xl font-bold text-spotify-green">
-                                            {Math.round((timelineData.reduce((acc: number, day: any) => acc + day.minutes, 0) / timelineData.length) / 60 * 10) / 10}
+                                            {timelineData.length > 0 ? Math.max(...timelineData.map((day: any) => day.minutes)) : 0}
                                         </div>
-                                        <div className="text-sm text-muted-foreground">Średnie godziny dziennie</div>
+                                        <div className="text-sm text-muted-foreground">Najdłuższa sesja (min)</div>
                                     </div>
                                 </div>
                             </CardContent>
