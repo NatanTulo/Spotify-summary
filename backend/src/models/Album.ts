@@ -1,5 +1,5 @@
 import { Table, Column, Model, DataType, CreatedAt, UpdatedAt, PrimaryKey, AutoIncrement, ForeignKey, BelongsTo } from 'sequelize-typescript'
-import { Artist } from './Artist'
+import { Artist } from './Artist.js'
 
 @Table({
     tableName: 'albums',

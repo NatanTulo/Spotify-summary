@@ -53,3 +53,10 @@ data/
 # Temporary files
 tmp/
 temp/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Vite build files (keep only .ts source)
+vite.config.js
+vite.config.d.ts

@@ -1,13 +1,13 @@
 import { Sequelize } from 'sequelize-typescript'
-import { Artist } from '../models/Artist'
-import { Album } from '../models/Album'
-import { Track } from '../models/Track'
-import { Play } from '../models/Play'
-import { Profile } from '../models/Profile'
-import { ArtistStats } from '../models/ArtistStats'
-import { CountryStats } from '../models/CountryStats'
-import { DailyStats } from '../models/DailyStats'
-import { YearlyStats } from '../models/YearlyStats'
+import { Artist } from '../models/Artist.js'
+import { Album } from '../models/Album.js'
+import { Track } from '../models/Track.js'
+import { Play } from '../models/Play.js'
+import { Profile } from '../models/Profile.js'
+import { ArtistStats } from '../models/ArtistStats.js'
+import { CountryStats } from '../models/CountryStats.js'
+import { DailyStats } from '../models/DailyStats.js'
+import { YearlyStats } from '../models/YearlyStats.js'
 
 const sequelize = new Sequelize({
     dialect: 'postgres',

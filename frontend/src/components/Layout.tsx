@@ -14,7 +14,7 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
     const { selectedProfile, setSelectedProfile } = useProfile()
-    const { language, setLanguage, t } = useLanguage()
+    const { language, setLanguage } = useLanguage()
     const [showProfileManager, setShowProfileManager] = useState(false)
 
     const handleImportRequested = () => {

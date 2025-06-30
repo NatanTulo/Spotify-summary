@@ -9,7 +9,6 @@ import { Play } from '../models/Play.js'
 import { Profile } from '../models/Profile.js'
 import ImportProgressManager from '../utils/ImportProgressManager.js'
 import { StatsAggregator } from '../utils/StatsAggregator.js'
-import mongoose from 'mongoose'
 
 dotenv.config()
 
@@ -41,7 +40,7 @@ interface SpotifyPlayData {
 class SpotifyDataImporter {
     private dataDir: string
     private profileName?: string
-    private profileId?: string
+    private profileId?: number
     private stats = {
         filesProcessed: 0,
         totalRecords: 0,
@@ -52,9 +51,15 @@ class SpotifyDataImporter {
         skippedRecords: 0
     }
 
+    private artists = new Map<string, number>() // name -> id
+    private albums = new Map<string, number>()   // name:artistId -> id
+    private tracks = new Map<string, number>()   // name:albumId -> id
+    private progressManager: ImportProgressManager
+
     constructor(dataDir: string = '../data', profileName?: string) {
         this.dataDir = path.resolve(dataDir)
         this.profileName = profileName
+        this.progressManager = ImportProgressManager.getInstance()
 
         // Jeśli podano nazwę profilu, użyj folderu profilu
         if (profileName) {
@@ -70,8 +75,6 @@ class SpotifyDataImporter {
     }
 
     async import(): Promise<void> {
-        const progressManager = ImportProgressManager.getInstance()
-
         try {
             console.log('🚀 Starting Spotify data import...')
             console.log(`📁 Data directory: ${this.dataDir}`)
@@ -80,7 +83,7 @@ class SpotifyDataImporter {
             }
 
             await connectDB()
-            console.log('✅ Connected to MongoDB')
+            console.log('✅ Connected to PostgreSQL')
 
             // Utwórz lub pobierz profil
             if (this.profileName) {
@@ -98,7 +101,7 @@ class SpotifyDataImporter {
                 console.log('❌ No JSON files found in data directory')
                 console.log('💡 Please place your Spotify JSON files in the ./data/ folder')
                 if (this.profileName) {
-                    progressManager.errorImport(this.profileName, 'No JSON files found')
+                    this.progressManager.errorImport(this.profileName, 'No JSON files found')
                 }
                 throw new Error('No JSON files found in data directory')
             }
@@ -108,7 +111,7 @@ class SpotifyDataImporter {
 
             // Rozpocznij śledzenie progress
             if (this.profileName) {
-                progressManager.startImport(this.profileName, files.length, estimatedTotal)
+                this.progressManager.startImport(this.profileName, files.length, estimatedTotal)
             }
 
             // Process each file
@@ -118,7 +121,7 @@ class SpotifyDataImporter {
 
                 // Oznacz plik jako ukończony
                 if (this.profileName) {
-                    progressManager.completeFile(this.profileName)
+                    this.progressManager.completeFile(this.profileName)
                 }
 
                 // Krótka przerwa między plikami żeby nie blokować event loop
@@ -133,15 +136,15 @@ class SpotifyDataImporter {
             // Agreguj statystyki dla szybszego ładowania wykresów
             if (this.profileId) {
                 console.log('\n📊 Aggregating statistics for fast chart loading...')
-                const aggregator = new StatsAggregator(new mongoose.Types.ObjectId(this.profileId))
+                const aggregator = new StatsAggregator(this.profileId)
                 await aggregator.aggregateAllStats()
                 console.log('✅ Statistics aggregation completed!')
             }
 
             // Zakończ śledzenie progress
             if (this.profileName) {
-                progressManager.updateStats(this.profileName, this.stats)
-                progressManager.completeImport(this.profileName)
+                this.progressManager.updateStats(this.profileName, this.stats)
+                this.progressManager.completeImport(this.profileName)
             }
 
             console.log('\n✅ Import completed successfully!')
@@ -150,267 +153,332 @@ class SpotifyDataImporter {
         } catch (error) {
             console.error('❌ Import failed:', error)
             if (this.profileName) {
-                progressManager.errorImport(this.profileName, error instanceof Error ? error.message : 'Unknown error')
+                this.progressManager.errorImport(this.profileName, error instanceof Error ? error.message : 'Unknown error')
             }
             throw error
         }
     }
 
-    private async clearExistingData(): Promise<void> {
-        console.log('🧹 Clearing existing data...')
-
-        if (this.profileId) {
-            // Usuń tylko dane tego profilu
-            await Play.deleteMany({ profileId: this.profileId })
-            console.log(`✅ Existing data cleared for profile: ${this.profileName}`)
-        } else {
-            // Usuń wszystkie dane
-            await Promise.all([
-                Play.deleteMany({}),
-                Track.deleteMany({}),
-                Album.deleteMany({}),
-                Artist.deleteMany({}),
-                Profile.deleteMany({})
-            ])
-            console.log('✅ All existing data cleared')
-        }
-    }
-
+    /**
+     * Tworzy lub pobiera profil
+     */
     private async getOrCreateProfile(): Promise<void> {
-        if (!this.profileName) return
+        if (!this.profileName) {
+            throw new Error('Profile name is required')
+        }
 
-        let profile = await Profile.findOne({ name: this.profileName })
+        let profile = await Profile.findOne({ where: { name: this.profileName } })
 
         if (!profile) {
-            profile = new Profile({
+            profile = await Profile.create({
                 name: this.profileName,
-                statistics: {
-                    totalPlays: 0,
-                    totalMinutes: 0,
-                    uniqueTracks: 0,
-                    uniqueArtists: 0,
-                    uniqueAlbums: 0
-                }
+                totalPlays: 0,
+                totalMinutes: 0,
+                uniqueTracks: 0,
+                createdAt: new Date(),
+                updatedAt: new Date()
             })
-            await profile.save()
             console.log(`✅ Created new profile: ${this.profileName}`)
         } else {
-            console.log(`✅ Using existing profile: ${this.profileName}`)
+            console.log(`📋 Using existing profile: ${this.profileName}`)
         }
 
-        this.profileId = profile._id.toString()
+        this.profileId = profile.id
     }
 
-    private async updateProfileStatistics(): Promise<void> {
+    /**
+     * Czyści istniejące dane dla profilu
+     */
+    private async clearExistingData(): Promise<void> {
         if (!this.profileId) return
 
-        const [totalPlays, totalMinutes, uniqueTracks] = await Promise.all([
-            Play.countDocuments({ profileId: this.profileId }),
-            Play.aggregate([
-                { $match: { profileId: this.profileId } },
-                { $group: { _id: null, total: { $sum: '$msPlayed' } } }
-            ]),
-            Play.distinct('trackId', { profileId: this.profileId }).then(ids => ids.length)
-        ])
-
-        await Profile.findByIdAndUpdate(this.profileId, {
-            'statistics.totalPlays': totalPlays,
-            'statistics.totalMinutes': Math.round((totalMinutes[0]?.total || 0) / 60000),
-            'statistics.uniqueTracks': uniqueTracks,
-            lastImport: new Date()
-        })
-
-        console.log(`✅ Updated profile statistics for: ${this.profileName}`)
+        console.log('🗑️ Clearing existing data for profile...')
+        await Play.destroy({ where: { profileId: this.profileId } })
+        console.log('✅ Existing data cleared')
     }
 
+    /**
+     * Znajdź wszystkie pliki JSON
+     */
     private findJsonFiles(): string[] {
         if (!fs.existsSync(this.dataDir)) {
             return []
         }
 
         return fs.readdirSync(this.dataDir)
-            .filter(file => file.endsWith('.json'))
-            .map(file => path.join(this.dataDir, file))
+            .filter(file => file.endsWith('.json') && file.includes('Streaming_History'))
+            .sort()
     }
 
-    private async processRecord(record: SpotifyPlayData): Promise<void> {
-        // Skip podcast episodes
-        if (record.episode_name || record.episode_show_name) {
-            return
+    /**
+     * Szacuj całkowitą liczbę rekordów
+     */
+    private estimateTotalRecords(files: string[]): number {
+        let total = 0
+        for (const file of files) {
+            const filePath = path.join(this.dataDir, file)
+            const content = fs.readFileSync(filePath, 'utf8')
+            const data = JSON.parse(content)
+            total += data.length
+        }
+        return total
+    }
+
+    /**
+     * Przetwórz plik z progress tracking
+     */
+    private async processFileWithProgress(file: string, index: number): Promise<void> {
+        const filePath = path.join(this.dataDir, file)
+        console.log(`\n📄 Processing file ${index + 1}: ${file}`)
+
+        const content = fs.readFileSync(filePath, 'utf8')
+        const data: SpotifyPlayData[] = JSON.parse(content)
+
+        console.log(`   📊 Records in file: ${data.length}`)
+
+        // Batch processing dla lepszej wydajności
+        const batchSize = 1000
+        let processed = 0
+
+        for (let i = 0; i < data.length; i += batchSize) {
+            const batch = data.slice(i, i + batchSize)
+            await this.processBatch(batch)
+            processed += batch.length
+
+            if (this.profileName) {
+                this.progressManager.updateFileProgress(this.profileName, file, index, processed, data.length)
+            }
+
+            // Progress log
+            if (processed % 5000 === 0 || processed === data.length) {
+                console.log(`   ⏳ Processed: ${processed}/${data.length} records`)
+            }
+
+            // Krótka przerwa żeby nie blokować event loop
+            if (i % 10000 === 0) {
+                await this.sleep(10)
+            }
         }
 
-        // Skip records without required data
+        this.stats.filesProcessed++
+        this.stats.totalRecords += data.length
+        console.log(`   ✅ File completed: ${data.length} records processed`)
+    }
+
+    /**
+     * Przetwórz batch rekordów
+     */
+    private async processBatch(batch: SpotifyPlayData[]): Promise<void> {
+        for (const record of batch) {
+            try {
+                await this.processRecord(record)
+            } catch (error) {
+                console.error('Error processing record:', error)
+                this.stats.skippedRecords++
+            }
+        }
+    }
+
+    /**
+     * Przetwórz pojedynczy rekord
+     */
+    private async processRecord(record: SpotifyPlayData): Promise<void> {
+        // Skip jeśli brak podstawowych danych
         if (!record.master_metadata_track_name ||
             !record.master_metadata_album_artist_name ||
             !record.master_metadata_album_album_name ||
-            !record.ts ||
-            typeof record.ms_played !== 'number') {
+            !record.ts) {
+            this.stats.skippedRecords++
             return
         }
 
-        // Get or create artist
-        const artist = await this.getOrCreateArtist(record.master_metadata_album_artist_name)
+        // Pomiń odtwarzania krótsze niż 30 sekund (30000ms)
+        if (record.ms_played < 30000) {
+            this.stats.skippedRecords++
+            return
+        }
 
-        // Get or create album
-        const album = await this.getOrCreateAlbum(
+        const artistId = await this.getOrCreateArtist(record.master_metadata_album_artist_name)
+        const albumId = await this.getOrCreateAlbum(
             record.master_metadata_album_album_name,
-            artist._id
+            artistId
         )
-
-        // Get or create track
-        const track = await this.getOrCreateTrack(
+        const trackId = await this.getOrCreateTrack(
             record.master_metadata_track_name,
-            album._id,
+            albumId,
             record.spotify_track_uri
         )
 
-        // Create play record
-        await this.createPlay(record, track._id)
+        await this.createPlay(record, trackId)
     }
 
-    private async getOrCreateArtist(name: string) {
-        let artist = await Artist.findOne({ name })
+    /**
+     * Utwórz lub pobierz artystę
+     */
+    private async getOrCreateArtist(name: string): Promise<number> {
+        if (this.artists.has(name)) {
+            return this.artists.get(name)!
+        }
+
+        let artist = await Artist.findOne({ where: { name } })
 
         if (!artist) {
-            artist = new Artist({ name })
-            await artist.save()
+            artist = await Artist.create({
+                name,
+                createdAt: new Date(),
+                updatedAt: new Date()
+            })
             this.stats.artistsCreated++
         }
 
-        return artist
+        this.artists.set(name, artist.id)
+        return artist.id
     }
 
-    private async getOrCreateAlbum(name: string, artistId: string) {
-        let album = await Album.findOne({ name, artistId })
+    /**
+     * Utwórz lub pobierz album
+     */
+    private async getOrCreateAlbum(name: string, artistId: number): Promise<number> {
+        const key = `${name}:${artistId}`
+        if (this.albums.has(key)) {
+            return this.albums.get(key)!
+        }
+
+        let album = await Album.findOne({ where: { name, artistId } })
 
         if (!album) {
-            album = new Album({ name, artistId })
-            await album.save()
+            album = await Album.create({
+                name,
+                artistId,
+                createdAt: new Date(),
+                updatedAt: new Date()
+            })
             this.stats.albumsCreated++
         }
 
-        return album
+        this.albums.set(key, album.id)
+        return album.id
     }
 
-    private async getOrCreateTrack(name: string, albumId: string, uri?: string) {
-        let track = await Track.findOne({ name, albumId })
+    /**
+     * Utwórz lub pobierz track
+     */
+    private async getOrCreateTrack(name: string, albumId: number, spotifyUri?: string): Promise<number> {
+        const key = `${name}:${albumId}`
+        if (this.tracks.has(key)) {
+            return this.tracks.get(key)!
+        }
+
+        let track = await Track.findOne({ where: { name, albumId } })
 
         if (!track) {
-            track = new Track({
+            track = await Track.create({
                 name,
                 albumId,
-                uri: uri || undefined
+                spotifyId: spotifyUri,
+                createdAt: new Date(),
+                updatedAt: new Date()
             })
-            await track.save()
             this.stats.tracksCreated++
         }
 
-        return track
+        this.tracks.set(key, track.id)
+        return track.id
     }
 
-    private async createPlay(record: SpotifyPlayData, trackId: string): Promise<void> {
-        const play = new Play({
+    /**
+     * Utwórz play
+     */
+    private async createPlay(record: SpotifyPlayData, trackId: number): Promise<void> {
+        await Play.create({
             trackId,
-            profileId: this.profileId || undefined,
+            profileId: this.profileId!,
             timestamp: new Date(record.ts),
             msPlayed: record.ms_played,
-            username: record.username || undefined,
-            platform: record.platform || undefined,
-            country: record.conn_country || undefined,
-            ipAddress: record.ip_addr || record.ip_addr_decrypted || undefined,
-            userAgent: record.user_agent_decrypted || undefined,
-            reasonStart: record.reason_start || undefined,
-            reasonEnd: record.reason_end || undefined,
-            shuffle: record.shuffle,
-            skipped: record.skipped,
-            offline: record.offline,
-            offlineTimestamp: record.offline_timestamp && record.offline_timestamp !== null ? new Date(record.offline_timestamp) : undefined,
-            incognitoMode: record.incognito_mode
+            country: record.conn_country || null,
+            platform: record.platform || null,
+            reasonStart: record.reason_start || null,
+            reasonEnd: record.reason_end || null,
+            shuffle: record.shuffle || false,
+            skipped: record.skipped || false,
+            offline: record.offline || false,
+            incognito: record.incognito_mode || false,
+            createdAt: new Date(),
+            updatedAt: new Date()
         })
 
-        await play.save()
         this.stats.playsCreated++
     }
 
+    /**
+     * Aktualizuj statystyki profilu
+     */
+    private async updateProfileStatistics(): Promise<void> {
+        if (!this.profileId) return
+
+        console.log('\n📊 Updating profile statistics...')
+
+        const [
+            totalPlays,
+            totalMsPlayed,
+            uniqueTracks
+        ] = await Promise.all([
+            Play.count({ where: { profileId: this.profileId } }),
+            Play.sum('msPlayed', { where: { profileId: this.profileId } }),
+            Play.count({
+                where: { profileId: this.profileId },
+                distinct: true,
+                col: 'trackId'
+            })
+        ])
+
+        await Profile.update({
+            totalPlays: totalPlays || 0,
+            totalMinutes: Math.round((totalMsPlayed || 0) / 60000),
+            uniqueTracks: uniqueTracks || 0,
+            updatedAt: new Date()
+        }, {
+            where: { id: this.profileId }
+        })
+
+        console.log('✅ Profile statistics updated')
+    }
+
+    /**
+     * Sleep function
+     */
+    private sleep(ms: number): Promise<void> {
+        return new Promise(resolve => setTimeout(resolve, ms))
+    }
+
+    /**
+     * Wydrukuj statystyki
+     */
     private printStats(): void {
         console.log('\n📊 Import Statistics:')
         console.log(`   📄 Files processed: ${this.stats.filesProcessed}`)
         console.log(`   📝 Total records: ${this.stats.totalRecords}`)
-        console.log(`   🎤 Artists created: ${this.stats.artistsCreated}`)
+        console.log(`   🎵 Artists created: ${this.stats.artistsCreated}`)
         console.log(`   💿 Albums created: ${this.stats.albumsCreated}`)
-        console.log(`   🎵 Tracks created: ${this.stats.tracksCreated}`)
+        console.log(`   🎶 Tracks created: ${this.stats.tracksCreated}`)
         console.log(`   ▶️ Plays created: ${this.stats.playsCreated}`)
-        console.log(`   ⚠️ Skipped records: ${this.stats.skippedRecords}`)
+        console.log(`   ⏭️ Records skipped: ${this.stats.skippedRecords}`)
     }
 
-    // Nowe metody dla progress tracking
-    private estimateTotalRecords(files: string[]): number {
-        // Szybka estymacja - załóżmy średnio 15000 rekordów na plik
-        return files.length * 15000
+    /**
+     * Clear all data - użyj ostrożnie!
+     */
+    async clearAllData(): Promise<void> {
+        console.log('🗑️ Clearing all data...')
+        await Promise.all([
+            Play.destroy({ where: {} }),
+            Track.destroy({ where: {} }),
+            Album.destroy({ where: {} }),
+            Artist.destroy({ where: {} }),
+            Profile.destroy({ where: {} })
+        ])
+        console.log('✅ All data cleared')
     }
-
-    private async sleep(ms: number): Promise<void> {
-        return new Promise(resolve => setTimeout(resolve, ms))
-    }
-
-    private async processFileWithProgress(filePath: string, fileIndex: number): Promise<void> {
-        const progressManager = ImportProgressManager.getInstance()
-        const fileName = path.basename(filePath)
-
-        console.log(`\n📄 Processing: ${fileName}`)
-
-        try {
-            const data = JSON.parse(fs.readFileSync(filePath, 'utf8'))
-            const totalRecords = data.length
-
-            console.log(`   📊 Records in file: ${totalRecords}`)
-
-            if (this.profileName) {
-                progressManager.updateFileProgress(this.profileName, fileName, fileIndex, 0, totalRecords)
-            }
-
-            let batchSize = 1000 // Przetwarzaj w batch'ach
-
-            for (let i = 0; i < data.length; i += batchSize) {
-                const batch = data.slice(i, Math.min(i + batchSize, data.length))
-
-                // Przetwórz batch
-                for (const record of batch) {
-                    await this.processRecord(record)
-                }
-
-                // Update progress co batch
-                if (this.profileName) {
-                    progressManager.updateFileProgress(this.profileName, fileName, fileIndex, i + batch.length, totalRecords)
-                    progressManager.updateStats(this.profileName, this.stats)
-                }
-
-                // Krótka przerwa co batch żeby nie blokować event loop
-                if (i + batchSize < data.length) {
-                    await this.sleep(10)
-                }
-
-                // Log progress co 1000 rekordów
-                if ((i + batch.length) % 1000 === 0 || i + batch.length === data.length) {
-                    console.log(`   ⏳ Processed ${i + batch.length}/${totalRecords} records...`)
-                }
-            }
-
-            this.stats.filesProcessed++
-            console.log(`   ✅ Completed: ${data.length} records processed, ${this.stats.skippedRecords} skipped`)
-
-        } catch (error) {
-            console.error(`   ❌ Error processing ${fileName}:`, error)
-            throw error
-        }
-    }
-}
-
-// Run import if this file is executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-    const profileName = process.argv[2] // Nazwa profilu jako argument
-    const importer = new SpotifyDataImporter('../data', profileName)
-    importer.import()
 }
 
 export default SpotifyDataImporter

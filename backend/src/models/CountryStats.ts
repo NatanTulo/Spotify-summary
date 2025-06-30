@@ -1,5 +1,5 @@
 import { Table, Column, Model, DataType, CreatedAt, UpdatedAt, PrimaryKey, AutoIncrement, ForeignKey, BelongsTo } from 'sequelize-typescript'
-import { Profile } from './Profile'
+import { Profile } from './Profile.js'
 
 @Table({
     tableName: 'country_stats',

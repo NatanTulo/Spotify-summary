@@ -1,6 +1,10 @@
 import express from 'express'
 import { Op, fn, col, literal } from 'sequelize'
-import { Track, Album, Artist, Play, Profile } from '../models/index.js'
+import { Track } from '../models/Track.js'
+import { Album } from '../models/Album.js'
+import { Artist } from '../models/Artist.js'
+import { Play } from '../models/Play.js'
+import { Profile } from '../models/Profile.js'
 
 const router = express.Router()
 
@@ -10,16 +14,11 @@ router.get('/', async (req, res) => {
         const {
             page = 1,
             limit = 20,
-            search = '',
-            minPlays = 0,
-            sortBy = 'totalPlays',
-            sortOrder = 'desc',
-            profileId
+            search = ''
         } = req.query
 
         const pageNum = parseInt(page as string)
         const limitNum = parseInt(limit as string)
-        const minPlaysNum = parseInt(minPlays as string)
 
         // Build where condition for search
         const searchCondition = search ? {
@@ -30,10 +29,7 @@ router.get('/', async (req, res) => {
             ]
         } : {}
 
-        // Build where condition for plays
-        const playCondition = profileId ? { profileId } : {}
-
-        // Get tracks with aggregated data
+        // Get tracks with basic data (without plays aggregation for now)
         const { rows: tracks, count: totalCount } = await Track.findAndCountAll({
             include: [
                 {
@@ -45,13 +41,6 @@ router.get('/', async (req, res) => {
                             as: 'artist'
                         }
                     ]
-                },
-                {
-                    model: Play,
-                    as: 'plays',
-                    where: playCondition,
-                    required: false,
-                    attributes: []
                 }
             ],
             where: searchCondition,
@@ -59,72 +48,32 @@ router.get('/', async (req, res) => {
                 'id',
                 'name',
                 'duration',
-                'explicit',
-                'popularity',
-                'previewUrl',
-                'spotifyId',
-                [fn('COUNT', col('plays.id')), 'totalPlays'],
-                [fn('COALESCE', fn('SUM', col('plays.msPlayed')), 0), 'totalMsPlayed'],
-                [fn('COALESCE', fn('AVG', col('plays.msPlayed')), 0), 'avgMsPlayed'],
-                [
-                    literal(`COALESCE(
-                        (SELECT COUNT(*)::float / NULLIF(COUNT(plays.id), 0) * 100
-                         FROM plays 
-                         WHERE plays."trackId" = "Track".id 
-                         AND plays.skipped = true
-                         ${profileId ? `AND plays."profileId" = '${profileId}'` : ''}), 
-                        0
-                    )`),
-                    'skipPercentage'
-                ]
-            ],
-            group: [
-                'Track.id',
-                'album.id',
-                'album.artist.id'
-            ],
-            having: literal(`COUNT(plays.id) >= ${minPlaysNum}`),
-            order: [
-                [
-                    sortBy === 'totalPlays' ? fn('COUNT', col('plays.id')) :
-                        sortBy === 'totalMinutes' ? fn('SUM', col('plays.msPlayed')) :
-                            sortBy === 'avgPlayDuration' ? fn('AVG', col('plays.msPlayed')) :
-                                String(sortBy),
-                    String(sortOrder).toUpperCase()
-                ]
+                'uri'
             ],
             limit: limitNum,
             offset: (pageNum - 1) * limitNum,
-            subQuery: false,
-            distinct: true
+            order: [['id', 'DESC']] // Simple order for now
         })
 
-        // Format the response
+        // Format the response (simplified without play stats for now)
         const formattedTracks = tracks.map((track: any) => ({
             id: track.id,
             name: track.name,
             duration: track.duration,
-            explicit: track.explicit,
-            popularity: track.popularity,
-            previewUrl: track.previewUrl,
-            spotifyId: track.spotifyId,
+            uri: track.uri,
             artist: {
                 id: track.album.artist.id,
-                name: track.album.artist.name,
-                spotifyId: track.album.artist.spotifyId
+                name: track.album.artist.name
             },
             album: {
                 id: track.album.id,
-                name: track.album.name,
-                spotifyId: track.album.spotifyId,
-                imageUrl: track.album.imageUrl,
-                releaseDate: track.album.releaseDate
+                name: track.album.name
             },
             stats: {
-                totalPlays: parseInt(track.getDataValue('totalPlays')) || 0,
-                totalMinutes: Math.round((parseInt(track.getDataValue('totalMsPlayed')) || 0) / 60000),
-                avgPlayDuration: Math.round((parseInt(track.getDataValue('avgMsPlayed')) || 0) / 1000),
-                skipPercentage: Math.round(parseFloat(track.getDataValue('skipPercentage')) || 0)
+                totalPlays: 0, // TODO: Calculate from plays table
+                totalMinutes: 0,
+                avgPlayDuration: 0,
+                skipPercentage: 0
             }
         }))
 
@@ -134,8 +83,8 @@ router.get('/', async (req, res) => {
             pagination: {
                 page: pageNum,
                 limit: limitNum,
-                total: Array.isArray(totalCount) ? totalCount.length : totalCount,
-                pages: Math.ceil((Array.isArray(totalCount) ? totalCount.length : totalCount) / limitNum)
+                total: totalCount,
+                pages: Math.ceil(totalCount / limitNum)
             }
         })
     } catch (error) {

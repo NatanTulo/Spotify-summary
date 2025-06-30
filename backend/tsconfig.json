@@ -4,9 +4,9 @@
         "lib": [
             "ES2020"
         ],
-        "module": "CommonJS",
+        "module": "ESNext",
         "skipLibCheck": true,
-        "moduleResolution": "node",
+        "moduleResolution": "bundler",
         "resolveJsonModule": true,
         "isolatedModules": true,
         "noEmit": false,

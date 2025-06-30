@@ -1,6 +1,6 @@
 import { Table, Column, Model, DataType, CreatedAt, UpdatedAt, PrimaryKey, AutoIncrement, ForeignKey, BelongsTo } from 'sequelize-typescript'
-import { Track } from './Track'
-import { Profile } from './Profile'
+import { Track } from './Track.js'
+import { Profile } from './Profile.js'
 
 @Table({
     tableName: 'plays',
