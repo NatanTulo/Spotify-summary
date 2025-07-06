@@ -2,121 +2,154 @@
 
 ## 🚨 KRYTYCZNE PROBLEMY DO NAPRAWIENIA
 
-### 1. Backend - Problem z profileId w tracks endpoint
+### 1. Timeline statystyki nieprawidłowe w frontend
+
 **Status:** 🔴 BŁĄD  
-**Problem:** Tracks endpoint zwraca totalPlays=0 dla konkretnego profilu, ale działa dla "Wszystkie"  
-**Logi:** `profileId: "6"` jest przekazywane jako string, może problem z typem w SQL  
-**Lokalizacja:** `backend/src/routes/tracks.ts:67-74`  
-**Debug dodany:** Console.log w linii 98-103
+**Problem:** "Średnie odtworzenia dziennie: 1708" - za wysokie liczby (backend zwraca prawidłowe ~60)  
+**Przyczyna:** Błędna logika kalkulacji średniej w frontend lub mapowanie danych  
+**Lokalizacja:** `frontend/src/pages/Analytics.tsx:322-324`  
+**Backend zwraca:** 2399 dni, średnia 60.1 odtworzeń/dzień  
+**Frontend pokazuje:** 1708 odtworzeń/dzień
 
 **Potrzebne działania:**
-- [ ] Sprawdzić czy profileId jest przekazywane jako INT czy STRING do SQL
-- [ ] Przetestować query ręcznie: `SELECT * FROM plays WHERE "profileId" = 6 LIMIT 5`
-- [ ] Sprawdzić czy profil 6 ma jakiekolwiek dane w tabeli plays
-- [ ] Możliwe że trzeba rzutować profileId na INT: `WHERE "profileId" = CAST(:profileId AS INTEGER)`
 
-### 2. Frontend - TracksList pokazuje "Niedostępne" 
-**Status:** 🔴 BŁĄD  
-**Problem:** Nazwa utworu i wykonawca pokazują "Niedostępne" zamiast prawdziwych wartości  
-**Lokalizacja:** `frontend/src/components/TracksList.tsx`  
-**Przyczyna:** Prawdopodobnie mapowanie pól `trackName` vs `name`
+- [ ] Sprawdzić funkcję `timelineData.reduce()` w Analytics.tsx linijki 322-324
+- [ ] Dodać console.log do sprawdzenia mapowanych danych w frontend
+- [ ] Sprawdzić czy wszystkie dni mają prawidłowe wartości `plays` i `minutes`
+- [ ] Możliwe że problem z NaN lub null wartościami w reduce()
 
-**Potrzebne działania:**
-- [ ] Sprawdzić aktualne pola w TracksList.tsx po zmianach użytkownika
-- [ ] Upewnić się, że backend zwraca `trackName`, `artistName`, `albumName`
-- [ ] Przetestować pełny flow: Analytics -> /api/tracks -> TracksList
+### 2. Profile w nagłówku nie synchronizują się z zarządzaniem danymi
 
-### 3. Średni czas odtwarzania nieprawidłowy
-**Status:** 🔴 BŁĄD  
-**Problem:** "Śr. czas" pokazuje `3039:39` zamiast normalnego czasu  
-**Przyczyna:** `avgPlayDuration` jest w milisekundach, ale formatowanie oczekuje sekund  
-**Lokalizacja:** `backend/src/routes/tracks.ts:63` i `frontend/src/components/TracksList.tsx`
+**Status:** 🟡 NAPRAWIANE  
+**Problem:** Wybór profilu w nagłówku nie pokrywa się z zakładką zarządzania danymi, wyświetlają się poziome kreski zamiast danych  
+**Przyczyna:** HeaderProfileSelector ma własną listę profili i nie aktualizuje się gdy profil zostanie dodany/usunięty  
+**Lokalizacja:** `frontend/src/components/HeaderProfileSelector.tsx`, `frontend/src/components/Layout.tsx`
 
-**Potrzebne działania:**
-- [ ] Sprawdzić jednostki avgPlayDuration (ms vs s)
-- [ ] Poprawić formatowanie w TracksList.tsx lub zmienić backend
-- [ ] Przetestować czy `Math.floor(duration / 60)` daje sensowne wyniki
+**Wykonane działania:**
 
-### 4. Timeline statystyki nieprawidłowe
-**Status:** 🔴 BŁĄD  
-**Problem:** "Średnie odtworzenia dziennie: 1708" - za wysokie liczby  
-**Przyczyna:** Agregacja danych timeline może być błędna  
-**Lokalizacja:** `frontend/src/pages/Analytics.tsx:316-328`
+- ✅ Dodano `refreshTrigger` prop do HeaderProfileSelector
+- ✅ Dodano `onProfilesChanged` callback do ProfileManager
+- ✅ Dodano sprawdzenie czy wybrany profil nadal istnieje
+- ✅ Dodano debug logi do śledzenia synchronizacji profili
 
-**Potrzebne działania:**
-- [ ] Sprawdzić czy dane timeline są dzienne czy miesięczne
-- [ ] Przetestować `timelineData.reduce()` funkcje
-- [ ] Dodać console.log do sprawdzenia raw danych z `/api/stats/timeline`
+**Do przetestowania:**
 
-## ✅ NAPRAWIONE WCZEŚNIEJ
+- [ ] Sprawdzić czy wybór profilu w header działa po dodaniu/usunięciu profili
+- [ ] Przetestować czy dane się wyświetlają po wybraniu profilu w header
+- [ ] Sprawdzić debug logi w konsoli przeglądarki
+
+## ✅ NAPRAWIONE I UKOŃCZONE
+
+### Migracja z MongoDB na PostgreSQL
+
+- ✅ Dependencies instalacja, MongoDB usunięty, PostgreSQL skonfigurowany
+- ✅ Backend i frontend działają, połączenie PostgreSQL naprawione
+- ✅ Tailwind CSS i PostCSS naprawione (downgrade, konfiguracja)
+
+### Progress bary i import profili
+
+- ✅ Progress bar dodany i przetestowany dla importu profili
+- ✅ Auto-refresh profili i progress barów (interwały ustawione)
+- ✅ Backend endpoint dla manualnej aktualizacji statystyk po imporcie
+- ✅ Backend usuwanie profili (usuwa powiązane plays, tracks, albums, artists)
+- ✅ Progress bary widoczne i działają dla wielu profili jednocześnie
+- ✅ Progress bary trwałe po nawigacji (sprawdzanie aktywnych importów)
+- ✅ Statystyki profili aktualizują się po imporcie (manual/auto)
+
+### Timeline i endpointy
+
+- ✅ Timeline przełączony na skalę dzienną (backend default, frontend param)
+- ✅ Progress bary i statystyki w czasie rzeczywistym podczas importu
+- ✅ Backend `/api/tracks` endpoint działa poprawnie dla profileId
+- ✅ Backend `/api/stats/timeline` zwraca prawidłowe dane dzienne
+- ✅ Średni czas odtwarzania (avgPlayDuration) formatowany poprawnie w sekundach
+- ✅ TracksList mapowanie pól `trackName`, `artistName`, `albumName` działa
+- ✅ `.pgpass` skonfigurowany dla PostgreSQL auto-login
+- ✅ Debug logi dodane dla stanu importu i cyklu komponentów
+
+### Naprawione błędy z poprzednich sesji
 
 - ✅ Backend zwraca liczby zamiast stringów
 - ✅ Dashboard mapowanie `track.name` i `track.artist.name`
 - ✅ Analytics timeline mapowanie `period`→`date`, `totalMinutes`→`minutes`
 - ✅ Defensywne sprawdzanie `Number(val) || 0`
 - ✅ TracksList formatowanie `toFixed()` z sprawdzaniem typu
+- ✅ README.md uproszczony i zaktualizowany z setup info (.pgpass, PostgreSQL config)
 
 ## 🔧 ŚRODOWISKO I SETUP
 
 ### Backend Status
+
 - ✅ Port 5000 działa
 - ✅ Endpoint `/api/health` odpowiada
-- ⚠️ Problem z synchronizacją bazy danych (schema constraints)
-- ⚠️ Możliwe że trzeba `sync: false` w database.ts
+- ✅ PostgreSQL połączenie i synchronizacja działa
+- ✅ Wszystkie główne endpointy działają poprawnie
 
-### Frontend Status  
+### Frontend Status
+
 - ✅ Port 3000 działa
-- ⚠️ Błędy NaN w konsoli (częściowo naprawione)
-- ⚠️ Biały ekran przy przejściu do listy utworów
+- ✅ Większość błędów NaN w konsoli naprawiona
+- ⚠️ Jeden pozostały problem: kalkulacja średnich w Analytics timeline
 
-### Kluczowe endpointy
-- ✅ `/api/tracks` - działa dla "Wszystkie", 🔴 nie działa dla konkretnego profilu
-- ✅ `/api/artists/top` - działa poprawnie  
+### Kluczowe endpointy - wszystkie działają
+
+- ✅ `/api/tracks` - działa poprawnie dla wszystkich profili
+- ✅ `/api/artists/top` - działa poprawnie
 - ✅ `/api/stats/overview` - działa
-- ✅ `/api/stats/timeline` - zwraca dane, ale frontend źle je interpretuje
+- ✅ `/api/stats/timeline` - zwraca prawidłowe dane dzienne (backend: avg 60.1)
+- ✅ `/api/import/profiles` - lista profili
+- ✅ `/api/import/available` - dostępne profile do importu
+- ✅ `/api/import/progress` - aktywne importy
 
 ## 📋 PLAN DZIAŁANIA NA NASTĘPNĄ SESJĘ
 
-1. **PRIORYTET 1:** Naprawić profileId w tracks endpoint
-   - Debugować SQL query z profileId
-   - Sprawdzić typy danych w bazie
-   - Przetestować ręcznie
+1. **PRIORYTET 1:** Przetestować naprawę synchronizacji profili
 
-2. **PRIORYTET 2:** Naprawić TracksList mapowanie
-   - Sprawdzić aktualne pola po zmianach użytkownika
-   - Upewnić się o spójności backend↔frontend
+   - Uruchomić frontend i backend
+   - Sprawdzić debug logi w konsoli
+   - Przetestować dodawanie/usuwanie profili i sprawdzić czy header się aktualizuje
+   - Sprawdzić czy wybór profilu w header wyświetla prawidłowe dane
 
-3. **PRIORYTET 3:** Poprawić timeline i średnie statystyki  
-   - Sprawdzić kalkulacje w Analytics.tsx
-   - Poprawić jednostki czasu
+2. **PRIORYTET 2:** Naprawić kalkulację średniej timeline w frontend
 
-4. **PRIORYTET 4:** Test end-to-end
+   - Debugować funkcję reduce() w Analytics.tsx linijki 322-324
+   - Sprawdzić mapowanie danych timeline w frontend
+   - Dodać console.log do sprawdzenia wartości
+
+3. **PRIORYTET 3:** Test end-to-end wszystkich funkcji
+
    - Dashboard → wybór profilu → top tracks
-   - Analytics → lista utworów → timeline
+   - Analytics → lista utworów → timeline → statystyki
+   - Import profilu → progress bar → aktualizacja statystyk
+
+4. **PRIORYTET 4:** Finalne testy i czyszczenie kodu
+   - Usunięcie debug logów z production code
+   - Sprawdzenie responsywności na różnych urządzeniach
+   - Finalne testy performance
 
 ## 🔍 PRZYDATNE KOMENDY TESTOWE
 
 ```bash
-# Test tracks endpoint bez profilu
-curl -s "http://localhost:5000/api/tracks?limit=3&sortBy=totalPlays&sortOrder=desc"
+# Test backend health
+curl -s "http://localhost:5000/api/health"
 
 # Test tracks endpoint z profilem
-curl -s "http://localhost:5000/api/tracks?limit=3&sortBy=totalPlays&sortOrder=desc&profileId=6"
+curl -s "http://localhost:5000/api/tracks?limit=3&sortBy=totalPlays&sortOrder=desc&profileId=10"
 
-# Test czy profil 6 ma dane w plays
-curl -s "http://localhost:5000/api/stats/overview?profileId=6"
+# Test timeline endpoint
+curl -s "http://localhost:5000/api/stats/timeline?profileId=10&period=day" | python3 -c "import json, sys; data=json.load(sys.stdin); print(f'Days: {len(data[\"data\"])}, Avg plays: {sum(d[\"plays\"] for d in data[\"data\"]) / len(data[\"data\"]):.1f}')"
 
-# Debug bazy danych
-# Sprawdzić SELECT * FROM plays WHERE "profileId" = 6 LIMIT 5;
+# Test profili
+curl -s "http://localhost:5000/api/import/profiles"
 ```
 
-## 📁 GŁÓWNE PLIKI DO EDYCJI
+## 📁 GŁÓWNE PLIKI DO EWENTUALNEJ EDYCJI
 
-- `backend/src/routes/tracks.ts` - główny problem z profileId  
-- `frontend/src/components/TracksList.tsx` - mapowanie pól
-- `frontend/src/pages/Analytics.tsx` - kalkulacje timeline
-- `backend/src/config/database.ts` - ewentualnie sync: false
+- `frontend/src/pages/Analytics.tsx` - kalkulacje timeline (linijki 322-324)
+- `frontend/src/components/HeaderProfileSelector.tsx` - synchronizacja profili (debug logi dodane)
+- `frontend/src/components/Layout.tsx` - przekazywanie callbacków synchronizacji profili
 
 ---
-**Stan na:** 1 lipca 2025, 01:00  
-**Ostatnie zmiany:** Dodano debug logi w tracks.ts, naprawiono część formatowania
+
+**Stan na:** 6 lipca 2025, 19:40  
+**Ostatnie zmiany:** Naprawiono synchronizację profili, uproszczono README.md z setup info (.pgpass, PostgreSQL)

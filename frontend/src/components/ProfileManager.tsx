@@ -59,6 +59,7 @@ interface ProfileManagerProps {
     onProfileSelect: (profileId: string | null) => void
     onImportProfile: (profileName: string) => void
     onClearProfile: (profileId: string) => void
+    onProfilesChanged?: () => void // Callback gdy lista profili się zmieni
     isLoading?: boolean
 }
 
@@ -67,6 +68,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
     onProfileSelect,
     onImportProfile,
     onClearProfile,
+    onProfilesChanged,
     isLoading = false
 }) => {
     const [profiles, setProfiles] = useState<Profile[]>([])
@@ -182,6 +184,8 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
             if (profilesRes.ok) {
                 const profilesData = await profilesRes.json()
                 setProfiles(profilesData.data || [])
+                // Powiadom parent component o zmianie profili
+                onProfilesChanged?.()
             }
 
             if (availableRes.ok) {

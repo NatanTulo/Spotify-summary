@@ -16,6 +16,15 @@ interface ExtendedTrack {
     totalMinutes: number
     avgPlayDuration: number
     skipPercentage: number
+    // Dodatkowe pola z API response
+    artist?: {
+        id: string
+        name: string
+    }
+    album?: {
+        id: string
+        name: string
+    }
     // Dodatkowe pola z dokumentacji Spotify
     uri?: string
     duration?: number

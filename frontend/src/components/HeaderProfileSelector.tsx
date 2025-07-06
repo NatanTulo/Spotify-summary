@@ -21,13 +21,15 @@ interface HeaderProfileSelectorProps {
     onProfileSelect: (profileId: string | null) => void
     onImportRequested: () => void
     isLoading?: boolean
+    refreshTrigger?: number // Dodajemy trigger do odświeżania profili
 }
 
 export const HeaderProfileSelector = ({
     selectedProfile,
     onProfileSelect,
     onImportRequested,
-    isLoading = false
+    isLoading = false,
+    refreshTrigger = 0
 }: HeaderProfileSelectorProps) => {
     const [profiles, setProfiles] = useState<Profile[]>([])
     const [availableProfiles, setAvailableProfiles] = useState<Array<{ name: string, files: any[] }>>([])
@@ -41,7 +43,17 @@ export const HeaderProfileSelector = ({
 
             if (profilesRes.ok) {
                 const profilesData = await profilesRes.json()
-                setProfiles(profilesData.data || [])
+                const newProfiles = profilesData.data || []
+                setProfiles(newProfiles)
+                
+                console.log('HeaderProfileSelector: Loaded profiles:', newProfiles.map((p: Profile) => ({ id: p._id, name: p.name })))
+                console.log('HeaderProfileSelector: Current selectedProfile:', selectedProfile)
+                
+                // Sprawdź czy wybrany profil nadal istnieje
+                if (selectedProfile && !newProfiles.find((p: Profile) => p._id === selectedProfile)) {
+                    console.log('Selected profile no longer exists, resetting to null')
+                    onProfileSelect(null)
+                }
             }
 
             if (statusRes.ok) {
@@ -55,7 +67,7 @@ export const HeaderProfileSelector = ({
 
     useEffect(() => {
         fetchProfiles()
-    }, [])
+    }, [refreshTrigger]) // Odświeżaj gdy refreshTrigger się zmieni
 
     const hasDataToImport = availableProfiles.length > 0
     const hasMultipleProfiles = profiles.length > 1

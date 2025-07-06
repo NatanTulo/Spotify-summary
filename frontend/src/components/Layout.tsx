@@ -16,6 +16,7 @@ const Layout = ({ children }: LayoutProps) => {
     const { selectedProfile, setSelectedProfile } = useProfile()
     const { language, setLanguage } = useLanguage()
     const [showProfileManager, setShowProfileManager] = useState(false)
+    const [profileRefreshTrigger, setProfileRefreshTrigger] = useState(0)
 
     const handleImportRequested = () => {
         setShowProfileManager(true)
@@ -32,6 +33,11 @@ const Layout = ({ children }: LayoutProps) => {
         if (selectedProfile === profileId) {
             setSelectedProfile(null)
         }
+    }
+
+    const handleProfilesChanged = () => {
+        // Odświeżamy profile w header gdy coś się zmieni
+        setProfileRefreshTrigger(prev => prev + 1)
     }
 
     return (
@@ -78,6 +84,7 @@ const Layout = ({ children }: LayoutProps) => {
                                 onProfileSelect={setSelectedProfile}
                                 onImportRequested={handleImportRequested}
                                 isLoading={false}
+                                refreshTrigger={profileRefreshTrigger}
                             />
                             <ThemeToggle />
                         </div>
@@ -104,6 +111,7 @@ const Layout = ({ children }: LayoutProps) => {
                                 onProfileSelect={setSelectedProfile}
                                 onImportProfile={handleProfileImport}
                                 onClearProfile={handleProfileClear}
+                                onProfilesChanged={handleProfilesChanged}
                             />
                         </div>
                     </div>

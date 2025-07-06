@@ -1,524 +1,251 @@
 # Spotify Analytics - Modern Web Application
 
-Nowoczesna aplikacja webowa do analizy danych ze Spotify, przepisana z PHP na React + TypeScript + PostgreSQL.
+Nowoczesna aplikacja webowa do analizy danych ze Spotify GDPR Export. React + TypeScript + PostgreSQL.
 
-**Aplikacja jest tylko do odczytu** - umożliwia analizę danych ze Spotify GDPR Export bez możliwości edycji lub modyfikacji danych.
+**Aplikacja jest tylko do odczytu** - analizuje dane bez możliwości ich modyfikacji.
 
-## ✨ Kluczowe funkcjonalności
+## ✨ Główne funkcjonalności
 
-### 📊 Kompleksowa analiza danych Spotify
-- **Multi-profile support** - Obsługa wielu profili z jednego eksportu GDPR
-- **Inteligentny import** - Automatyczne wykrywanie i kategoryzowanie plików JSON
-- **Real-time progress** - Progressbar podczas importu z możliwością anulowania
-- **Zagregowane statystyki** - Przygotowane modele dla szybkich zapytań
+- **Multi-profile support** - Obsługa wielu profili użytkowników
+- **Real-time import** - Progress bar podczas importu z możliwością anulowania
+- **Zaawansowana lista utworów** - 19 kolumn danych, sortowanie, filtrowanie, timeline
+- **Dashboard** - Statystyki, wykresy, top listy
+- **Wielojęzyczność** - PL/EN interface
+- **Ciemny motyw** - Przyjazny dla oczu design
 
-### 🎵 Zaawansowana lista utworów
-- **Rozwijane wiersze** - Timeline odtworzeń w formie wykresu słupkowego
-- **Dynamiczne kolumny** - Wybór spośród 19 dostępnych kolumn danych
-- **Sortowanie i filtrowanie** - Według wszystkich dostępnych kryteriów
-- **Responsywny design** - Pełna funkcjonalność na desktop i mobile
+## 🚀 Szybka instalacja (nowy komputer)
 
-### 🌐 Wielojęzyczność i UI
-- **PL/EN interface** - Przełączanie języka w locie
-- **Ciemny motyw granatowy** - Przyjazny dla oczu dark theme
-- **shadcn/ui components** - Nowoczesne, spójne komponenty UI
-- **Inteligentne placeholdery** - Elegancka obsługa braku danych
+### 1. Wymagania systemowe
 
-### 📈 Dashboard i statystyki
-- **Statystyki roczne i krajowe** - Zagregowane dane z wykresami
-- **Top artyści i albumy** - Najpopularniejsze treści
-- **Timeline analysis** - Historia słuchania w czasie z funkcją zoom
-- **Skip rate analysis** - Analiza pomijanych utworów
-
-## Technologie
-
-### Frontend
-- **React 18** - Biblioteka UI
-- **TypeScript** - Typy dla JavaScript
-- **Vite** - Szybkie narzędzie budowania
-- **shadcn/ui** - Komponenty UI
-- **Tailwind CSS** - Style i responsywność
-- **Recharts** - Wykresy z funkcją zoom
-
-### Backend
-- **Node.js 18+** - Środowisko runtime
-- **Express + TypeScript** - Framework serwera
-- **PostgreSQL + Sequelize** - Relacyjna baza danych z ORM
-- **Zagregowane statystyki** - Pre-computed models dla wydajności
-- **JSONB support** - Szybkie zapytania na danych JSON
-
-### Dodatkowe narzędzia
-- **Concurrently** - Równoczesne uruchamianie frontend/backend
-- **Recharts** - Wykresy i wizualizacje
-- **Lucide React** - Ikony UI
-
-## 🔧 Dostępne dane z Spotify GDPR
-
-Aplikacja obsługuje wszystkie pola z plików `Streaming_History_Audio_*.json`:
-
-### Podstawowe informacje
-- **trackName, artistName, albumName** - Identyfikacja utworu
-- **msPlayed** - Czas odtwarzania w milisekundach
-- **endTime** - Timestamp zakończenia odtwarzania
-
-### Szczegółowe metadane
-- **platform** - Platforma odtwarzania (desktop, mobile, web, etc.)
-- **country** - Kod kraju odtwarzania (ISO 2-letter)
-- **ipAddrDecrypted** - Adres IP (jeśli dostępny)
-- **userAgent** - Informacje o przeglądarce/aplikacji
-- **username** - Nazwa użytkownika Spotify
-
-### Analiza zachowań
-- **reasonStart** - Powód rozpoczęcia (clickrow, fwdbtn, etc.)
-- **reasonEnd** - Powód zakończenia (endplay, logout, etc.)
-- **shuffle** - Czy włączony tryb losowy
-- **skipped** - Czy utwór został pominięty
-- **offline** - Czy odtwarzany offline
-- **offlineTimestamp** - Timestamp offline cache
-- **incognitoMode** - Czy tryb prywatny był aktywny
-
-### Agregowane statystyki (generowane przez aplikację)
-- **totalPlays** - Łączna liczba odtworzeń
-- **totalMinutes** - Łączny czas słuchania
-- **avgPlayDuration** - Średni czas odtwarzania
-- **skipPercentage** - Procent pominiętych odtworzeń
-- **firstPlay/lastPlay** - Pierwsze i ostatnie odtworzenie
-- **platforms/countries** - Unikalne platformy i kraje
-
-## Wymagania systemowe
-
-- **Node.js** 18+ (https://nodejs.org)
-- **PostgreSQL** 17+ (https://www.postgresql.org/download/)
-- **Git** (opcjonalnie)
-
-## 🚀 Instalacja i uruchomienie
-
-### Szybki start
 ```bash
-# 1. Klonowanie/pobranie projektu
-git clone <repo-url>
-cd spotify-analytics
-
-# 2. Instalacja wszystkich zależności
-npm run install:all
-
-# 3. Uruchomienie PostgreSQL (Windows - jako serwis, Linux - systemctl)
-# Windows: PostgreSQL powinno uruchomić się automatycznie jako serwis
-# Linux: sudo systemctl start postgresql
-
-# 4. Uruchomienie aplikacji (frontend + backend)
-npm run dev
+# Sprawdź czy masz zainstalowane:
+node --version    # Potrzebne: 18+
+psql --version    # Potrzebne: PostgreSQL 17+
 ```
 
-Aplikacja będzie dostępna pod adresem: http://localhost:5173
+**Jeśli nie masz:**
 
-### Szczegółowa instalacja
+- **Node.js**: https://nodejs.org (wersja LTS)
+- **PostgreSQL**: https://www.postgresql.org/download/
 
-#### 1. Wymagania systemowe
-- **Node.js 18+** - https://nodejs.org (pobierz wersję LTS)
-- **PostgreSQL 17+** - https://www.postgresql.org/download/
-- **Git** (opcjonalnie) - do klonowania repozytorium
-
-#### 2. Instalacja Node.js
-**Windows:**
-1. Pobierz instalator z https://nodejs.org
-2. Uruchom plik .msi i postępuj zgodnie z instrukcjami
-3. Sprawdź instalację: `node --version` i `npm --version`
+### 2. Konfiguracja PostgreSQL
 
 **Ubuntu/Debian:**
-```bash
-curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
-sudo apt-get install -y nodejs
-```
 
-#### 3. Instalacja PostgreSQL
-**Windows:**
-1. Pobierz PostgreSQL z oficjalnej strony
-2. Zainstaluj z opcją "Install PostgreSQL as a Service"
-3. Zapamiętaj hasło dla użytkownika postgres
-4. Utwórz bazę danych: `createdb -U postgres spotify_analytics`
-
-**Ubuntu/Debian:**
 ```bash
 sudo apt update
 sudo apt install postgresql postgresql-contrib
 sudo systemctl start postgresql
 sudo systemctl enable postgresql
+
+# Utwórz bazę danych
 sudo -u postgres createdb spotify_analytics
+sudo -u postgres psql spotify_analytics
 ```
 
-#### 4. Konfiguracja projektu
+**Windows:**
+
+1. Zainstaluj PostgreSQL z oficjalnej strony
+2. Zapamiętaj hasło dla użytkownika `postgres`
+3. Otwórz pgAdmin lub cmd:
+
+```sql
+createdb -U postgres spotify_analytics
+```
+
+### 3. Konfiguracja .pgpass (ważne!)
+
+Aby uniknąć wprowadzania hasła za każdym razem, utwórz plik `.pgpass`:
+
+**Linux/Mac:**
+
 ```bash
-# Instalacja zależności dla wszystkich modułów
+# Utwórz plik .pgpass w katalogu domowym
+echo "localhost:5432:spotify_analytics:postgres:TWOJE_HASŁO" > ~/.pgpass
+chmod 600 ~/.pgpass
+```
+
+**Windows:**
+
+```batch
+# Utwórz plik %APPDATA%\postgresql\pgpass.conf
+echo localhost:5432:spotify_analytics:postgres:TWOJE_HASŁO > %APPDATA%\postgresql\pgpass.conf
+```
+
+### 4. Instalacja projektu
+
+```bash
+# Klonowanie/pobranie projektu
+git clone <repo-url>
+cd spotify-analytics
+
+# Instalacja wszystkich zależności
 npm run install:all
 
-# Alternatywnie ręcznie:
-npm install                 # Root dependencies
-cd frontend && npm install  # Frontend dependencies  
-cd ../backend && npm install # Backend dependencies
+# Test połączenia z bazą
+npm run dev:server
+# Powinno pokazać: "Database connected successfully"
 ```
 
-## 📁 Import danych ze Spotify
+### 5. Przygotowanie danych Spotify
 
-### 1. Uzyskanie danych GDPR ze Spotify
-1. Przejdź do **Account Privacy Settings** na https://www.spotify.com/account/privacy/
-2. Przewiń do sekcji **"Download your data"**
-3. Zaznacz **"Extended streaming history"** - zawiera szczegółowe dane
-4. Kliknij **"Request data"**
-5. Spotify wyśle e-mail z linkiem do pobrania (może zająć do 30 dni)
+1. **Pobierz dane GDPR ze Spotify:**
 
-### 2. Przygotowanie danych
-1. Pobierz plik ZIP od Spotify
-2. Rozpakuj i znajdź pliki `Streaming_History_Audio_*.json`
-3. Stwórz strukturę folderów w projekcie:
+   - Przejdź do https://www.spotify.com/account/privacy/
+   - Kliknij "Request data" → "Extended streaming history"
+   - Spotify wyśle link do pobrania (może zająć do 30 dni)
+
+2. **Przygotuj strukturę folderów:**
+
 ```
 data/
-├── ProfileName1/
-│   ├── Streaming_History_Audio_2021_3.json
-│   ├── Streaming_History_Audio_2022_4.json
+├── NazwaProfilu1/
+│   ├── Streaming_History_Audio_2023_1.json
+│   ├── Streaming_History_Audio_2024_2.json
 │   └── ...
-├── ProfileName2/
-│   ├── Streaming_History_Audio_2023_5.json
-│   └── ...
+├── NazwaProfilu2/
+│   └── Streaming_History_Audio_2024_3.json
 ```
 
-### 3. Import przez aplikację (zalecane)
-1. Uruchom aplikację: `npm run dev`
-2. Przejdź do http://localhost:5173
-3. Kliknij **"Importuj dane"** w górnym menu
-4. Aplikacja automatycznie:
-   - Wykryje profile w folderze `data/`
-   - Pokaże listę dostępnych profili
-   - Umożliwi import z progressbarem
-   - Zagreguje statystyki
+### 6. Uruchomienie
 
-### 4. Import przez CLI (alternatywnie)
 ```bash
-# Import wszystkich profili
-npm run import-data
-
-# Lub bezpośrednio:
-cd backend && npm run import-data
-```
-
-### 5. Obsługa wielu profili
-- Aplikacja automatycznie wykrywa foldery jako profile
-- Każdy profil to oddzielny folder w `data/`
-- Można przełączać między profilami w interfejsie
-- Statystyki są oddzielnie agregowane dla każdego profilu
-
-## 💻 Uruchomienie aplikacji
-
-### Tryb deweloperski (zalecany)
-```bash
-# Uruchomienie frontend + backend jednocześnie
+# Uruchom aplikację (frontend + backend)
 npm run dev
 ```
-Aplikacja będzie dostępna pod adresem: http://localhost:5173
 
-### Ręczne uruchomienie w oddzielnych terminalach
+Aplikacja będzie dostępna pod: **http://localhost:5173**
+
+## 📁 Import danych
+
+1. Uruchom aplikację: `npm run dev`
+2. Kliknij **"Importuj dane"** w górnym menu
+3. Aplikacja automatycznie wykryje profile w folderze `data/`
+4. Wybierz profile i kliknij **"Importuj"**
+5. Obserwuj progress bar - import może zająć kilka minut
+
+## 🛠️ Dostępne komendy
+
 ```bash
-# Terminal 1 - Backend API (port 5000)
-npm run dev:server
+# Rozwój
+npm run dev              # Frontend + backend jednocześnie
+npm run dev:client       # Tylko frontend (port 5173)
+npm run dev:server       # Tylko backend (port 5000)
 
-# Terminal 2 - Frontend dev server (port 5173)  
-npm run dev:client
-```
+# Instalacja
+npm run install:all      # Instaluj wszystkie zależności
 
-### Tryb produkcyjny
-```bash
-# Budowanie aplikacji
+# Import danych (alternatywnie przez CLI)
+npm run import-data
+
+# Budowanie (produkcja)
 npm run build
-
-# Uruchomienie serwera produkcyjnego
 npm start
 ```
-
-### Dostępne porty
-- **Frontend**: http://localhost:5173 (dev) / http://localhost:5000 (prod)
-- **Backend API**: http://localhost:5000/api
-- **PostgreSQL**: postgresql://localhost:5432/spotify_analytics
-
-## 🎛️ Instrukcja obsługi
-
-### 1. Pierwszy uruch
-1. Po uruchomieniu aplikacji zobaczysz komunikat o braku danych
-2. Kliknij **"Importuj dane"** w górnym menu
-3. Jeśli masz dane w folderze `data/`, zobaczysz listę dostępnych profili
-4. Wybierz profile do zaimportowania i kliknij **"Importuj"**
-5. Obserwuj postęp importu na progressbarze
-
-### 2. Nawigacja po aplikacji
-
-#### **Dashboard** - Główny panel statystyk
-- Przegląd ogólnych statystyk słuchania
-- Wykresy aktywności w czasie
-- Top artyści i albumy
-- Statystyki geograficzne
-
-#### **Lista utworów** - Szczegółowa analiza
-- **Sortowanie**: Kliknij nagłówki kolumn
-- **Filtrowanie**: Użyj pól wyszukiwania i filtrów
-- **Wybór kolumn**: Kliknij ikonę ⚙️ aby wybrać z 19 dostępnych kolumn
-- **Timeline utworu**: Kliknij wiersz utworu aby zobaczyć wykres odtworzeń w czasie
-
-### 3. Przełączanie profili
-- Użyj dropdown **"Wybierz profil"** w górnym menu
-- Wszystkie statystyki i listy automatycznie się zaktualizują
-- Możesz porównywać różne profile
-
-### 4. Język interfejsu
-- Kliknij przycisk **PL/EN** w górnym menu
-- Interfejs natychmiast się przetłumaczy
-- Język jest zapamiętywany w sesji
-
-### 5. Ciemny motyw
-- Aplikacja używa granatowego ciemnego motywu
-- Automatycznie dostosowuje się do preferencji systemowych
-- Kolory wykresów są zoptymalizowane pod ciemny schemat
 
 ## 🏗️ Struktura projektu
 
 ```
 spotify-analytics/
-├── package.json           # Root package.json z scripts
-├── README.md             # Dokumentacja
-├── .gitignore            # Git ignore rules
-│
+├── package.json           # Root scripts
 ├── frontend/             # React + TypeScript + Vite
-│   ├── package.json
-│   ├── vite.config.ts
-│   ├── tailwind.config.js
-│   ├── components.json   # shadcn/ui config
-│   └── src/
-│       ├── App.tsx
-│       ├── main.tsx
-│       ├── index.css
-│       ├── components/
-│       │   ├── ui/           # shadcn/ui components
-│       │   ├── Layout.tsx    # Main layout with header
-│       │   ├── TracksList.tsx # Enhanced tracks table
-│       │   ├── ProfileManager.tsx
-│       │   ├── charts/       # Chart components
-│       │   └── filters/      # Filter components
-│       ├── pages/
-│       │   ├── Dashboard.tsx
-│       │   └── Analytics.tsx
-│       ├── context/
-│       │   ├── LanguageContext.tsx # PL/EN translations
-│       │   └── ProfileContext.tsx  # Profile management
-│       ├── hooks/
-│       │   └── useTheme.ts
-│       └── lib/
-│           └── utils.ts
-│
+│   ├── src/
+│   │   ├── components/   # UI komponenty
+│   │   ├── pages/        # Dashboard, Analytics
+│   │   └── context/      # Language, Profile management
 ├── backend/              # Node.js + Express + TypeScript
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── src/
-│       ├── index.ts      # Server entry point
-│       ├── config/
-│       │   └── database.ts
-│       ├── models/       # Sequelize models
-│       │   ├── Track.ts
-│       │   ├── Artist.ts
-│       │   ├── Album.ts
-│       │   ├── Play.ts
-│       │   ├── Profile.ts
-│       │   └── *Stats.ts # Aggregated statistics
-│       ├── routes/       # API endpoints
-│       │   ├── tracks.ts
-│       │   ├── artists.ts
-│       │   ├── albums.ts
-│       │   ├── stats.ts
-│       │   └── import.ts
-│       ├── scripts/      # Data import utilities
-│       │   ├── importData.ts
-│       │   └── runImport.ts
-│       └── utils/
-│           ├── ImportProgressManager.ts
-│           └── StatsAggregator.ts
-│
+│   ├── src/
+│   │   ├── models/       # PostgreSQL models (Sequelize)
+│   │   ├── routes/       # API endpoints
+│   │   └── scripts/      # Data import utilities
 ├── shared/               # Shared TypeScript types
-│   └── types.ts
-│
 ├── data/                 # Spotify GDPR JSON files
-│   ├── Profile1/
-│   │   ├── Streaming_History_Audio_*.json
-│   │   └── ReadMeFirst_*.pdf
-│   └── Profile2/
-│       └── Streaming_History_Audio_*.json
-│
 └── .vscode/             # VS Code configuration
-    ├── settings.json
-    ├── extensions.json
-    └── tasks.json
 ```
 
-## 🔌 API Dokumentacja
+## 🔌 Główne API endpoints
 
-### Tracks Endpoints
-- `GET /api/tracks` - Lista utworów z filtrowaniem i paginacją
-  - Parametry: `page`, `limit`, `search`, `minPlays`, `sortBy`, `sortOrder`, `profileId`
-  - Zwraca: Zagregowane statystyki, wszystkie 19 kolumn danych
-- `GET /api/tracks/:id` - Szczegóły konkretnego utworu
-- `GET /api/tracks/:id/timeline` - Timeline odtworzeń utworu (wykres)
-
-### Statistics Endpoints  
+- `GET /api/tracks` - Lista utworów (filtry, paginacja, sortowanie)
 - `GET /api/stats/overview` - Ogólne statystyki słuchania
-- `GET /api/stats/yearly` - Statystyki roczne z podziałem na lata
-- `GET /api/stats/countries` - Statystyki geograficzne
-- `GET /api/stats/timeline` - Timeline aktywności
-
-### Artists & Albums
+- `GET /api/stats/timeline` - Timeline aktywności (wykresy)
 - `GET /api/artists/top` - Top wykonawcy
-- `GET /api/albums/top` - Top albumy
-
-### Profile Management
-- `GET /api/import/profiles` - Lista dostępnych profili
-- `GET /api/import/profile/:profileName` - Statystyki konkretnego profilu
-
-### Import System
-- `GET /api/import/status` - Status systemu importu
-- `POST /api/import/start` - Rozpoczęcie importu danych
-- `DELETE /api/import/clear` - Czyszczenie bazy danych
+- `GET /api/import/profiles` - Lista profili
+- `POST /api/import/start` - Rozpoczęcie importu
 - `GET /api/import/progress` - Postęp importu (real-time)
-- `DELETE /api/import/progress` - Anulowanie importu
-
-## 🎨 Funkcjonalności UI
-
-### Lista utworów (TracksList)
-- **19 dostępnych kolumn** - Pełne dane z Spotify GDPR
-- **Dynamiczny wybór kolumn** - Personalizacja widoku
-- **Rozwijane wiersze** - Timeline odtworzeń jako wykres słupkowy
-- **Inteligentne sortowanie** - Według wszystkich dostępnych pól
-- **Responsywny design** - Działa na desktop i mobile
-- **Lokalizacja PL/EN** - Tłumaczone nazwy kolumn i tooltips
-
-### Dashboard i statystyki
-- **Interaktywne wykresy** - Recharts z ciemnym motywem
-- **Zagregowane dane** - Szybkie ładowanie dzięki pre-computed stats
-- **Profile switching** - Porównywanie różnych użytkowników
-- **Real-time updates** - Automatyczne odświeżanie po imporcie
-
-### Import i zarządzanie danymi
-- **Wykrywanie profili** - Automatyczne skanowanie folderów
-- **Progress tracking** - Real-time progressbar z możliwością anulowania
-- **Error handling** - Elegancka obsługa błędów importu
-- **Batch processing** - Wydajny import dużych plików JSON
-
-## 🛠️ Dostępne komendy NPM
-
-```bash
-# Rozwój
-npm run dev              # Uruchom frontend + backend
-npm run dev:client       # Tylko frontend (port 5173)
-npm run dev:server       # Tylko backend (port 5000)
-
-# Budowanie
-npm run build            # Build frontend + backend
-npm run build:client     # Build tylko frontend
-npm run build:server     # Build tylko backend
-
-# Instalacja
-npm run install:all      # Instaluj wszystkie zależności
-npm run setup           # install:all + import-data
-
-# Import danych
-npm run import-data      # Import wszystkich profili z folderu data/
-
-# Produkcja
-npm start               # Uruchom zbudowaną aplikację
-```
 
 ## 🐛 Rozwiązywanie problemów
 
-### Port już zajęty
-```bash
-# Windows - zabij proces na porcie 5000
-taskkill /F /PID (netstat -ano | findstr :5000)
+### PostgreSQL
 
-# Linux/Mac
-lsof -ti:5000 | xargs kill -9
-```
-
-### PostgreSQL nie uruchamia się
 ```bash
+# Linux - restart PostgreSQL
+sudo systemctl restart postgresql
+sudo systemctl status postgresql
+
 # Windows - restart serwisu
 net stop postgresql-x64-17 && net start postgresql-x64-17
 
-# Linux
-sudo systemctl restart postgresql
-sudo systemctl status postgresql
+# Test połączenia
+psql -U postgres -d spotify_analytics -h localhost
 ```
 
-### Błędy importu danych
-1. Sprawdź czy pliki JSON są w poprawnym formacie Spotify
-2. Upewnij się że PostgreSQL działa i baza danych spotify_analytics istnieje
-3. Sprawdź logi w konsoli podczas importu
-4. Spróbuj wyczyścić bazę: kliknij "Wyczyść dane" w interfejsie
+### Port zajęty
 
-### Problemy z frontendem
 ```bash
-# Wyczyść cache i reinstaluj
-cd frontend
+# Linux/Mac - zabij proces na porcie 5000
+lsof -ti:5000 | xargs kill -9
+
+# Windows
+taskkill /F /PID (netstat -ano | findstr :5000)
+```
+
+### Błędy importu
+
+1. Sprawdź czy PostgreSQL działa
+2. Sprawdź `.pgpass` - czy hasło jest prawidłowe
+3. Sprawdź czy pliki JSON są w folderze `data/`
+4. Sprawdź logi w konsoli podczas importu
+
+### Czyszczenie i reinstalacja
+
+```bash
+# Wyczyść cache NPM
 rm -rf node_modules package-lock.json
-npm install
+npm run install:all
+
+# Reset bazy danych (jeśli potrzebne)
+# W aplikacji: "Zarządzaj danymi" → "Wyczyść wszystkie dane"
 ```
 
-### Problemy z backendem
-```bash
-# Sprawdź czy wszystkie dependencies są zainstalowane
-cd backend
-npm install
-npm run build  # Sprawdź błędy kompilacji TypeScript
-```
+## 💡 Przydatne wskazówki
 
-## 📊 Przykładowe statystyki
+### .pgpass dla różnych systemów
 
-Po zaimportowaniu danych zobaczysz m.in.:
+- **Linux**: `~/.pgpass`
+- **Windows**: `%APPDATA%\postgresql\pgpass.conf`
+- **Format**: `hostname:port:database:username:password`
+- **Uprawnienia**: 600 (tylko właściciel może czytać)
+
+### Optymalizacja importu
+
+- Większe pliki JSON mogą zająć 10-30 minut importu
+- Progress bar pokazuje aktualny postęp
+- Można anulować import w każdej chwili
+- Import można wznowić - aplikacja pominie już zaimportowane dane
+
+### Multi-profile setup
+
+- Każdy folder w `data/` = osobny profil
+- Można przełączać między profilami w interfejsie
+- Statystyki są oddzielnie liczone dla każdego profilu
+- Można porównywać różne profile
+
+## 📊 Co zobaczysz po imporcie
+
 - **Łączny czas słuchania** w minutach i godzinach
-- **Najpopularniejsze utwory** z liczbą odtworzeń
-- **Top artyści** z czasem słuchania
-- **Statystyki pomijania** - które utwory są często skipowane
-- **Analiza geograficzna** - z jakich krajów słuchasz
+- **Top utwory/artyści** z liczbą odtworzeń
 - **Timeline aktywności** - wzorce słuchania w czasie
+- **Statystyki pomijania** - które utwory są często skipowane
+- **Analiza geograficzna** - kraje odtwarzania
 - **Platform analysis** - desktop vs mobile vs web
-- **Offline vs online** - analiza trybów słuchania
-
-## 🔐 Prywatność i bezpieczeństwo
-
-- **Tylko lokalne dane** - nic nie jest wysyłane do zewnętrznych serwerów
-- **Baza danych lokalna** - PostgreSQL na Twoim komputerze
-- **Brak rejestracji** - nie potrzebujesz konta ani logowania
-- **Open source** - kod jest dostępny do przeglądu
-- **Read-only** - aplikacja tylko odczytuje dane, nie modyfikuje
-
-## 👨‍💻 Rozwój projektu
-
-### Wymagania deweloperskie
-- Node.js 18+
-- PostgreSQL 17+
-- Git
-- VS Code (zalecane) z rozszerzeniami TypeScript i React
-
-### Struktura bazy danych
-- **Tabele**: artists, albums, tracks, plays, profiles
-- **Agregowane statystyki**: daily_stats, yearly_stats, country_stats, artist_stats
-- **Indeksy**: Zoptymalizowane dla częstych zapytań
-
-### Architektura
-- **Frontend**: React SPA z client-side routing
-- **Backend**: RESTful API z Express
-- **Database**: PostgreSQL z zagregowanymi widokami
-- **Real-time**: Progress tracking podczas importu
-
-## 📄 Licencja
-
-Projekt edukacyjny na licencji MIT - do użytku osobistego i nauki.
-
----
-
-**Autor**: Natan Tułodziecki  
-**Ostatnia aktualizacja**: Czerwiec 2025  
-**Wersja**: 1.0.0
+- **19 kolumn szczegółowych danych** z możliwością sortowania/filtrowania
