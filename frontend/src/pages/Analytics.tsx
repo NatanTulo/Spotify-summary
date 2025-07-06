@@ -12,6 +12,7 @@ import {
     ListeningTimelineChart
 } from '@/components/charts/StatsCharts'
 import { useProfile } from '../context/ProfileContext'
+import { useLanguage } from '../context/LanguageContext'
 
 interface Track {
     trackId: string
@@ -39,6 +40,7 @@ interface FilterState {
 
 export default function Analytics() {
     const { selectedProfile } = useProfile()
+    const { t } = useLanguage()
     const [tracks, setTracks] = useState<Track[]>([])
     const [loading, setLoading] = useState(false)
     const [pagination, setPagination] = useState({
@@ -205,9 +207,9 @@ export default function Analytics() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-foreground">Analytics</h1>
+                    <h1 className="text-3xl font-bold text-foreground">{t('analyticsTitle')}</h1>
                     <p className="text-muted-foreground mt-2">
-                        Szczegółowa analiza Twoich danych muzycznych
+                        {t('analyticsDescription')}
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -219,7 +221,7 @@ export default function Analytics() {
                         className="flex items-center space-x-2"
                     >
                         <TrendingUp className="h-4 w-4" />
-                        <span>Odśwież dane</span>
+                        <span>{t('refreshData')}</span>
                     </Button>
                 </div>
             </div>
@@ -229,19 +231,19 @@ export default function Analytics() {
                 <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="overview" className="flex items-center space-x-2">
                         <BarChart3 className="h-4 w-4" />
-                        <span>Przegląd</span>
+                        <span>{t('overview')}</span>
                     </TabsTrigger>
                     <TabsTrigger value="charts" className="flex items-center space-x-2">
                         <PieChart className="h-4 w-4" />
-                        <span>Wykresy</span>
+                        <span>{t('charts')}</span>
                     </TabsTrigger>
                     <TabsTrigger value="tracks" className="flex items-center space-x-2">
                         <Music className="h-4 w-4" />
-                        <span>Lista utworów</span>
+                        <span>{t('tracksList')}</span>
                     </TabsTrigger>
                     <TabsTrigger value="timeline" className="flex items-center space-x-2">
                         <Calendar className="h-4 w-4" />
-                        <span>Timeline</span>
+                        <span>{t('timeline')}</span>
                     </TabsTrigger>
                 </TabsList>
 
@@ -311,9 +313,9 @@ export default function Analytics() {
                         <ListeningTimelineChart data={timelineData} />
                         <Card>
                             <CardHeader>
-                                <CardTitle>Analiza wzorców słuchania</CardTitle>
+                                <CardTitle>{t('listeningPatternsAnalysis')}</CardTitle>
                                 <CardDescription>
-                                    Trendy i wzorce w Twojej aktywności muzycznej
+                                    {t('listeningTrendsDescription')}
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
@@ -328,7 +330,7 @@ export default function Analytics() {
                                                 })() 
                                                 : 0}
                                         </div>
-                                        <div className="text-sm text-muted-foreground">Średnie odtworzenia dziennie (dni aktywne)</div>
+                                        <div className="text-sm text-muted-foreground">{t('avgPlaysPerActiveDay')}</div>
                                     </div>
                                     <div className="text-center">
                                         <div className="text-2xl font-bold text-spotify-green">
@@ -340,13 +342,13 @@ export default function Analytics() {
                                                 })() 
                                                 : 0}
                                         </div>
-                                        <div className="text-sm text-muted-foreground">Średnie minuty dziennie (dni aktywne)</div>
+                                        <div className="text-sm text-muted-foreground">{t('avgMinutesPerActiveDay')}</div>
                                     </div>
                                     <div className="text-center">
                                         <div className="text-2xl font-bold text-spotify-green">
                                             {timelineData.length > 0 ? Math.max(...timelineData.map((day: any) => Number(day.minutes) || 0)) : 0}
                                         </div>
-                                        <div className="text-sm text-muted-foreground">Najdłuższa sesja (min)</div>
+                                        <div className="text-sm text-muted-foreground">{t('longestSession')}</div>
                                     </div>
                                 </div>
                             </CardContent>

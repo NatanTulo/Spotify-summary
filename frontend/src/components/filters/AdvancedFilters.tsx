@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Search, Filter, X, Calendar, Globe, Music, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useLanguage } from '@/context/LanguageContext'
 
 interface FilterState {
     search: string
@@ -34,6 +35,7 @@ export function AdvancedFilters({
     platforms = []
 }: AdvancedFiltersProps) {
     const [isExpanded, setIsExpanded] = useState(false)
+    const { t } = useLanguage()
 
     const updateFilter = <K extends keyof FilterState>(key: K, value: FilterState[K]) => {
         onFiltersChange({ ...filters, [key]: value })
@@ -56,10 +58,10 @@ export function AdvancedFilters({
                 <CardTitle className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                         <Filter className="h-5 w-5" />
-                        <span>Filtry i wyszukiwanie</span>
+                        <span>{t('filters')}</span>
                         {hasActiveFilters() && (
                             <span className="bg-spotify-green text-white text-xs px-2 py-1 rounded-full">
-                                Aktywne
+                                {t('activeFilters')}
                             </span>
                         )}
                     </div>
@@ -68,11 +70,11 @@ export function AdvancedFilters({
                         size="sm"
                         onClick={() => setIsExpanded(!isExpanded)}
                     >
-                        {isExpanded ? 'Zwiń' : 'Rozwiń'}
+                        {isExpanded ? t('close') : t('advancedFilters')}
                     </Button>
                 </CardTitle>
                 <CardDescription>
-                    Filtruj i sortuj utwory według różnych kryteriów
+                    {t('clickHeaders')}
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -82,7 +84,7 @@ export function AdvancedFilters({
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <input
                             type="text"
-                            placeholder="Szukaj utworów, artystów, albumów..."
+                            placeholder={t('searchPlaceholder')}
                             className="w-full pl-10 pr-4 py-2 border rounded-md bg-background"
                             value={filters.search}
                             onChange={(e) => updateFilter('search', e.target.value)}
@@ -90,7 +92,7 @@ export function AdvancedFilters({
                     </div>
                     <Button onClick={onApply} className="flex items-center space-x-2">
                         <Search className="h-4 w-4" />
-                        <span>Szukaj</span>
+                        <span>{t('search')}</span>
                     </Button>
                 </div>
 
@@ -102,7 +104,7 @@ export function AdvancedFilters({
                             <div>
                                 <label className="block text-sm font-medium mb-2">
                                     <Music className="inline h-4 w-4 mr-1" />
-                                    Min. liczba odtworzeń
+                                    {t('minPlays')}
                                 </label>
                                 <input
                                     type="number"
@@ -116,14 +118,14 @@ export function AdvancedFilters({
                             <div>
                                 <label className="block text-sm font-medium mb-2">
                                     <Globe className="inline h-4 w-4 mr-1" />
-                                    Kraj
+                                    {t('country')}
                                 </label>
                                 <select
                                     className="w-full px-3 py-2 border rounded-md bg-background"
                                     value={filters.country}
                                     onChange={(e) => updateFilter('country', e.target.value)}
                                 >
-                                    <option value="">Wszystkie kraje</option>
+                                    <option value="">{t('allCountries')}</option>
                                     {countries.map(country => (
                                         <option key={country} value={country}>{country}</option>
                                     ))}
@@ -133,14 +135,14 @@ export function AdvancedFilters({
                             <div>
                                 <label className="block text-sm font-medium mb-2">
                                     <Users className="inline h-4 w-4 mr-1" />
-                                    Platforma
+                                    {t('platform')}
                                 </label>
                                 <select
                                     className="w-full px-3 py-2 border rounded-md bg-background"
                                     value={filters.platform}
                                     onChange={(e) => updateFilter('platform', e.target.value)}
                                 >
-                                    <option value="">Wszystkie platformy</option>
+                                    <option value="">{t('allPlatforms')}</option>
                                     {platforms.map(platform => (
                                         <option key={platform} value={platform}>{platform}</option>
                                     ))}
@@ -153,7 +155,7 @@ export function AdvancedFilters({
                             <div>
                                 <label className="block text-sm font-medium mb-2">
                                     <Calendar className="inline h-4 w-4 mr-1" />
-                                    Data od
+                                    {t('from')}
                                 </label>
                                 <input
                                     type="date"
@@ -166,7 +168,7 @@ export function AdvancedFilters({
                             <div>
                                 <label className="block text-sm font-medium mb-2">
                                     <Calendar className="inline h-4 w-4 mr-1" />
-                                    Data do
+                                    {t('to')}
                                 </label>
                                 <input
                                     type="date"
@@ -180,30 +182,30 @@ export function AdvancedFilters({
                         {/* Sortowanie */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium mb-2">Sortuj według</label>
+                                <label className="block text-sm font-medium mb-2">{t('sortBy')}</label>
                                 <select
                                     className="w-full px-3 py-2 border rounded-md bg-background"
                                     value={filters.sortBy}
                                     onChange={(e) => updateFilter('sortBy', e.target.value)}
                                 >
-                                    <option value="totalPlays">Liczba odtworzeń</option>
-                                    <option value="totalMinutes">Czas słuchania</option>
-                                    <option value="trackName">Nazwa utworu</option>
-                                    <option value="artistName">Nazwa artysty</option>
-                                    <option value="avgPlayDuration">Średni czas odtwarzania</option>
-                                    <option value="skipPercentage">Procent pominiętych</option>
+                                    <option value="totalPlays">{t('totalPlays')}</option>
+                                    <option value="totalMinutes">{t('totalMinutes')}</option>
+                                    <option value="trackName">{t('trackName')}</option>
+                                    <option value="artistName">{t('artistName')}</option>
+                                    <option value="avgPlayDuration">{t('avgPlayDuration')}</option>
+                                    <option value="skipPercentage">{t('skipPercentage')}</option>
                                 </select>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium mb-2">Kolejność</label>
+                                <label className="block text-sm font-medium mb-2">{t('sortOrder')}</label>
                                 <select
                                     className="w-full px-3 py-2 border rounded-md bg-background"
                                     value={filters.sortOrder}
                                     onChange={(e) => updateFilter('sortOrder', e.target.value as 'asc' | 'desc')}
                                 >
-                                    <option value="desc">Malejąco</option>
-                                    <option value="asc">Rosnąco</option>
+                                    <option value="desc">{t('descending')}</option>
+                                    <option value="asc">{t('ascending')}</option>
                                 </select>
                             </div>
                         </div>
@@ -217,7 +219,7 @@ export function AdvancedFilters({
                                     onChange={(e) => updateFilter('showSkipped', e.target.checked)}
                                     className="rounded"
                                 />
-                                <span className="text-sm">Tylko pominięte utwory</span>
+                                <span className="text-sm">{t('showSkipped')}</span>
                             </label>
 
                             <label className="flex items-center space-x-2">
@@ -227,7 +229,7 @@ export function AdvancedFilters({
                                     onChange={(e) => updateFilter('showShuffle', e.target.checked)}
                                     className="rounded"
                                 />
-                                <span className="text-sm">Tylko z shuffle</span>
+                                <span className="text-sm">{t('showShuffle')}</span>
                             </label>
                         </div>
 
@@ -235,13 +237,13 @@ export function AdvancedFilters({
                         <div className="flex space-x-2 pt-4">
                             <Button onClick={onApply} className="flex items-center space-x-2">
                                 <Filter className="h-4 w-4" />
-                                <span>Zastosuj filtry</span>
+                                <span>{t('applyFilters')}</span>
                             </Button>
 
                             {hasActiveFilters() && (
                                 <Button variant="outline" onClick={onReset} className="flex items-center space-x-2">
                                     <X className="h-4 w-4" />
-                                    <span>Wyczyść filtry</span>
+                                    <span>{t('resetFilters')}</span>
                                 </Button>
                             )}
                         </div>

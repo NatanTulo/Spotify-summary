@@ -3,6 +3,7 @@ import { Progress } from './ui/progress'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { X, Clock, FileText, CheckCircle, AlertCircle } from 'lucide-react'
+import { useLanguage } from '../context/LanguageContext'
 
 interface ImportProgress {
     profileName: string
@@ -38,6 +39,7 @@ interface ImportProgressDisplayProps {
 }
 
 export const ImportProgressDisplay = ({ profileName, onClose, className }: ImportProgressDisplayProps) => {
+    const { t } = useLanguage()
     const [progress, setProgress] = useState<ImportProgress | null>(null)
     const [isLoading, setIsLoading] = useState(false)
 
@@ -127,17 +129,17 @@ export const ImportProgressDisplay = ({ profileName, onClose, className }: Impor
     const getStatusText = () => {
         switch (progress.status) {
             case 'preparing':
-                return 'Przygotowywanie importu...'
+                return t('preparingImport')
             case 'importing':
-                return `Importowanie pliku ${progress.currentFileIndex + 1}/${progress.totalFiles}: ${progress.currentFile}`
+                return `${t('importingFile')} ${progress.currentFileIndex + 1}/${progress.totalFiles}: ${progress.currentFile}`
             case 'completed':
-                return 'Import ukończony pomyślnie!'
+                return t('importCompleted')
             case 'error':
-                return `Błąd: ${progress.error || 'Nieznany błąd'}`
+                return `${t('importErrorMsg')}: ${progress.error || t('unknownError')}`
             case 'cancelled':
-                return 'Import anulowany'
+                return t('importCancelled')
             default:
-                return 'Status nieznany'
+                return t('unknownStatus')
         }
     }
 
@@ -174,7 +176,7 @@ export const ImportProgressDisplay = ({ profileName, onClose, className }: Impor
                 {/* Progress Bar */}
                 <div className="space-y-2">
                     <div className="flex justify-between text-sm text-muted-foreground">
-                        <span>Postęp ogólny</span>
+                        <span>{t('overallProgress')}</span>
                         <span>{progress.percentage}%</span>
                     </div>
                     <Progress value={progress.percentage} className="h-2" />
@@ -184,7 +186,7 @@ export const ImportProgressDisplay = ({ profileName, onClose, className }: Impor
                 {progress.status === 'importing' && (
                     <div className="space-y-2">
                         <div className="flex justify-between text-sm text-muted-foreground">
-                            <span>Aktualny plik</span>
+                            <span>{t('currentFile')}</span>
                             <span>{progress.currentRecord}/{progress.totalRecordsInFile}</span>
                         </div>
                         <Progress
@@ -197,19 +199,19 @@ export const ImportProgressDisplay = ({ profileName, onClose, className }: Impor
                 {/* Statistics */}
                 <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                        <div className="text-muted-foreground">Pliki</div>
+                        <div className="text-muted-foreground">{t('filesLabel')}</div>
                         <div className="font-medium">{progress.completedFiles}/{progress.totalFiles}</div>
                     </div>
                     <div>
-                        <div className="text-muted-foreground">Rekordy</div>
+                        <div className="text-muted-foreground">{t('recordsLabel')}</div>
                         <div className="font-medium">{progress.totalRecordsProcessed.toLocaleString()}</div>
                     </div>
                     <div>
-                        <div className="text-muted-foreground">Artyści</div>
+                        <div className="text-muted-foreground">{t('artistsLabel')}</div>
                         <div className="font-medium">{progress.stats.artistsCreated.toLocaleString()}</div>
                     </div>
                     <div>
-                        <div className="text-muted-foreground">Utwory</div>
+                        <div className="text-muted-foreground">{t('tracksLabel')}</div>
                         <div className="font-medium">{progress.stats.tracksCreated.toLocaleString()}</div>
                     </div>
                 </div>
@@ -223,7 +225,7 @@ export const ImportProgressDisplay = ({ profileName, onClose, className }: Impor
                             onClick={cancelImport}
                             disabled={isLoading}
                         >
-                            {isLoading ? 'Anulowanie...' : 'Anuluj Import'}
+                            {isLoading ? t('cancelling') : t('cancelImport')}
                         </Button>
                     </div>
                 )}

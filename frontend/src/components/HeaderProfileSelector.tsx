@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { User, Download } from 'lucide-react'
+import { useLanguage } from '../context/LanguageContext'
 
 interface Profile {
     _id: string
@@ -31,6 +32,7 @@ export const HeaderProfileSelector = ({
     isLoading = false,
     refreshTrigger = 0
 }: HeaderProfileSelectorProps) => {
+    const { t } = useLanguage()
     const [profiles, setProfiles] = useState<Profile[]>([])
     const [availableProfiles, setAvailableProfiles] = useState<Array<{ name: string, files: any[] }>>([])
 
@@ -88,7 +90,7 @@ export const HeaderProfileSelector = ({
                                     : 'border-input bg-background hover:bg-accent hover:text-accent-foreground'
                                 } disabled:pointer-events-none disabled:opacity-50`}
                         >
-                            Wszystkie
+                            {t('allProfiles')}
                         </button>
                         {profiles.map((profile) => (
                             <button
@@ -114,7 +116,7 @@ export const HeaderProfileSelector = ({
                 className="inline-flex items-center gap-2 h-9 rounded-md px-3 text-sm font-medium bg-spotify-green text-white hover:bg-spotify-green/90 disabled:pointer-events-none disabled:opacity-50"
             >
                 <Download className="h-4 w-4" />
-                {hasDataToImport ? 'Importuj Dane' : 'Zarządzaj Danymi'}
+                {hasDataToImport ? t('importData') : t('dataManagement')}
             </button>
         </div>
     )

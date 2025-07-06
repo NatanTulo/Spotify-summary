@@ -1,9 +1,11 @@
 import { Moon, Sun, Monitor } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useTheme } from '@/hooks/useTheme'
+import { useLanguage } from '@/context/LanguageContext'
 
 export function ThemeToggle() {
     const { theme, setTheme } = useTheme()
+    const { t } = useLanguage()
 
     const toggleTheme = () => {
         if (theme === 'light') {
@@ -31,13 +33,13 @@ export function ThemeToggle() {
     const getTooltip = () => {
         switch (theme) {
             case 'light':
-                return 'Switch to dark mode'
+                return t('darkTheme')
             case 'dark':
-                return 'Switch to system mode'
+                return t('systemTheme')
             case 'system':
-                return 'Switch to light mode'
+                return t('lightTheme')
             default:
-                return 'Toggle theme'
+                return t('lightTheme')
         }
     }
 

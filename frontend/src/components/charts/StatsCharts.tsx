@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Brush } from 'recharts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useLanguage } from '@/context/LanguageContext'
 
 interface PlaysByCountryProps {
     data: Array<{
@@ -12,6 +13,8 @@ interface PlaysByCountryProps {
 }
 
 export function PlaysByCountryChart({ data, loading = false }: PlaysByCountryProps) {
+    const { t } = useLanguage()
+
     // Obliczamy procenty w frontendzie
     const totalPlays = (data || []).reduce((sum, country) => sum + country.plays, 0)
 
@@ -27,8 +30,8 @@ export function PlaysByCountryChart({ data, loading = false }: PlaysByCountryPro
         return (
             <Card>
                 <CardHeader>
-                    <CardTitle>Odtworzenia według krajów</CardTitle>
-                    <CardDescription>Kraje, w których słuchasz muzyki</CardDescription>
+                    <CardTitle>{t('playsByCountry')}</CardTitle>
+                    <CardDescription>{t('playsByCountryDesc')}</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="flex items-center justify-center h-[350px]">
@@ -43,12 +46,12 @@ export function PlaysByCountryChart({ data, loading = false }: PlaysByCountryPro
         return (
             <Card>
                 <CardHeader>
-                    <CardTitle>Odtworzenia według krajów</CardTitle>
-                    <CardDescription>Kraje, w których słuchasz muzyki</CardDescription>
+                    <CardTitle>{t('playsByCountry')}</CardTitle>
+                    <CardDescription>{t('playsByCountryDesc')}</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="flex items-center justify-center h-[350px] text-muted-foreground">
-                        Brak danych do wyświetlenia
+                        {t('noData')}
                     </div>
                 </CardContent>
             </Card>
@@ -58,8 +61,8 @@ export function PlaysByCountryChart({ data, loading = false }: PlaysByCountryPro
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Odtworzenia według krajów</CardTitle>
-                <CardDescription>Kraje, w których słuchasz muzyki</CardDescription>
+                <CardTitle>{t('playsByCountry')}</CardTitle>
+                <CardDescription>{t('playsByCountryDesc')}</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="space-y-3">
@@ -101,11 +104,13 @@ interface YearlyStatsProps {
 }
 
 export function YearlyStatsChart({ data }: YearlyStatsProps) {
+    const { t } = useLanguage()
+    
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Statystyki roczne</CardTitle>
-                <CardDescription>Twoja aktywność słuchania przez lata</CardDescription>
+                <CardTitle>{t('yearlyStats')}</CardTitle>
+                <CardDescription>{t('yearlyStatsDescription')}</CardDescription>
             </CardHeader>
             <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -133,7 +138,7 @@ export function YearlyStatsChart({ data }: YearlyStatsProps) {
                         <Tooltip
                             formatter={(value: any, name: string) => [
                                 name === 'plays' ? value.toLocaleString() : `${Math.round(value).toLocaleString()} min`,
-                                name === 'plays' ? 'Odtworzenia' : 'Minuty'
+                                name === 'plays' ? t('playsTooltip') : t('minutesTooltip')
                             ]}
                             contentStyle={{
                                 backgroundColor: 'hsl(var(--card))',
@@ -161,12 +166,14 @@ interface TopArtistsProps {
 }
 
 export function TopArtistsChart({ data, loading = false }: TopArtistsProps) {
+    const { t } = useLanguage()
+    
     if (loading) {
         return (
             <Card>
                 <CardHeader>
-                    <CardTitle>Top artyści</CardTitle>
-                    <CardDescription>Najczęściej słuchani wykonawcy</CardDescription>
+                    <CardTitle>{t('topArtists')}</CardTitle>
+                    <CardDescription>{t('topArtistsDescription')}</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="flex items-center justify-center h-[300px]">
@@ -181,12 +188,12 @@ export function TopArtistsChart({ data, loading = false }: TopArtistsProps) {
         return (
             <Card>
                 <CardHeader>
-                    <CardTitle>Top artyści</CardTitle>
-                    <CardDescription>Najczęściej słuchani wykonawcy</CardDescription>
+                    <CardTitle>{t('topArtists')}</CardTitle>
+                    <CardDescription>{t('topArtistsDescription')}</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                        Brak danych do wyświetlenia
+                        {t('noDataToDisplay')}
                     </div>
                 </CardContent>
             </Card>
@@ -196,8 +203,8 @@ export function TopArtistsChart({ data, loading = false }: TopArtistsProps) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Top artyści</CardTitle>
-                <CardDescription>Najczęściej słuchani wykonawcy</CardDescription>
+                <CardTitle>{t('topArtists')}</CardTitle>
+                <CardDescription>{t('topArtistsDescription')}</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="space-y-3">
@@ -240,6 +247,7 @@ interface ListeningTimelineProps {
 }
 
 export function ListeningTimelineChart({ data }: ListeningTimelineProps) {
+    const { t } = useLanguage()
     const [zoomState, setZoomState] = useState<{
         startIndex?: number
         endIndex?: number
@@ -250,12 +258,12 @@ export function ListeningTimelineChart({ data }: ListeningTimelineProps) {
         return (
             <Card>
                 <CardHeader>
-                    <CardTitle>Timeline słuchania</CardTitle>
-                    <CardDescription>Twoja aktywność muzyczna w czasie</CardDescription>
+                    <CardTitle>{t('listeningTimeline')}</CardTitle>
+                    <CardDescription>{t('dailyMusicActivity')}</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="flex items-center justify-center h-[400px] text-muted-foreground">
-                        Brak danych do wyświetlenia
+                        {t('noDataToDisplay')}
                     </div>
                 </CardContent>
             </Card>
@@ -276,9 +284,9 @@ export function ListeningTimelineChart({ data }: ListeningTimelineProps) {
             <CardHeader>
                 <div className="flex items-center justify-between">
                     <div>
-                        <CardTitle>Timeline słuchania (dzienne)</CardTitle>
+                        <CardTitle>{t('listeningTimelineDaily')}</CardTitle>
                         <CardDescription>
-                            Twoja codzienna aktywność muzyczna w czasie
+                            {t('dailyMusicActivity')}
                             {zoomState.isZoomed && ` (${displayData.length} z ${data.length} dni)`}
                         </CardDescription>
                     </div>
@@ -287,7 +295,7 @@ export function ListeningTimelineChart({ data }: ListeningTimelineProps) {
                             onClick={handleResetZoom}
                             className="px-3 py-1 text-sm border rounded-md hover:bg-accent hover:text-accent-foreground"
                         >
-                            Resetuj zoom
+                            {t('resetZoom')}
                         </button>
                     )}
                 </div>
@@ -316,7 +324,7 @@ export function ListeningTimelineChart({ data }: ListeningTimelineProps) {
                             <Tooltip
                                 formatter={(value: any, name: string) => [
                                     name === 'plays' ? value.toLocaleString() : `${Math.round(value).toLocaleString()} min`,
-                                    name === 'plays' ? 'Odtworzenia' : 'Minuty'
+                                    name === 'plays' ? t('playsTooltip') : t('minutesTooltip')
                                 ]}
                                 contentStyle={{
                                     backgroundColor: 'hsl(var(--card))',
@@ -333,7 +341,7 @@ export function ListeningTimelineChart({ data }: ListeningTimelineProps) {
                     {/* Mały wykres overview z brush do zoom */}
                     <div className="border-t pt-4">
                         <div className="text-sm font-medium mb-2 text-muted-foreground">
-                            Wybierz okres do przybliżenia:
+                            {t('selectPeriodToZoom')}
                         </div>
                         <ResponsiveContainer width="100%" height={80}>
                             <LineChart data={data}>

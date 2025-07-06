@@ -3,9 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Play, Users, Music, Clock, Globe } from 'lucide-react'
 import { useProfile } from '../context/ProfileContext'
 import { DataImportGuide } from '@/components/DataImportGuide'
+import { useLanguage } from '../context/LanguageContext'
 
 const Dashboard = () => {
     const { selectedProfile } = useProfile()
+    const { t } = useLanguage()
     const [stats, setStats] = useState({
         totalPlays: 0,
         totalMinutes: 0,
@@ -75,9 +77,9 @@ const Dashboard = () => {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+                    <h1 className="text-3xl font-bold text-foreground">{t('dashboard')}</h1>
                     <p className="text-muted-foreground mt-2">
-                        Przegląd Twoich statystyk słuchania muzyki
+                        {t('generalStatsDesc')}
                     </p>
                 </div>
             </div>
@@ -86,7 +88,7 @@ const Dashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Całkowite odtworzenia</CardTitle>
+                        <CardTitle className="text-sm font-medium">{t('totalPlaysCard')}</CardTitle>
                         <Play className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -94,14 +96,14 @@ const Dashboard = () => {
                             {stats.totalPlays > 0 ? stats.totalPlays.toLocaleString() : '——'}
                         </div>
                         <p className="text-xs text-muted-foreground">
-                            {stats.totalPlays > 0 ? 'Od 2017 roku' : 'Brak danych'}
+                            {stats.totalPlays > 0 ? t('playsLabel') : t('noData')}
                         </p>
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Minuty słuchania</CardTitle>
+                        <CardTitle className="text-sm font-medium">{t('listeningMinutes')}</CardTitle>
                         <Clock className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -109,14 +111,14 @@ const Dashboard = () => {
                             {stats.totalMinutes > 0 ? stats.totalMinutes.toLocaleString() : '——'}
                         </div>
                         <p className="text-xs text-muted-foreground">
-                            {stats.totalMinutes > 0 ? `≈ ${Math.round(stats.totalMinutes / 60)} godzin` : 'Brak danych'}
+                            {stats.totalMinutes > 0 ? `≈ ${Math.round(stats.totalMinutes / 60)} ${t('approxHours')}` : t('noData')}
                         </p>
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Unikalne utwory</CardTitle>
+                        <CardTitle className="text-sm font-medium">{t('uniqueTracksCard')}</CardTitle>
                         <Music className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -124,14 +126,14 @@ const Dashboard = () => {
                             {stats.uniqueTracks > 0 ? stats.uniqueTracks.toLocaleString() : '——'}
                         </div>
                         <p className="text-xs text-muted-foreground">
-                            {stats.uniqueTracks > 0 ? 'Różne piosenki' : 'Brak danych'}
+                            {stats.uniqueTracks > 0 ? t('differentSongs') : t('noData')}
                         </p>
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Unikalni artyści</CardTitle>
+                        <CardTitle className="text-sm font-medium">{t('uniqueArtistsCard')}</CardTitle>
                         <Users className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -139,27 +141,27 @@ const Dashboard = () => {
                             {stats.uniqueArtists > 0 ? stats.uniqueArtists.toLocaleString() : '——'}
                         </div>
                         <p className="text-xs text-muted-foreground">
-                            {stats.uniqueArtists > 0 ? 'Różni wykonawcy' : 'Brak danych'}
+                            {stats.uniqueArtists > 0 ? t('differentArtists') : t('noData')}
                         </p>
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Główny kraj</CardTitle>
+                        <CardTitle className="text-sm font-medium">{t('mainCountry')}</CardTitle>
                         <Globe className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{stats.topCountry}</div>
                         <p className="text-xs text-muted-foreground">
-                            {stats.topCountry !== '——' ? 'Najczęściej słuchasz' : 'Brak danych'}
+                            {stats.topCountry !== '——' ? t('mostListenedIn') : t('noData')}
                         </p>
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Średnia sesja</CardTitle>
+                        <CardTitle className="text-sm font-medium">{t('avgSession')}</CardTitle>
                         <Clock className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -167,7 +169,7 @@ const Dashboard = () => {
                             {stats.avgSessionLength > 0 ? `${stats.avgSessionLength} min` : '——'}
                         </div>
                         <p className="text-xs text-muted-foreground">
-                            {stats.avgSessionLength > 0 ? 'Na sesję' : 'Brak danych'}
+                            {stats.avgSessionLength > 0 ? t('perSession') : t('noData')}
                         </p>
                     </CardContent>
                 </Card>
@@ -178,9 +180,9 @@ const Dashboard = () => {
                 {/* Top Tracks */}
                 <Card>
                     <CardHeader>
-                        <CardTitle>Najczęściej słuchane utwory</CardTitle>
+                        <CardTitle>{t('topTracksTitle')}</CardTitle>
                         <CardDescription>
-                            Twoja top 5 piosenek według liczby odtworzeń
+                            {t('topTracksDesc')}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -200,15 +202,15 @@ const Dashboard = () => {
                                             </div>
                                         </div>
                                         <div className="text-sm text-muted-foreground">
-                                            {track.plays} odtworzeń
+                                            {track.plays} {t('playsLabel')}
                                         </div>
                                     </div>
                                 ))
                             ) : (
                                 <div className="text-center py-8 text-muted-foreground">
                                     <div className="text-4xl mb-2">🎵</div>
-                                    <div>Brak danych o utworach</div>
-                                    <div className="text-sm">Zaimportuj dane ze Spotify</div>
+                                    <div>{t('noTracksData')}</div>
+                                    <div className="text-sm">{t('importSpotifyData')}</div>
                                 </div>
                             )}
                         </div>
@@ -218,9 +220,9 @@ const Dashboard = () => {
                 {/* Top Artists */}
                 <Card>
                     <CardHeader>
-                        <CardTitle>Najczęściej słuchani artyści</CardTitle>
+                        <CardTitle>{t('topArtistsTitle')}</CardTitle>
                         <CardDescription>
-                            Twoja top 5 artystów według liczby odtworzeń
+                            {t('topArtistsDesc')}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -237,15 +239,15 @@ const Dashboard = () => {
                                             </div>
                                         </div>
                                         <div className="text-sm text-muted-foreground">
-                                            {artist.plays} odtworzeń
+                                            {artist.plays} {t('playsLabel')}
                                         </div>
                                     </div>
                                 ))
                             ) : (
                                 <div className="text-center py-8 text-muted-foreground">
                                     <div className="text-4xl mb-2">🎤</div>
-                                    <div>Brak danych o artystach</div>
-                                    <div className="text-sm">Zaimportuj dane ze Spotify</div>
+                                    <div>{t('noArtistsData')}</div>
+                                    <div className="text-sm">{t('importSpotifyData')}</div>
                                 </div>
                             )}
                         </div>

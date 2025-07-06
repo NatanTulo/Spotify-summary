@@ -14,7 +14,7 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
     const { selectedProfile, setSelectedProfile } = useProfile()
-    const { language, setLanguage } = useLanguage()
+    const { language, setLanguage, t } = useLanguage()
     const [showProfileManager, setShowProfileManager] = useState(false)
     const [profileRefreshTrigger, setProfileRefreshTrigger] = useState(0)
 
@@ -50,7 +50,7 @@ const Layout = ({ children }: LayoutProps) => {
                             <div className="flex items-center space-x-2">
                                 <Music className="h-8 w-8 text-spotify-green" />
                                 <h1 className="text-2xl font-bold text-foreground">
-                                    Spotify Analytics
+                                    {t('appTitle')}
                                 </h1>
                             </div>
                             <nav className="flex space-x-4">
@@ -58,13 +58,13 @@ const Layout = ({ children }: LayoutProps) => {
                                     to="/"
                                     className="px-4 py-2 text-muted-foreground hover:text-foreground transition-colors"
                                 >
-                                    Dashboard
+                                    {t('dashboard')}
                                 </Link>
                                 <Link
                                     to="/analytics"
                                     className="px-4 py-2 text-muted-foreground hover:text-foreground transition-colors"
                                 >
-                                    Analytics
+                                    {t('analytics')}
                                 </Link>
                             </nav>
                         </div>
@@ -98,7 +98,7 @@ const Layout = ({ children }: LayoutProps) => {
                     <div className="bg-background rounded-lg shadow-lg max-w-4xl w-full max-h-[80vh] overflow-auto">
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-2xl font-bold">Zarządzanie Danymi</h2>
+                                <h2 className="text-2xl font-bold">{t('dataManagement')}</h2>
                                 <button
                                     onClick={() => setShowProfileManager(false)}
                                     className="p-2 hover:bg-muted rounded-md"
@@ -129,9 +129,9 @@ const Layout = ({ children }: LayoutProps) => {
             <footer className="border-t bg-card mt-auto">
                 <div className="container mx-auto px-4 py-6">
                     <div className="text-center text-sm text-muted-foreground">
-                        <p>Spotify Analytics - Analiza danych ze Spotify GDPR Export</p>
+                        <p>{t('appDescription')}</p>
                         <p className="mt-1">
-                            Projekt edukacyjny - Natan Tułodziecki
+                            {t('footerCredit')}
                         </p>
                     </div>
                 </div>

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { Info, X } from 'lucide-react'
+import { useLanguage } from '../context/LanguageContext'
 
 interface FieldDescription {
     field: string
@@ -121,6 +122,8 @@ interface DataLegendProps {
 }
 
 export const DataLegend = ({ isOpen, onClose }: DataLegendProps) => {
+    const { t } = useLanguage()
+    
     if (!isOpen) return null
 
     return (
@@ -130,10 +133,10 @@ export const DataLegend = ({ isOpen, onClose }: DataLegendProps) => {
                     <div>
                         <CardTitle className="flex items-center gap-2">
                             <Info className="h-5 w-5" />
-                            Legenda Pól Danych Spotify
+                            {t('dataFieldsLegend')}
                         </CardTitle>
                         <CardDescription>
-                            Opis wszystkich pól dostępnych w danych ze Spotify Extended Streaming History
+                            {t('dataFieldsDescription')}
                         </CardDescription>
                     </div>
                     <Button variant="ghost" size="sm" onClick={onClose}>
@@ -159,7 +162,7 @@ export const DataLegend = ({ isOpen, onClose }: DataLegendProps) => {
                                         </p>
                                         {field.example && (
                                             <p className="text-xs text-muted-foreground font-mono bg-muted/50 px-2 py-1 rounded">
-                                                Przykład: {field.example}
+                                                {t('exampleLabel')} {field.example}
                                             </p>
                                         )}
                                     </div>
@@ -169,13 +172,13 @@ export const DataLegend = ({ isOpen, onClose }: DataLegendProps) => {
                     </div>
 
                     <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-                        <h4 className="font-medium mb-2">Informacje dodatkowe:</h4>
+                        <h4 className="font-medium mb-2">{t('additionalInfo')}</h4>
                         <ul className="text-sm text-muted-foreground space-y-1">
-                            <li>• Dane pochodzą z eksportu GDPR Spotify (Extended Streaming History)</li>
-                            <li>• Niektóre pola mogą być puste lub niedostępne w starszych rekordach</li>
-                            <li>• Czas odtwarzania (ms_played) może być krótszy niż długość utworu jeśli został pominięty</li>
-                            <li>• Adresy IP i dane user agent mogą być zanonimizowane ze względów prywatności</li>
-                            <li>• Podcasty i audioserialne są filtrowane i nie są uwzględniane w statystykach</li>
+                            <li>• {t('gdprDataInfo')}</li>
+                            <li>• {t('emptyFieldsInfo')}</li>
+                            <li>• {t('playTimeInfo')}</li>
+                            <li>• {t('privacyInfo')}</li>
+                            <li>• {t('podcastFilterInfo')}</li>
                         </ul>
                     </div>
                 </CardContent>
@@ -189,6 +192,7 @@ interface DataLegendButtonProps {
 }
 
 export const DataLegendButton = ({ className }: DataLegendButtonProps) => {
+    const { t } = useLanguage()
     const [isOpen, setIsOpen] = useState(false)
 
     return (
@@ -200,7 +204,7 @@ export const DataLegendButton = ({ className }: DataLegendButtonProps) => {
                 className={className}
             >
                 <Info className="h-4 w-4 mr-2" />
-                Legenda Pól
+                {t('legendFields')}
             </Button>
             <DataLegend isOpen={isOpen} onClose={() => setIsOpen(false)} />
         </>

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Progress } from './ui/progress'
 import { Calendar, User, Play, Clock, Music, Users } from 'lucide-react'
 import { ImportProgressDisplay } from './ImportProgressDisplay'
+import { useLanguage } from '../context/LanguageContext'
 
 interface Profile {
     _id: string
@@ -71,6 +71,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
     onProfilesChanged,
     isLoading = false
 }) => {
+    const { t } = useLanguage()
     const [profiles, setProfiles] = useState<Profile[]>([])
     const [availableProfiles, setAvailableProfiles] = useState<Array<{ name: string, files: any[] }>>([])
     const [isLoadingProfiles, setIsLoadingProfiles] = useState(false)
@@ -297,7 +298,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                             onClick={() => onProfileSelect(null)}
                             disabled={isLoading}
                         >
-                            Wszystkie Profile
+                            {t('allProfiles')}
                         </button>
                         {profiles.map((profile) => (
                             <button
@@ -321,9 +322,9 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
             {Object.values(importProgress).some(p => p.isRunning) && (
                 <Card>
                     <CardHeader>
-                        <CardTitle>Aktywne Importy</CardTitle>
+                        <CardTitle>{t('activeImports')}</CardTitle>
                         <CardDescription>
-                            Profile aktualnie importowane
+                            {t('activeImportsDesc')}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
