@@ -46,13 +46,14 @@ export const HeaderProfileSelector = ({
                 const newProfiles = profilesData.data || []
                 setProfiles(newProfiles)
                 
-                console.log('HeaderProfileSelector: Loaded profiles:', newProfiles.map((p: Profile) => ({ id: p._id, name: p.name })))
-                console.log('HeaderProfileSelector: Current selectedProfile:', selectedProfile)
-                
                 // Sprawdź czy wybrany profil nadal istnieje
                 if (selectedProfile && !newProfiles.find((p: Profile) => p._id === selectedProfile)) {
-                    console.log('Selected profile no longer exists, resetting to null')
                     onProfileSelect(null)
+                }
+                
+                // Automatycznie wybierz pierwszy profil jeśli nie ma wybranego
+                if (!selectedProfile && newProfiles.length > 0) {
+                    onProfileSelect(newProfiles[0]._id)
                 }
             }
 

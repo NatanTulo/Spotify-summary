@@ -187,7 +187,6 @@ router.get('/countries', async (req, res) => {
 
 // GET /api/stats/timeline - Statystyki timeline (dzienne)
 router.get('/timeline', async (req, res) => {
-    console.log('Timeline stats endpoint called')
     try {
         const { profileId, period = 'day' } = req.query
         const filter = profileId ? { profileId: parseInt(profileId as string) } : {}

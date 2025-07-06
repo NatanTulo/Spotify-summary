@@ -139,6 +139,7 @@ export default function Analytics() {
                     plays: Number(item.plays) || 0,
                     minutes: Number(item.totalMinutes) || 0
                 }))
+                
                 setTimelineData(mappedData)
             } else {
                 // Fallback na mock data jeśli endpoint nie działa
@@ -319,15 +320,27 @@ export default function Analytics() {
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div className="text-center">
                                         <div className="text-2xl font-bold text-spotify-green">
-                                            {timelineData.length > 0 ? Math.round(timelineData.reduce((acc: number, day: any) => acc + (Number(day.plays) || 0), 0) / timelineData.length) : 0}
+                                            {timelineData.length > 0 ? 
+                                                (() => {
+                                                    const activeDays = timelineData.filter((day: any) => day.plays > 0)
+                                                    const totalPlays = activeDays.reduce((acc: number, day: any) => acc + day.plays, 0)
+                                                    return activeDays.length > 0 ? Math.round(totalPlays / activeDays.length) : 0
+                                                })() 
+                                                : 0}
                                         </div>
-                                        <div className="text-sm text-muted-foreground">Średnie odtworzenia dziennie</div>
+                                        <div className="text-sm text-muted-foreground">Średnie odtworzenia dziennie (dni aktywne)</div>
                                     </div>
                                     <div className="text-center">
                                         <div className="text-2xl font-bold text-spotify-green">
-                                            {timelineData.length > 0 ? Math.round(timelineData.reduce((acc: number, day: any) => acc + (Number(day.minutes) || 0), 0) / timelineData.length) : 0}
+                                            {timelineData.length > 0 ? 
+                                                (() => {
+                                                    const activeDays = timelineData.filter((day: any) => day.minutes > 0)
+                                                    const totalMinutes = activeDays.reduce((acc: number, day: any) => acc + day.minutes, 0)
+                                                    return activeDays.length > 0 ? Math.round(totalMinutes / activeDays.length) : 0
+                                                })() 
+                                                : 0}
                                         </div>
-                                        <div className="text-sm text-muted-foreground">Średnie minuty dziennie</div>
+                                        <div className="text-sm text-muted-foreground">Średnie minuty dziennie (dni aktywne)</div>
                                     </div>
                                     <div className="text-center">
                                         <div className="text-2xl font-bold text-spotify-green">
