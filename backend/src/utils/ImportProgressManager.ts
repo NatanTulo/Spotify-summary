@@ -22,6 +22,13 @@ interface ImportProgress {
         tracksCreated: number
         playsCreated: number
         skippedRecords: number
+        currentStats?: {
+            totalPlays: number
+            totalMinutes: number
+            uniqueTracks: number
+            uniqueArtists: number
+            uniqueAlbums: number
+        }
     }
 }
 

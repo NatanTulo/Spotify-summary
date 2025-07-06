@@ -185,17 +185,17 @@ router.get('/countries', async (req, res) => {
     }
 })
 
-// GET /api/stats/timeline - Statystyki timeline (miesięczne)
+// GET /api/stats/timeline - Statystyki timeline (dzienne)
 router.get('/timeline', async (req, res) => {
     console.log('Timeline stats endpoint called')
     try {
-        const { profileId, period = 'month' } = req.query
+        const { profileId, period = 'day' } = req.query
         const filter = profileId ? { profileId: parseInt(profileId as string) } : {}
 
         let dateFormat: string
         switch (period) {
-            case 'day':
-                dateFormat = 'YYYY-MM-DD'
+            case 'month':
+                dateFormat = 'YYYY-MM'
                 break
             case 'week':
                 dateFormat = 'YYYY-WW'
@@ -203,8 +203,8 @@ router.get('/timeline', async (req, res) => {
             case 'year':
                 dateFormat = 'YYYY'
                 break
-            default:
-                dateFormat = 'YYYY-MM'
+            default: // 'day'
+                dateFormat = 'YYYY-MM-DD'
         }
 
         const timelineStats = await Play.findAll({

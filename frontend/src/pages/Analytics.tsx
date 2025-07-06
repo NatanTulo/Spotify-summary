@@ -114,7 +114,7 @@ export default function Analytics() {
                 fetch(`/api/stats/yearly${profileParam}`),
                 fetch(`/api/stats/countries${profileParam}`),
                 fetch(`/api/artists/top?limit=10${selectedProfile ? `&profileId=${selectedProfile}` : ''}`),
-                fetch(`/api/stats/timeline${profileParam}`)
+                fetch(`/api/stats/timeline${profileParam}${profileParam ? '&' : '?'}period=day`)
             ])
 
             if (yearlyRes.ok) {

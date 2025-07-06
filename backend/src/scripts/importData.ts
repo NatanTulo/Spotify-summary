@@ -240,6 +240,7 @@ class SpotifyDataImporter {
         // Batch processing dla lepszej wydajności
         const batchSize = 1000
         let processed = 0
+        let lastStatsUpdate = Date.now()
 
         for (let i = 0; i < data.length; i += batchSize) {
             const batch = data.slice(i, i + batchSize)
@@ -248,6 +249,12 @@ class SpotifyDataImporter {
 
             if (this.profileName) {
                 this.progressManager.updateFileProgress(this.profileName, file, index, processed, data.length)
+                // Aktualizuj statystyki co 5 sekund podczas importu
+                const now = Date.now()
+                if (now - lastStatsUpdate > 5000) {
+                    await this.updateRealTimeStats()
+                    lastStatsUpdate = now
+                }
             }
 
             // Progress log
@@ -264,6 +271,11 @@ class SpotifyDataImporter {
         this.stats.filesProcessed++
         this.stats.totalRecords += data.length
         console.log(`   ✅ File completed: ${data.length} records processed`)
+        
+        // Aktualizuj statystyki na końcu pliku
+        if (this.profileName) {
+            await this.updateRealTimeStats()
+        }
     }
 
     /**
@@ -473,6 +485,84 @@ class SpotifyDataImporter {
         })
 
         console.log('✅ Profile statistics updated')
+    }
+
+    /**
+     * Aktualizuj statystyki w czasie rzeczywistym (podczas importu)
+     */
+    private async updateRealTimeStats(): Promise<void> {
+        if (!this.profileId || !this.profileName) return
+
+        try {
+            // Pobierz bieżące statystyki z bazy danych
+            const [
+                totalPlays,
+                totalMsPlayed,
+                uniqueTracks,
+                uniqueArtists,
+                uniqueAlbums
+            ] = await Promise.all([
+                Play.count({ where: { profileId: this.profileId } }),
+                Play.sum('msPlayed', { where: { profileId: this.profileId } }),
+                Play.count({
+                    where: { profileId: this.profileId },
+                    distinct: true,
+                    col: 'trackId'
+                }),
+                // Policz unikalnych artystów
+                sequelize.query(`
+                    SELECT COUNT(DISTINCT artists.id) as count 
+                    FROM plays 
+                    JOIN tracks ON plays."trackId" = tracks.id
+                    JOIN albums ON tracks."albumId" = albums.id  
+                    JOIN artists ON albums."artistId" = artists.id
+                    WHERE plays."profileId" = :profileId
+                `, {
+                    replacements: { profileId: this.profileId },
+                    type: QueryTypes.SELECT
+                }).then(result => parseInt((result[0] as any).count)),
+                // Policz unikalne albumy
+                sequelize.query(`
+                    SELECT COUNT(DISTINCT albums.id) as count 
+                    FROM plays 
+                    JOIN tracks ON plays."trackId" = tracks.id
+                    JOIN albums ON tracks."albumId" = albums.id  
+                    WHERE plays."profileId" = :profileId
+                `, {
+                    replacements: { profileId: this.profileId },
+                    type: QueryTypes.SELECT
+                }).then(result => parseInt((result[0] as any).count))
+            ])
+
+            // Aktualizuj profil z bieżącymi statystykami
+            await Profile.update({
+                statistics: {
+                    totalPlays: totalPlays || 0,
+                    totalMinutes: Math.round((totalMsPlayed || 0) / 60000),
+                    uniqueTracks: uniqueTracks || 0,
+                    uniqueArtists: uniqueArtists || 0,
+                    uniqueAlbums: uniqueAlbums || 0
+                },
+                updatedAt: new Date()
+            }, {
+                where: { id: this.profileId }
+            })
+
+            // Aktualizuj także progress manager ze statystykami importu
+            this.progressManager.updateStats(this.profileName, {
+                ...this.stats,
+                currentStats: {
+                    totalPlays: totalPlays || 0,
+                    totalMinutes: Math.round((totalMsPlayed || 0) / 60000),
+                    uniqueTracks: uniqueTracks || 0,
+                    uniqueArtists: uniqueArtists || 0,
+                    uniqueAlbums: uniqueAlbums || 0
+                }
+            })
+
+        } catch (error) {
+            console.error('Error updating real-time stats:', error)
+        }
     }
 
     /**

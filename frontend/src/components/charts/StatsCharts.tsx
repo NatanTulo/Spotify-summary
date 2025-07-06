@@ -276,9 +276,9 @@ export function ListeningTimelineChart({ data }: ListeningTimelineProps) {
             <CardHeader>
                 <div className="flex items-center justify-between">
                     <div>
-                        <CardTitle>Timeline słuchania</CardTitle>
+                        <CardTitle>Timeline słuchania (dzienne)</CardTitle>
                         <CardDescription>
-                            Twoja aktywność muzyczna w czasie
+                            Twoja codzienna aktywność muzyczna w czasie
                             {zoomState.isZoomed && ` (${displayData.length} z ${data.length} dni)`}
                         </CardDescription>
                     </div>
