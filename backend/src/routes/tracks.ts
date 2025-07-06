@@ -21,8 +21,9 @@ router.get('/', async (req, res) => {
             profileId
         } = req.query
 
-        const pageNum = parseInt(page as string)
-        const limitNum = parseInt(limit as string)
+        const pageNum = parseInt(page as string, 10)
+        const limitNum = parseInt(limit as string, 10)
+        const profileIdNum = profileId ? parseInt(profileId as string, 10) : null
 
         // Build search condition for tracks
         const searchCondition = search ? `
@@ -68,14 +69,14 @@ router.get('/', async (req, res) => {
                     "trackId",
                     COUNT(*) as total_plays,
                     ROUND((SUM("msPlayed") / 60000.0)::numeric, 2) as total_minutes,
-                    ROUND(AVG("msPlayed")::numeric, 0) as avg_play_duration,
+                    ROUND(AVG("msPlayed")::numeric / 1000, 0) as avg_play_duration,
                     ROUND(
                         (COUNT(CASE WHEN skipped = true THEN 1 END)::float / 
                         NULLIF(COUNT(*), 0) * 100)::numeric, 
                         2
                     ) as skip_percentage
                 FROM plays 
-                ${profileId ? `WHERE "profileId" = :profileId` : ''}
+                ${profileIdNum ? `WHERE "profileId" = :profileId` : ''}
                 GROUP BY "trackId"
             ) p ON t.id = p."trackId"
             WHERE 1=1 ${searchCondition}
@@ -94,15 +95,15 @@ router.get('/', async (req, res) => {
         const tracks = await sequelize.query(tracksQuery, {
             type: QueryTypes.SELECT,
             replacements: {
-                profileId: profileId || null,
+                profileId: profileIdNum,
                 limit: limitNum,
                 offset: (pageNum - 1) * limitNum
             }
         })
 
         console.log('Tracks query debug:', {
-            profileId,
-            profileIdType: typeof profileId,
+            profileId: profileIdNum,
+            profileIdType: typeof profileIdNum,
             foundTracks: tracks.length,
             firstTrackPlays: tracks[0] ? (tracks[0] as any).totalPlays : 'none'
         })

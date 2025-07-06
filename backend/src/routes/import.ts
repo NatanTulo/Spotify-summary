@@ -292,6 +292,108 @@ router.post('/profile/:profileName', async (req, res) => {
     }
 })
 
+// POST /api/import/profile/:profileName/update-stats - Aktualizuj statystyki profilu
+router.post('/profile/:profileName/update-stats', async (req, res) => {
+    try {
+        const { profileName } = req.params
+
+        // Znajdź profil w bazie danych
+        const profile = await Profile.findOne({ where: { name: profileName } })
+        if (!profile) {
+            return res.status(404).json({
+                success: false,
+                error: 'Profile not found'
+            })
+        }
+
+        console.log(`📊 Updating statistics for profile: ${profileName}`)
+
+        // Policz statystyki dla profilu
+        const [
+            totalPlays,
+            totalMsPlayed,
+            uniqueTracks,
+            uniqueArtists,
+            uniqueAlbums
+        ] = await Promise.all([
+            sequelize.query(`SELECT COUNT(*) as count FROM plays WHERE "profileId" = :profileId`, {
+                replacements: { profileId: profile.id },
+                type: QueryTypes.SELECT
+            }).then(result => parseInt((result[0] as any).count)),
+            sequelize.query(`SELECT COALESCE(SUM("msPlayed"), 0) as sum FROM plays WHERE "profileId" = :profileId`, {
+                replacements: { profileId: profile.id },
+                type: QueryTypes.SELECT
+            }).then(result => parseInt((result[0] as any).sum)),
+            sequelize.query(`SELECT COUNT(DISTINCT "trackId") as count FROM plays WHERE "profileId" = :profileId`, {
+                replacements: { profileId: profile.id },
+                type: QueryTypes.SELECT
+            }).then(result => parseInt((result[0] as any).count)),
+            sequelize.query(`
+                SELECT COUNT(DISTINCT artists.id) as count 
+                FROM plays 
+                JOIN tracks ON plays."trackId" = tracks.id
+                JOIN albums ON tracks."albumId" = albums.id  
+                JOIN artists ON albums."artistId" = artists.id
+                WHERE plays."profileId" = :profileId
+            `, {
+                replacements: { profileId: profile.id },
+                type: QueryTypes.SELECT
+            }).then(result => parseInt((result[0] as any).count)),
+            sequelize.query(`
+                SELECT COUNT(DISTINCT albums.id) as count 
+                FROM plays 
+                JOIN tracks ON plays."trackId" = tracks.id
+                JOIN albums ON tracks."albumId" = albums.id  
+                WHERE plays."profileId" = :profileId
+            `, {
+                replacements: { profileId: profile.id },
+                type: QueryTypes.SELECT
+            }).then(result => parseInt((result[0] as any).count))
+        ])
+
+        // Aktualizuj statystyki profilu
+        await Profile.update({
+            statistics: {
+                totalPlays: totalPlays || 0,
+                totalMinutes: Math.round((totalMsPlayed || 0) / 60000),
+                uniqueTracks: uniqueTracks || 0,
+                uniqueArtists: uniqueArtists || 0,
+                uniqueAlbums: uniqueAlbums || 0
+            },
+            lastImport: new Date()
+        }, {
+            where: { id: profile.id }
+        })
+
+        // Pobierz zaktualizowany profil
+        const updatedProfile = await Profile.findByPk(profile.id)
+
+        console.log(`✅ Statistics updated for profile: ${profileName}`)
+        console.log(`   - Total plays: ${totalPlays}`)
+        console.log(`   - Total minutes: ${Math.round((totalMsPlayed || 0) / 60000)}`)
+        console.log(`   - Unique tracks: ${uniqueTracks}`)
+        console.log(`   - Unique artists: ${uniqueArtists}`)
+        console.log(`   - Unique albums: ${uniqueAlbums}`)
+
+        res.json({
+            success: true,
+            data: {
+                _id: updatedProfile!.id.toString(),
+                name: updatedProfile!.name,
+                statistics: updatedProfile!.statistics,
+                lastImport: updatedProfile!.lastImport?.toISOString()
+            }
+        })
+    } catch (error) {
+        console.error('Error updating profile statistics:', error)
+        res.status(500).json({
+            success: false,
+            error: 'Failed to update profile statistics',
+            message: error instanceof Error ? error.message : 'Unknown error'
+        })
+    }
+})
+
 // DELETE /api/import/clear - Usuń profil i wszystkie jego dane
 router.delete('/clear', async (req, res) => {
     try {
@@ -353,6 +455,28 @@ router.delete('/clear', async (req, res) => {
                 replacements: { profileId },
                 transaction
             })
+
+            // Usuń tracks, albums, artists które nie są używane przez inne profile
+            // Najpierw tracks
+            await sequelize.query(`
+                DELETE FROM tracks WHERE id NOT IN (
+                    SELECT DISTINCT "trackId" FROM plays WHERE "trackId" IS NOT NULL
+                )
+            `, { transaction })
+
+            // Następnie albums
+            await sequelize.query(`
+                DELETE FROM albums WHERE id NOT IN (
+                    SELECT DISTINCT "albumId" FROM tracks WHERE "albumId" IS NOT NULL
+                )
+            `, { transaction })
+
+            // Na końcu artists
+            await sequelize.query(`
+                DELETE FROM artists WHERE id NOT IN (
+                    SELECT DISTINCT "artistId" FROM albums WHERE "artistId" IS NOT NULL
+                )
+            `, { transaction })
 
             // Usuń profil
             await profile.destroy({ transaction })

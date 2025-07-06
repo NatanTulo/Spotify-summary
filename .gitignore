@@ -47,7 +47,7 @@ Thumbs.db
 *.swp
 *.swo
 
-# MongoDB
+# Database dumps and data
 data/
 
 # Temporary files

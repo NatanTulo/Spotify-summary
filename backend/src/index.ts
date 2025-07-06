@@ -7,6 +7,10 @@ import dotenv from 'dotenv'
 import 'reflect-metadata'
 import { connectDB } from './config/database.js'
 import tracksRouter from './routes/tracks.js'
+import statsRouter from './routes/stats.js'
+import artistsRouter from './routes/artists.js'
+import albumsRouter from './routes/albums.js'
+import importRouter from './routes/import.js'
 
 dotenv.config()
 
@@ -59,35 +63,24 @@ app.get('/api/health', (_req, res) => {
     })
 })
 
-// Load routes dynamically
-async function setupRoutes() {
-    const [
-        { default: statsRouter },
-        { default: artistsRouter },
-        { default: albumsRouter },
-        { default: importRouter }
-    ] = await Promise.all([
-        import('./routes/stats.js'),
-        import('./routes/artists.js'),
-        import('./routes/albums.js'),
-        import('./routes/import.js')
-    ])
-
+// Setup routes
+function setupRoutes() {
     // Routes
     app.use('/api/tracks', tracksRouter)
     app.use('/api/stats', statsRouter)
     app.use('/api/artists', artistsRouter)
     app.use('/api/albums', albumsRouter)
     app.use('/api/import', importRouter)
+    app.use('/api/import', importRouter)
 
     // 404 handler - MUST be after all routes
-    app.use('*', (req, res) => {
-        res.status(404).json({
-            success: false,
-            error: 'Route not found',
-            message: `Cannot ${req.method} ${req.originalUrl}`
-        })
-    })
+    // app.all('*', (req, res) => {
+    //     res.status(404).json({
+    //         success: false,
+    //         error: 'Route not found',
+    //         message: `Cannot ${req.method} ${req.originalUrl}`
+    //     })
+    // })
 
     // Error handling middleware
     app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
@@ -109,7 +102,7 @@ async function startServer() {
         console.log('✅ Connected to PostgreSQL')
 
         // Setup routes
-        await setupRoutes()
+        setupRoutes()
         console.log('✅ Routes configured')
 
         // Start listening

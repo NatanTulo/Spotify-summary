@@ -7,6 +7,6 @@
         "ms-vscode.vscode-eslint",
         "esbenp.prettier-vscode",
         "ms-vscode.vscode-npm-scripts",
-        "mongodb.mongodb-vscode"
+        "ckolkman.vscode-postgres"
     ]
 }

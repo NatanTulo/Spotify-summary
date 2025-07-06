@@ -175,8 +175,17 @@ export function TracksList({
     }
 
     const formatCellValue = (track: ExtendedTrack, columnKey: keyof ExtendedTrack) => {
+        // Fallback dla brakujących pól nazwy utworu i wykonawcy
+        let rawValue: any = track[columnKey]
+        if ((columnKey === 'trackName') && !rawValue) {
+            rawValue = (track as any).name
+        }
+        if ((columnKey === 'artistName') && !rawValue) {
+            rawValue = track.artist?.name
+        }
+
         const config = getColumnConfig(columnKey)
-        const value = track[columnKey]
+        const value = rawValue
 
         if (config?.format && value !== undefined && value !== null) {
             return config.format(value)

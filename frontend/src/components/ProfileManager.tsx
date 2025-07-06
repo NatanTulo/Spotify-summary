@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
+import { Progress } from './ui/progress'
 import { Calendar, User, Play, Clock, Music, Users } from 'lucide-react'
 import { ImportProgressDisplay } from './ImportProgressDisplay'
 
@@ -17,6 +18,33 @@ interface Profile {
         uniqueAlbums: number
     }
     createdAt: string
+}
+
+interface ImportProgress {
+    profileName: string
+    isRunning: boolean
+    currentFile: string
+    currentFileIndex: number
+    totalFiles: number
+    currentRecord: number
+    totalRecordsInFile: number
+    completedFiles: number
+    totalRecordsProcessed: number
+    estimatedTotalRecords: number
+    startTime: string
+    lastUpdate: string
+    status: 'preparing' | 'importing' | 'completed' | 'error' | 'cancelled'
+    error?: string
+    percentage: number
+    stats: {
+        filesProcessed: number
+        totalRecords: number
+        artistsCreated: number
+        albumsCreated: number
+        tracksCreated: number
+        playsCreated: number
+        skippedRecords: number
+    }
 }
 
 interface ProfileManagerProps {
@@ -39,6 +67,59 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
     const [isLoadingProfiles, setIsLoadingProfiles] = useState(false)
     const [importingProfile, setImportingProfile] = useState<string | null>(null)
     const [activeImportProfile, setActiveImportProfile] = useState<string | null>(null)
+    const [importProgress, setImportProgress] = useState<Record<string, ImportProgress>>({})
+
+    // Fetch import progress for specific profile
+    const fetchImportProgress = async (profileName: string) => {
+        try {
+            const response = await fetch(`/api/import/progress/${profileName}`)
+            if (response.ok) {
+                const data = await response.json()
+                if (data.success && data.data) {
+                    setImportProgress(prev => ({
+                        ...prev,
+                        [profileName]: data.data
+                    }))
+                    
+                    // If import is completed or stopped, clean up
+                    if (!data.data.isRunning) {
+                        setTimeout(() => {
+                            setImportProgress(prev => {
+                                const newProgress = { ...prev }
+                                delete newProgress[profileName]
+                                return newProgress
+                            })
+                            if (activeImportProfile === profileName) {
+                                setActiveImportProfile(null)
+                            }
+                        }, 3000) // Clean up after 3 seconds
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching import progress:', error)
+        }
+    }
+
+    // Monitor active import progress
+    useEffect(() => {
+        if (activeImportProfile) {
+            const interval = setInterval(() => {
+                fetchImportProgress(activeImportProfile)
+            }, 1000) // Update every second
+
+            return () => clearInterval(interval)
+        }
+    }, [activeImportProfile])
+
+    // Auto-refresh profiles periodically
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchProfiles()
+        }, 1000) // Refresh every second
+
+        return () => clearInterval(interval)
+    }, [])
 
     const fetchProfiles = async () => {
         setIsLoadingProfiles(true)
@@ -56,6 +137,21 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
             if (availableRes.ok) {
                 const availableData = await availableRes.json()
                 setAvailableProfiles(availableData.data || [])
+                
+                // Check for active imports for each available profile
+                for (const profile of availableData.data || []) {
+                    const progressRes = await fetch(`/api/import/progress/${profile.name}`)
+                    if (progressRes.ok) {
+                        const progressData = await progressRes.json()
+                        if (progressData.success && progressData.data && progressData.data.isRunning) {
+                            setActiveImportProfile(profile.name)
+                            setImportProgress(prev => ({
+                                ...prev,
+                                [profile.name]: progressData.data
+                            }))
+                        }
+                    }
+                }
             }
         } catch (error) {
             console.error('Error fetching profiles:', error)
@@ -79,6 +175,8 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                 const data = await response.json()
                 if (data.success && data.data.importStarted) {
                     setActiveImportProfile(profileName)
+                    // Start monitoring progress immediately
+                    fetchImportProgress(profileName)
                 }
                 onImportProfile(profileName)
                 // Refresh profiles after a delay to allow import to start
@@ -192,26 +290,67 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                     </CardHeader>
                     <CardContent>
                         <div className="grid gap-4 md:grid-cols-2">
-                            {availableProfiles.map((profile) => (
-                                <div
-                                    key={profile.name}
-                                    className="border rounded-lg p-4 space-y-2"
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <h4 className="font-medium">{profile.name}</h4>
-                                        <button
-                                            className="h-9 rounded-md px-3 text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground"
-                                            onClick={() => handleImportProfile(profile.name)}
-                                            disabled={importingProfile === profile.name}
-                                        >
-                                            {importingProfile === profile.name ? 'Importowanie...' : 'Importuj'}
-                                        </button>
+                            {availableProfiles.map((profile) => {
+                                const progress = importProgress[profile.name]
+                                const isImporting = activeImportProfile === profile.name || importingProfile === profile.name
+                                
+                                return (
+                                    <div
+                                        key={profile.name}
+                                        className="border rounded-lg p-4 space-y-2"
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <h4 className="font-medium">{profile.name}</h4>
+                                            <button
+                                                className="h-9 rounded-md px-3 text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                                                onClick={() => handleImportProfile(profile.name)}
+                                                disabled={isImporting}
+                                            >
+                                                {isImporting ? 'Importowanie...' : 'Importuj'}
+                                            </button>
+                                        </div>
+                                        <p className="text-sm text-muted-foreground">
+                                            {profile.files.length} plików JSON
+                                        </p>
+                                        
+                                        {/* Progress Bar */}
+                                        {progress && progress.isRunning && (
+                                            <div className="space-y-2 pt-2 border-t">
+                                                <div className="flex items-center justify-between text-sm">
+                                                    <span className="text-muted-foreground">
+                                                        {progress.status === 'preparing' ? 'Przygotowywanie...' :
+                                                         progress.status === 'importing' ? `Plik ${progress.currentFileIndex + 1}/${progress.totalFiles}` :
+                                                         progress.status === 'completed' ? 'Zakończono' :
+                                                         progress.status === 'error' ? 'Błąd' : 'Import...'}
+                                                    </span>
+                                                    <span className="font-medium">{Math.round(progress.percentage)}%</span>
+                                                </div>
+                                                <Progress value={progress.percentage} className="h-2" />
+                                                {progress.currentFile && (
+                                                    <p className="text-xs text-muted-foreground truncate">
+                                                        {progress.currentFile}
+                                                    </p>
+                                                )}
+                                                {progress.totalRecordsProcessed > 0 && (
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {progress.totalRecordsProcessed.toLocaleString()} / {progress.estimatedTotalRecords.toLocaleString()} rekordów
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
+                                        
+                                        {/* Debug info */}
+                                        {process.env.NODE_ENV === 'development' && (
+                                            <div className="text-xs text-gray-500 mt-2">
+                                                <div>Active: {activeImportProfile}</div>
+                                                <div>Progress exists: {progress ? 'YES' : 'NO'}</div>
+                                                <div>Progress running: {progress?.isRunning ? 'YES' : 'NO'}</div>
+                                                <div>Progress %: {progress?.percentage}</div>
+                                            </div>
+                                        )}
                                     </div>
-                                    <p className="text-sm text-muted-foreground">
-                                        {profile.files.length} plików JSON
-                                    </p>
-                                </div>
-                            ))}
+                                )
+                            })}
                         </div>
                     </CardContent>
                 </Card>

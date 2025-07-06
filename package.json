@@ -20,7 +20,7 @@
         "analytics",
         "react",
         "typescript",
-        "mongodb"
+        "postgresql"
     ],
     "author": "Natan Tułodziecki",
     "license": "MIT",
