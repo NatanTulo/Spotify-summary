@@ -10,8 +10,18 @@ Nowoczesna aplikacja webowa do analizy danych ze Spotify GDPR Export. React + Ty
 - **Real-time import** - Progress bar podczas importu z możliwością anulowania
 - **Zaawansowana lista utworów** - 19 kolumn danych, sortowanie, filtrowanie, timeline
 - **Dashboard** - Statystyki, wykresy, top listy
+- **Analytics** - Timeline aktywności, wzorce słuchania
 - **Wielojęzyczność** - PL/EN interface
 - **Ciemny motyw** - Przyjazny dla oczu design
+
+## 🏗️ Architektura techniczna
+
+- **Frontend:** React 19.1 + TypeScript 5.8 + Vite 7.0 + Tailwind CSS 3.4
+- **Backend:** Node.js 22.17 + Express 4.21 + TypeScript 5.8
+- **Database:** PostgreSQL 16.9 z Sequelize 6.37 ORM
+- **UI Library:** Radix UI (@radix-ui) + shadcn/ui components
+- **Charts:** Recharts 3.0 dla wizualizacji danych
+- **Dev Tools:** tsx 4.20, ESLint 9.30, Axios 1.10
 
 ## 🚀 Szybka instalacja (nowy komputer)
 
@@ -19,8 +29,8 @@ Nowoczesna aplikacja webowa do analizy danych ze Spotify GDPR Export. React + Ty
 
 ```bash
 # Sprawdź czy masz zainstalowane:
-node --version    # Potrzebne: 18+
-psql --version    # Potrzebne: PostgreSQL 17+
+node --version    # Potrzebne: 18+ (testowane z 22.17)
+psql --version    # Potrzebne: PostgreSQL 14+ (testowane z 16.9)
 ```
 
 **Jeśli nie masz:**
@@ -53,7 +63,7 @@ sudo -u postgres psql spotify_analytics
 createdb -U postgres spotify_analytics
 ```
 
-### 3. Konfiguracja .pgpass (ważne!)
+### 3. Konfiguracja .pgpass
 
 Aby uniknąć wprowadzania hasła za każdym razem, utwórz plik `.pgpass`:
 
@@ -114,7 +124,7 @@ data/
 npm run dev
 ```
 
-Aplikacja będzie dostępna pod: **http://localhost:5173**
+Aplikacja będzie dostępna pod: **http://localhost:3000**
 
 ## 📁 Import danych
 
@@ -129,7 +139,7 @@ Aplikacja będzie dostępna pod: **http://localhost:5173**
 ```bash
 # Rozwój
 npm run dev              # Frontend + backend jednocześnie
-npm run dev:client       # Tylko frontend (port 5173)
+npm run dev:client       # Tylko frontend (port 3000)
 npm run dev:server       # Tylko backend (port 5000)
 
 # Instalacja
@@ -165,13 +175,48 @@ spotify-analytics/
 
 ## 🔌 Główne API endpoints
 
-- `GET /api/tracks` - Lista utworów (filtry, paginacja, sortowanie)
-- `GET /api/stats/overview` - Ogólne statystyki słuchania
-- `GET /api/stats/timeline` - Timeline aktywności (wykresy)
-- `GET /api/artists/top` - Top wykonawcy
+**Import & Profile Management:**
+
 - `GET /api/import/profiles` - Lista profili
-- `POST /api/import/start` - Rozpoczęcie importu
+- `GET /api/import/available` - Dostępne profile do importu
+- `POST /api/import/profile/:name` - Rozpoczęcie importu
 - `GET /api/import/progress` - Postęp importu (real-time)
+- `DELETE /api/import/clear` - Usuwanie profili
+
+**Analytics & Statistics:**
+
+- `GET /api/stats/overview` - Ogólne statystyki słuchania
+- `GET /api/stats/timeline` - Timeline aktywności (wykresy dzienne)
+- `GET /api/tracks` - Lista utworów (filtry, paginacja, sortowanie)
+- `GET /api/artists/top` - Top wykonawcy
+
+**Wszystkie endpointy wspierają:**
+
+- Multi-profile filtering (`?profileId=10`)
+- Pagination (`?limit=50&offset=100`)
+- Sorting (`?sortBy=totalPlays&sortOrder=desc`)
+- Real-time progress tracking
+
+## ✅ Naprawione problemy i ulepszenia
+
+### Timeline & Analytics
+
+- ✅ **Timeline statystyki naprawione** - Frontend pokazuje prawidłowe średnie (61.3/dzień zamiast 1708)
+- ✅ **Automatyczny wybór profilu** - Aplikacja automatycznie wybiera pierwszy dostępny profil
+- ✅ **Timeline skala dzienna** - Backend domyślnie zwraca dane dzienne zamiast miesięcznych
+
+### Profile Management
+
+- ✅ **Synchronizacja profili** - Profile w nagłówku synchronizują się z zarządzaniem danymi
+- ✅ **Progress bars** - Działają dla wielu profili jednocześnie, trwałe podczas nawigacji
+- ✅ **Real-time updates** - Statystyki aktualizują się w czasie rzeczywistym podczas importu
+
+### Technical Fixes
+
+- ✅ **TypeScript compilation** - Backend kompiluje się bez błędów (Express 4.21 kompatybilność)
+- ✅ **PostgreSQL integration** - Pełna migracja z MongoDB, wszystkie modele na Sequelize
+- ✅ **Import stability** - Niezawodny import dużych plików JSON z progress tracking
+- ✅ **Memory optimization** - Optymalne zarządzanie pamięcią podczas importu
 
 ## 🐛 Rozwiązywanie problemów
 
@@ -187,35 +232,103 @@ net stop postgresql-x64-17 && net start postgresql-x64-17
 
 # Test połączenia
 psql -U postgres -d spotify_analytics -h localhost
+
+# Test czy aplikacja może połączyć się z bazą
+curl -s "http://localhost:5000/api/health"
 ```
 
 ### Port zajęty
 
 ```bash
-# Linux/Mac - zabij proces na porcie 5000
+# Linux/Mac - zabij proces na porcie 5000/3000
 lsof -ti:5000 | xargs kill -9
+lsof -ti:3000 | xargs kill -9
 
 # Windows
 taskkill /F /PID (netstat -ano | findstr :5000)
+taskkill /F /PID (netstat -ano | findstr :3000)
 ```
 
 ### Błędy importu
 
-1. Sprawdź czy PostgreSQL działa
-2. Sprawdź `.pgpass` - czy hasło jest prawidłowe
-3. Sprawdź czy pliki JSON są w folderze `data/`
-4. Sprawdź logi w konsoli podczas importu
+1. **Sprawdź czy PostgreSQL działa** - `systemctl status postgresql`
+2. **Sprawdź `.pgpass`** - czy hasło jest prawidłowe i plik ma uprawnienia 600
+3. **Sprawdź pliki JSON** - czy są w folderze `data/` i zaczynają się od `Streaming_History_Audio_`
+4. **Sprawdź logi** - w konsoli backendu podczas importu
+5. **Test endpointów** - `curl -s "http://localhost:5000/api/import/available"`
+
+### Błędy kompilacji TypeScript
+
+```bash
+# Test kompilacji backend
+cd backend && npx tsc --noEmit
+
+# Test kompilacji frontend
+cd frontend && npm run build
+
+# Jeśli błędy - wyczyść cache
+rm -rf node_modules package-lock.json
+npm run install:all
+```
+
+### Problemy z profilami
+
+- **Profile nie są widoczne** - Sprawdź czy są w `data/NazwaProfilu/` z plikami JSON
+- **Nieprawidłowe statystyki** - Sprawdź czy profil został poprawnie zaimportowany
+- **Średnie timeline błędne** - Sprawdź czy profil jest wybrany (auto-select powinien działać)
 
 ### Czyszczenie i reinstalacja
 
 ```bash
 # Wyczyść cache NPM
 rm -rf node_modules package-lock.json
+rm -rf frontend/node_modules frontend/package-lock.json
+rm -rf backend/node_modules backend/package-lock.json
 npm run install:all
 
 # Reset bazy danych (jeśli potrzebne)
 # W aplikacji: "Zarządzaj danymi" → "Wyczyść wszystkie dane"
+
+# Alternatywnie przez SQL
+psql -U postgres -d spotify_analytics -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
 ```
+
+## 📋 Testowanie aplikacji
+
+### Manual testing checklist
+
+```bash
+# 1. Test backend health
+curl -s "http://localhost:5000/api/health"
+
+# 2. Test profili
+curl -s "http://localhost:5000/api/import/profiles" | jq '.data | length'
+
+# 3. Test timeline z profilem
+curl -s "http://localhost:5000/api/stats/timeline?profileId=10&period=day" | jq '.data | length'
+
+# 4. Test tracks endpoint
+curl -s "http://localhost:5000/api/tracks?limit=3&profileId=10" | jq '.data | length'
+
+# 5. Kalkulacja średnich (powinno być ~60, nie 1700+)
+curl -s "http://localhost:5000/api/stats/timeline?profileId=10&period=day" | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+timeline = data['data']
+total_plays = sum(d['plays'] for d in timeline)
+active_days = len([d for d in timeline if d['plays'] > 0])
+print(f'Total days: {len(timeline)}, Active days: {active_days}')
+print(f'Average plays per active day: {total_plays / active_days:.1f}')
+"
+```
+
+### Expected results
+
+- **Health check:** `{"status":"OK",...}`
+- **Profiles:** Lista profili z statystykami
+- **Timeline:** Array dni z plays/minutes
+- **Average plays:** ~60-70 na dzień (nie 1000+)
+- **Frontend:** Dashboard ładuje się bez błędów, profile są automatycznie wybrane
 
 ## 💡 Przydatne wskazówki
 
@@ -242,10 +355,80 @@ npm run install:all
 
 ## 📊 Co zobaczysz po imporcie
 
+### Dashboard
+
 - **Łączny czas słuchania** w minutach i godzinach
 - **Top utwory/artyści** z liczbą odtworzeń
-- **Timeline aktywności** - wzorce słuchania w czasie
-- **Statystyki pomijania** - które utwory są często skipowane
-- **Analiza geograficzna** - kraje odtwarzania
-- **Platform analysis** - desktop vs mobile vs web
-- **19 kolumn szczegółowych danych** z możliwością sortowania/filtrowania
+- **Statystyki platformy** - desktop vs mobile vs web
+- **Wybór profilu** - przełączanie między różnymi profilami
+
+### Analytics
+
+- **Timeline aktywności** - wzorce słuchania w czasie (dzienna skala)
+- **Średnie odtworzenia** - ~60-70 utworów dziennie (aktywne dni)
+- **Trendy miesięczne/roczne** - wzrost/spadek aktywności
+- **Wykresy interaktywne** - zoom, hover, legendy
+
+### Lista utworów (19 kolumn)
+
+- **Podstawowe:** Nazwa, Artysta, Album, Rok wydania
+- **Statystyki odtworzeń:** Łączne, Unique plays, Skips
+- **Dane czasowe:** Pierwsze/ostatnie odtworzenie, średni czas
+- **Platform info:** Spotify URI, Country, Platform
+- **Filtrowanie i sortowanie** - według dowolnej kolumny
+- **Paginacja** - obsługa dużych zbiorów danych
+
+### Import Management
+
+- **Progress bars** - real-time tracking importu
+- **Multi-profile** - importuj wiele profili jednocześnie
+- **Resume capability** - wznów przerwany import
+- **Data validation** - automatyczne sprawdzanie poprawności plików JSON
+
+## 🎯 Zalecane przepływy pracy
+
+### Pierwszy raz z aplikacją
+
+1. **Setup PostgreSQL** + `.pgpass`
+2. **Import pierwszego profilu** - obserwuj progress bar
+3. **Sprawdź Dashboard** - podstawowe statystyki
+4. **Przejdź do Analytics** - timeline i wzorce
+5. **Eksploruj listę utworów** - filtrowanie i sortowanie
+
+### Dodawanie kolejnych profili
+
+1. **Dodaj folder do `data/`** z plikami JSON
+2. **Kliknij "Zarządzaj danymi"** → wykryj nowe profile
+3. **Importuj równolegle** - wiele progress barów
+4. **Porównuj statystyki** - przełączaj między profilami
+
+### Analiza długoterminowa
+
+1. **Timeline patterns** - kiedy słuchasz najwięcej
+2. **Artist evolution** - jak zmienia się twój gust
+3. **Platform analysis** - gdzie słuchasz najczęściej
+4. **Skip patterns** - które utwory pomijasz
+
+---
+
+## 📝 Historia zmian
+
+**v2.0 (6 lipca 2025) - PostgreSQL Migration**
+
+- ✅ Pełna migracja z MongoDB na PostgreSQL
+- ✅ Naprawiono problem z timeline średnimi (61 zamiast 1708)
+- ✅ Auto-select pierwszego profilu
+- ✅ Progress bars dla multi-profile import
+- ✅ TypeScript compilation errors naprawione
+- ✅ Real-time synchronizacja profili
+- ✅ Optimized database indexes i queries
+
+**v1.x - MongoDB Era**
+
+- Podstawowa funkcjonalność z MongoDB
+- Single profile support
+- Manual profile selection
+
+---
+
+**Projekt gotowy do produkcji!** 🎉
