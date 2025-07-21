@@ -49,12 +49,17 @@ interface Play {
     skipped?: boolean
 }
 
+// Timeline cache to prevent repeated requests
+const timelineCache = new Map<string, { data: any[], timestamp: number }>()
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+
 export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) {
     const { t, formatDate: localizedFormatDate } = useLanguage()
     const [track, setTrack] = useState<DetailedTrack | null>(null)
     const [plays, setPlays] = useState<Play[]>([])
     const [timelineData, setTimelineData] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+    const [timelineLoading, setTimelineLoading] = useState(true)
     const [playsLoading, setPlaysLoading] = useState(false)
     const [showPlays, setShowPlays] = useState(false)
     const [playsPagination, setPlaysPagination] = useState({
@@ -66,8 +71,9 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
 
     useEffect(() => {
         fetchTrackDetails()
-        fetchTrackTimeline()
         fetchTrackPlays()
+        // Timeline is loaded separately and can be cached
+        fetchTrackTimeline()
     }, [trackId, profileId])
 
     const fetchTrackDetails = async () => {
@@ -84,18 +90,52 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
 
     const fetchTrackTimeline = async () => {
         try {
+            setTimelineLoading(true)
+            
+            // Check cache first
+            const cacheKey = `${trackId}-${profileId || 'all'}`
+            const cached = timelineCache.get(cacheKey)
+            
+            if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
+                setTimelineData(cached.data)
+                setTimelineLoading(false)
+                return
+            }
+
             const params = new URLSearchParams()
             if (profileId) {
                 params.append('profileId', profileId)
             }
 
-            const response = await fetch(`/api/tracks/${trackId}/timeline?${params}`)
+            // Add timeout for request
+            const controller = new AbortController()
+            const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+
+            const response = await fetch(`/api/tracks/${trackId}/timeline?${params}`, {
+                signal: controller.signal
+            })
+            
+            clearTimeout(timeoutId)
+
             if (response.ok) {
                 const data = await response.json()
-                setTimelineData(data.data || [])
+                const timelineData = data.data || []
+                setTimelineData(timelineData)
+                
+                // Cache the result
+                timelineCache.set(cacheKey, {
+                    data: timelineData,
+                    timestamp: Date.now()
+                })
             }
         } catch (error) {
-            console.error('Error fetching track timeline:', error)
+            if (error instanceof Error && error.name === 'AbortError') {
+                console.log('Timeline request was aborted due to timeout')
+            } else {
+                console.error('Error fetching track timeline:', error)
+            }
+        } finally {
+            setTimelineLoading(false)
         }
     }
 
@@ -253,7 +293,7 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
                         </ResponsiveContainer>
                     ) : (
                         <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                            {loading ? (
+                            {timelineLoading ? (
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                             ) : (
                                 t('noTimelineData')

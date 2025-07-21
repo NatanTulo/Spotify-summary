@@ -272,52 +272,6 @@ router.get('/:id', async (req, res) => {
     }
 })
 
-// GET /api/tracks/:id/timeline - Timeline odtwarzania utworu
-router.get('/:id/timeline', async (req, res) => {
-    try {
-        const { id } = req.params
-        const { profileId, interval = 'day' } = req.query
-
-        const playCondition = profileId ? { profileId, trackId: id } : { trackId: id }
-
-        // Group plays by time interval
-        const timelineData = await Play.findAll({
-            where: playCondition,
-            attributes: [
-                [
-                    interval === 'month' ?
-                        fn('DATE_TRUNC', 'month', col('timestamp')) :
-                        fn('DATE_TRUNC', 'day', col('timestamp')),
-                    'period'
-                ],
-                [fn('COUNT', col('id')), 'plays'],
-                [fn('COALESCE', fn('SUM', col('msPlayed')), 0), 'totalMsPlayed']
-            ],
-            group: ['period'],
-            order: [['period', 'ASC']],
-            raw: true
-        })
-
-        const formattedData = timelineData.map((item: any) => ({
-            period: item.period,
-            plays: parseInt(item.plays),
-            minutes: Math.round(parseInt(item.totalMsPlayed) / 60000)
-        }))
-
-        res.json({
-            success: true,
-            data: formattedData
-        })
-    } catch (error) {
-        console.error('Error fetching track timeline:', error)
-        res.status(500).json({
-            success: false,
-            error: 'Failed to fetch track timeline',
-            message: error instanceof Error ? error.message : 'Unknown error'
-        })
-    }
-})
-
 // GET /api/tracks/:id/plays - Lista odtworzeń utworu
 router.get('/:id/plays', async (req, res) => {
     try {
@@ -370,6 +324,71 @@ router.get('/:id/plays', async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Failed to fetch track plays',
+            message: error instanceof Error ? error.message : 'Unknown error'
+        })
+    }
+})
+
+// GET /api/tracks/:id/timeline - Timeline odtworzeń dla utworu (zoptymalizowany)
+router.get('/:id/timeline', async (req, res) => {
+    try {
+        const { id: trackId } = req.params
+        const { profileId } = req.query
+        const profileIdNum = profileId ? parseInt(profileId as string, 10) : null
+
+        // Build profile condition
+        const profileCondition = profileIdNum ? `AND profile_id = ${profileIdNum}` : ''
+
+        // Ultra-optimized query with pre-aggregation and limited scope
+        const timelineQuery = `
+            WITH daily_plays AS (
+                SELECT 
+                    DATE(timestamp) as play_date,
+                    COUNT(*) as daily_count,
+                    SUM(ms_played) as daily_ms
+                FROM plays 
+                WHERE track_id = $1 
+                ${profileCondition}
+                AND timestamp >= CURRENT_DATE - INTERVAL '6 months'
+                GROUP BY DATE(timestamp)
+            )
+            SELECT 
+                play_date as date,
+                daily_count as plays,
+                ROUND((daily_ms / 60000.0)::numeric, 1) as minutes
+            FROM daily_plays
+            ORDER BY play_date DESC
+            LIMIT 180
+        `
+
+        const timeline = await sequelize.query(timelineQuery, {
+            bind: [trackId],
+            type: QueryTypes.SELECT,
+            logging: false // Disable query logging for performance
+        })
+
+        const processedData = timeline.map(row => ({
+            date: (row as any).date,
+            plays: parseInt((row as any).plays as string),
+            minutes: parseFloat((row as any).minutes as string) || 0
+        })).reverse() // Reverse to show oldest first for chart
+
+        // Set cache headers for 5 minutes
+        res.set({
+            'Cache-Control': 'public, max-age=300',
+            'ETag': `timeline-${trackId}-${profileIdNum || 'all'}-${new Date().toISOString().split('T')[0]}`
+        })
+
+        res.json({
+            success: true,
+            data: processedData,
+            count: processedData.length
+        })
+    } catch (error) {
+        console.error('Error fetching track timeline:', error)
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch track timeline',
             message: error instanceof Error ? error.message : 'Unknown error'
         })
     }

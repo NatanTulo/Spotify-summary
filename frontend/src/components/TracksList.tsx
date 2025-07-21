@@ -1,4 +1,4 @@
-import { useState, Fragment } from 'react'
+import { useState, Fragment, useEffect } from 'react'
 import { ChevronUp, ChevronDown, Play, TrendingUp, Settings2, Eye } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
@@ -107,10 +107,12 @@ export function TracksList({
         },
         { key: 'firstPlay', sortable: true, format: (val) => val ? localizedFormatDate(val) : '', labelKey: 'firstPlayFull' },
         { key: 'lastPlay', sortable: true, format: (val) => val ? localizedFormatDate(val) : '', labelKey: 'lastPlayFull' },
-        { key: 'platforms', sortable: false, format: (val) => {
-            console.log('Debug platforms:', val, Array.isArray(val))
-            return val && val.length > 0 ? val.join(', ') : 'N/A'
-        }, labelKey: 'platformsFull' },
+        {
+            key: 'platforms', sortable: false, format: (val) => {
+                console.log('Debug platforms:', val, Array.isArray(val))
+                return val && val.length > 0 ? val.join(', ') : 'N/A'
+            }, labelKey: 'platformsFull'
+        },
         { key: 'countries', sortable: false, format: (val) => val && val.length > 0 ? val.join(', ') : '', labelKey: 'countriesFull' },
         { key: 'uri', sortable: false, labelKey: 'uriFull' },
         { key: 'reasonStart', sortable: false, format: (val) => val && val.length > 0 ? val.join(', ') : '', labelKey: 'reasonStartFull' },
@@ -124,12 +126,18 @@ export function TracksList({
 
     const [expandedTrack, setExpandedTrack] = useState<string | null>(null)
     const [trackTimelineData, setTrackTimelineData] = useState<any[]>([])
+    const [timelineLoading, setTimelineLoading] = useState<string | null>(null)
+    const [timelineCache, setTimelineCache] = useState<Map<string, any[]>>(new Map())
     const [selectedTrackForDetails, setSelectedTrackForDetails] = useState<string | null>(null)
     const [visibleColumns, setVisibleColumns] = useState<(keyof ExtendedTrack)[]>([
-        'trackName', 'artistName', 'albumName', 'totalPlays', 'totalMinutes', 'avgPlayDuration', 'skipPercentage',
-        'firstPlay', 'lastPlay'
+        'trackName', 'artistName', 'albumName', 'totalPlays', 'totalMinutes', 'avgPlayDuration', 'skipPercentage', 'firstPlay', 'lastPlay'
     ])
     const [showColumnSelector, setShowColumnSelector] = useState(false)
+
+    // Domyślne kolumny
+    const defaultColumns: (keyof ExtendedTrack)[] = [
+        'trackName', 'artistName', 'albumName', 'totalPlays', 'totalMinutes', 'avgPlayDuration', 'skipPercentage', 'firstPlay', 'lastPlay'
+    ]
 
     // Jeśli wybrano utwór do szczegółów, pokaż TrackDetails
     if (selectedTrackForDetails) {
@@ -156,25 +164,54 @@ export function TracksList({
 
         setExpandedTrack(trackId)
 
-        // Fetch timeline data for track
+        // Check cache first
+        const cacheKey = `${trackId}-${profileId || 'all'}`
+        if (timelineCache.has(cacheKey)) {
+            setTrackTimelineData(timelineCache.get(cacheKey)!)
+            return
+        }
+
+        // Show loading state
+        setTimelineLoading(trackId)
+        setTrackTimelineData([])
+
+        // Fetch timeline data for track with timeout
         try {
             const params = new URLSearchParams()
             if (profileId) {
                 params.append('profileId', profileId)
             }
 
-            const response = await fetch(`/api/tracks/${trackId}/timeline?${params}`)
+            const controller = new AbortController()
+            const timeoutId = setTimeout(() => controller.abort(), 5000) // 5s timeout
+
+            const response = await fetch(`/api/tracks/${trackId}/timeline?${params}`, {
+                signal: controller.signal
+            })
+
+            clearTimeout(timeoutId)
+
             if (response.ok) {
                 const data = await response.json()
                 console.log('Timeline data:', data)
-                setTrackTimelineData(data.data || [])
+                const timelineData = data.data || []
+
+                // Cache the result
+                setTimelineCache(prev => new Map(prev).set(cacheKey, timelineData))
+                setTrackTimelineData(timelineData)
             } else {
                 console.error('Timeline response not ok:', response.status, response.statusText)
                 setTrackTimelineData([])
             }
         } catch (error) {
-            console.error('Error fetching track timeline:', error)
+            if (error instanceof Error && error.name === 'AbortError') {
+                console.warn('Timeline request timed out')
+            } else {
+                console.error('Error fetching track timeline:', error)
+            }
             setTrackTimelineData([])
+        } finally {
+            setTimelineLoading(null)
         }
     }
 
@@ -192,6 +229,55 @@ export function TracksList({
                 : [...prev, columnKey]
         )
     }
+
+    const resetColumnsToDefault = () => {
+        setVisibleColumns([...defaultColumns])
+    }
+
+    // Inteligentny prefetching dla top utworów
+    const prefetchPopularTracks = async () => {
+        if (tracks.length === 0) return
+        
+        // Prefetch timeline dla top 3 utworów (które mają najwięcej odtworzeń)
+        const topTracks = tracks
+            .filter(t => t.totalPlays > 10) // Tylko utwory z więcej niż 10 odtworzeń
+            .sort((a, b) => b.totalPlays - a.totalPlays)
+            .slice(0, 3)
+
+        for (const track of topTracks) {
+            const cacheKey = `${track.trackId}-${profileId || 'all'}`
+            
+            // Skip if already cached
+            if (timelineCache.has(cacheKey)) continue
+
+            try {
+                const params = new URLSearchParams()
+                if (profileId) {
+                    params.append('profileId', profileId)
+                }
+
+                const response = await fetch(`/api/tracks/${track.trackId}/timeline?${params}`)
+                if (response.ok) {
+                    const data = await response.json()
+                    setTimelineCache(prev => new Map(prev).set(cacheKey, data.data || []))
+                }
+            } catch (error) {
+                // Silent fail for prefetch
+            }
+            
+            // Small delay between prefetch requests
+            await new Promise(resolve => setTimeout(resolve, 100))
+        }
+    }
+
+    // Prefetch po załadowaniu utworów
+    useEffect(() => {
+        if (tracks.length > 0) {
+            // Delay prefetch by 1 second to not interfere with main UI
+            const timer = setTimeout(prefetchPopularTracks, 1000)
+            return () => clearTimeout(timer)
+        }
+    }, [tracks, profileId])
 
     const getColumnConfig = (key: keyof ExtendedTrack) => {
         return availableColumns.find(col => col.key === key)
@@ -276,7 +362,16 @@ export function TracksList({
                 {/* Selektor kolumn */}
                 {showColumnSelector && (
                     <div className="mt-4 p-4 border rounded-lg bg-muted/50">
-                        <h4 className="text-sm font-medium mb-2">{t('selectColumns')}</h4>
+                        <div className="flex items-center justify-between mb-2">
+                            <h4 className="text-sm font-medium">{t('selectColumns')}</h4>
+                            <Button
+                                onClick={resetColumnsToDefault}
+                                className="px-2 py-1 text-xs h-auto"
+                                variant="outline"
+                            >
+                                {t('resetColumns')}
+                            </Button>
+                        </div>
                         <div className="grid grid-cols-3 gap-2">
                             {availableColumns.map(column => (
                                 <label key={column.key} className="flex items-center space-x-2 text-sm">
@@ -352,9 +447,9 @@ export function TracksList({
                                                                         <Eye className="h-3 w-3" />
                                                                     </button>
                                                                     {(track.uri && track.uri !== 'null' && track.uri !== null) && (
-                                                                        <a 
-                                                                            href={track.uri} 
-                                                                            target="_blank" 
+                                                                        <a
+                                                                            href={track.uri}
+                                                                            target="_blank"
                                                                             rel="noopener noreferrer"
                                                                             className="h-6 w-6 text-green-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded flex items-center justify-center transition-colors"
                                                                             onClick={(e) => e.stopPropagation()}
@@ -387,45 +482,60 @@ export function TracksList({
                                                             <h4 className="font-semibold text-sm">
                                                                 {t('timelineTitle')}: {track.trackName}
                                                             </h4>
-                                                            <div className="h-64">
-                                                                <ResponsiveContainer width="100%" height="100%">
-                                                                    <BarChart data={trackTimelineData}>
-                                                                        <CartesianGrid
-                                                                            strokeDasharray="3 3"
-                                                                            stroke="hsl(var(--border))"
-                                                                        />
-                                                                        <XAxis
-                                                                            dataKey="date"
-                                                                            fontSize={12}
-                                                                            type="category"
-                                                                            tick={{ fill: 'hsl(var(--foreground))' }}
-                                                                            axisLine={{ stroke: 'hsl(var(--border))' }}
-                                                                        />
-                                                                        <YAxis
-                                                                            fontSize={12}
-                                                                            tick={{ fill: 'hsl(var(--foreground))' }}
-                                                                            axisLine={{ stroke: 'hsl(var(--border))' }}
-                                                                        />
-                                                                        <Tooltip
-                                                                            labelFormatter={(value) => `${t('date')}: ${value}`}
-                                                                            formatter={(value: any) => [value, t('plays')]}
-                                                                            contentStyle={{
-                                                                                backgroundColor: 'hsl(var(--card))',
-                                                                                border: '1px solid hsl(var(--border))',
-                                                                                borderRadius: 'var(--radius)',
-                                                                                color: 'hsl(var(--foreground))'
-                                                                            }}
-                                                                        />
-                                                                        <Bar
-                                                                            dataKey="plays"
-                                                                            fill="hsl(var(--primary))"
-                                                                        />
-                                                                    </BarChart>
-                                                                </ResponsiveContainer>
-                                                            </div>
-                                                            {trackTimelineData.length === 0 && (
+                                                            {timelineLoading === track.trackId ? (
+                                                                <div className="h-64 flex items-center justify-center">
+                                                                    <div className="flex flex-col items-center gap-2">
+                                                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                                                                        <span className="text-sm text-muted-foreground">{t('loading')}...</span>
+                                                                    </div>
+                                                                </div>
+                                                            ) : trackTimelineData.length === 0 ? (
                                                                 <div className="text-center text-muted-foreground py-8">
                                                                     {t('noTimelineData')}
+                                                                </div>
+                                                            ) : (
+                                                                <div className="h-64">
+                                                                    <ResponsiveContainer width="100%" height="100%">
+                                                                        <BarChart data={trackTimelineData}>
+                                                                            <CartesianGrid
+                                                                                strokeDasharray="3 3"
+                                                                                stroke="hsl(var(--border))"
+                                                                            />
+                                                                            <XAxis
+                                                                                dataKey="date"
+                                                                                fontSize={12}
+                                                                                type="category"
+                                                                                tick={{ fill: 'hsl(var(--foreground))' }}
+                                                                                axisLine={{ stroke: 'hsl(var(--border))' }}
+                                                                                tickFormatter={(value) => {
+                                                                                    const date = new Date(value)
+                                                                                    return `${date.getDate()}/${date.getMonth() + 1}`
+                                                                                }}
+                                                                            />
+                                                                            <YAxis
+                                                                                fontSize={12}
+                                                                                tick={{ fill: 'hsl(var(--foreground))' }}
+                                                                                axisLine={{ stroke: 'hsl(var(--border))' }}
+                                                                            />
+                                                                            <Tooltip
+                                                                                labelFormatter={(value) => `${t('date')}: ${localizedFormatDate(value)}`}
+                                                                                formatter={(value: any, name: string) => [
+                                                                                    value,
+                                                                                    name === 'plays' ? t('plays') : t('minutes')
+                                                                                ]}
+                                                                                contentStyle={{
+                                                                                    backgroundColor: 'hsl(var(--card))',
+                                                                                    border: '1px solid hsl(var(--border))',
+                                                                                    borderRadius: 'var(--radius)',
+                                                                                    color: 'hsl(var(--foreground))'
+                                                                                }}
+                                                                            />
+                                                                            <Bar
+                                                                                dataKey="plays"
+                                                                                fill="hsl(var(--primary))"
+                                                                            />
+                                                                        </BarChart>
+                                                                    </ResponsiveContainer>
                                                                 </div>
                                                             )}
                                                         </div>
