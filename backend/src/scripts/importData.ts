@@ -388,11 +388,15 @@ class SpotifyDataImporter {
             track = await Track.create({
                 name,
                 albumId,
-                spotifyId: spotifyUri,
+                uri: spotifyUri,
                 createdAt: new Date(),
                 updatedAt: new Date()
             })
             this.stats.tracksCreated++
+        } else if (spotifyUri && !track.uri) {
+            // Update existing track with URI if it doesn't have one
+            track.uri = spotifyUri
+            await track.save()
         }
 
         this.tracks.set(key, track.id)

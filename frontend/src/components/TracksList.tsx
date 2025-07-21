@@ -107,7 +107,10 @@ export function TracksList({
         },
         { key: 'firstPlay', sortable: true, format: (val) => val ? localizedFormatDate(val) : '', labelKey: 'firstPlayFull' },
         { key: 'lastPlay', sortable: true, format: (val) => val ? localizedFormatDate(val) : '', labelKey: 'lastPlayFull' },
-        { key: 'platforms', sortable: false, format: (val) => val && val.length > 0 ? val.join(', ') : '', labelKey: 'platformsFull' },
+        { key: 'platforms', sortable: false, format: (val) => {
+            console.log('Debug platforms:', val, Array.isArray(val))
+            return val && val.length > 0 ? val.join(', ') : 'N/A'
+        }, labelKey: 'platformsFull' },
         { key: 'countries', sortable: false, format: (val) => val && val.length > 0 ? val.join(', ') : '', labelKey: 'countriesFull' },
         { key: 'uri', sortable: false, labelKey: 'uriFull' },
         { key: 'reasonStart', sortable: false, format: (val) => val && val.length > 0 ? val.join(', ') : '', labelKey: 'reasonStartFull' },
@@ -116,11 +119,15 @@ export function TracksList({
 
     const availableColumns = getAvailableColumns()
 
+    // Debug tracks data
+    console.log('TracksList received:', tracks?.length, 'tracks, first track:', tracks?.[0])
+
     const [expandedTrack, setExpandedTrack] = useState<string | null>(null)
     const [trackTimelineData, setTrackTimelineData] = useState<any[]>([])
     const [selectedTrackForDetails, setSelectedTrackForDetails] = useState<string | null>(null)
     const [visibleColumns, setVisibleColumns] = useState<(keyof ExtendedTrack)[]>([
-        'trackName', 'artistName', 'albumName', 'totalPlays', 'totalMinutes', 'avgPlayDuration', 'skipPercentage'
+        'trackName', 'artistName', 'albumName', 'totalPlays', 'totalMinutes', 'avgPlayDuration', 'skipPercentage',
+        'firstPlay', 'lastPlay'
     ])
     const [showColumnSelector, setShowColumnSelector] = useState(false)
 
@@ -333,15 +340,30 @@ export function TracksList({
                                                             <div className="flex items-center gap-2">
                                                                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
                                                                 <div className="font-medium">{track.trackName}</div>
-                                                                <button
-                                                                    className="ml-auto h-6 w-6 hover:bg-accent hover:text-accent-foreground rounded flex items-center justify-center"
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation()
-                                                                        setSelectedTrackForDetails(track.trackId)
-                                                                    }}
-                                                                >
-                                                                    <Eye className="h-3 w-3" />
-                                                                </button>
+                                                                <div className="ml-auto flex items-center gap-1">
+                                                                    <button
+                                                                        className="h-6 w-6 hover:bg-accent hover:text-accent-foreground rounded flex items-center justify-center transition-colors"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation()
+                                                                            setSelectedTrackForDetails(track.trackId)
+                                                                        }}
+                                                                        title="Pokaż szczegóły utworu"
+                                                                    >
+                                                                        <Eye className="h-3 w-3" />
+                                                                    </button>
+                                                                    {(track.uri && track.uri !== 'null' && track.uri !== null) && (
+                                                                        <a 
+                                                                            href={track.uri} 
+                                                                            target="_blank" 
+                                                                            rel="noopener noreferrer"
+                                                                            className="h-6 w-6 text-green-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded flex items-center justify-center transition-colors"
+                                                                            onClick={(e) => e.stopPropagation()}
+                                                                            title="Otwórz w Spotify"
+                                                                        >
+                                                                            <Play className="h-3 w-3 fill-current" />
+                                                                        </a>
+                                                                    )}
+                                                                </div>
                                                             </div>
                                                         ) : columnKey === 'skipPercentage' ? (
                                                             <span className={`font-mono ${track.skipPercentage > 50 ? 'text-red-500' :

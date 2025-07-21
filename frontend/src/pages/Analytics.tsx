@@ -93,9 +93,10 @@ export default function Analytics() {
                 ...(selectedProfile && { profileId: selectedProfile })
             })
 
-            const response = await fetch(`/api/tracks?${params}`)
+            const response = await fetch(`/api/tracks?${params}&_t=${Date.now()}`)
             if (response.ok) {
                 const data = await response.json()
+                console.log('Analytics: Received tracks data:', data.data?.slice(0, 1)) // Debug first track
                 setTracks(data.data || [])
                 setPagination(data.pagination || pagination)
             }

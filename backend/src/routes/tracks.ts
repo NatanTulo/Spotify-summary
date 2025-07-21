@@ -60,7 +60,13 @@ router.get('/', async (req, res) => {
                 COALESCE(p.total_plays, 0) as "totalPlays",
                 COALESCE(p.total_minutes, 0) as "totalMinutes",
                 COALESCE(p.avg_play_duration, 0) as "avgPlayDuration",
-                COALESCE(p.skip_percentage, 0) as "skipPercentage"
+                COALESCE(p.skip_percentage, 0) as "skipPercentage",
+                p.first_play as "firstPlay",
+                p.last_play as "lastPlay",
+                p.platforms as "platforms",
+                p.countries as "countries",
+                p.reason_start as "reasonStart",
+                p.reason_end as "reasonEnd"
             FROM tracks t
             JOIN albums al ON t."albumId" = al.id
             JOIN artists ar ON al."artistId" = ar.id
@@ -74,7 +80,13 @@ router.get('/', async (req, res) => {
                         (COUNT(CASE WHEN skipped = true THEN 1 END)::float / 
                         NULLIF(COUNT(*), 0) * 100)::numeric, 
                         2
-                    ) as skip_percentage
+                    ) as skip_percentage,
+                    MIN(timestamp) as first_play,
+                    MAX(timestamp) as last_play,
+                    ARRAY_AGG(DISTINCT platform ORDER BY platform) FILTER (WHERE platform IS NOT NULL) as platforms,
+                    ARRAY_AGG(DISTINCT country ORDER BY country) FILTER (WHERE country IS NOT NULL) as countries,
+                    ARRAY_AGG(DISTINCT "reasonStart" ORDER BY "reasonStart") FILTER (WHERE "reasonStart" IS NOT NULL) as reason_start,
+                    ARRAY_AGG(DISTINCT "reasonEnd" ORDER BY "reasonEnd") FILTER (WHERE "reasonEnd" IS NOT NULL) as reason_end
                 FROM plays 
                 ${profileIdNum ? `WHERE "profileId" = :profileId` : ''}
                 GROUP BY "trackId"
@@ -136,6 +148,12 @@ router.get('/', async (req, res) => {
             totalMinutes: parseFloat(track.totalMinutes) || 0,
             avgPlayDuration: parseFloat(track.avgPlayDuration) || 0,
             skipPercentage: parseFloat(track.skipPercentage) || 0,
+            firstPlay: track.firstPlay || null,
+            lastPlay: track.lastPlay || null,
+            platforms: track.platforms || [],
+            countries: track.countries || [],
+            reasonStart: track.reasonStart || [],
+            reasonEnd: track.reasonEnd || [],
             stats: {
                 totalPlays: parseInt(track.totalPlays) || 0,
                 totalMinutes: parseFloat(track.totalMinutes) || 0,
