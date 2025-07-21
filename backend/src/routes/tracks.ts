@@ -337,28 +337,48 @@ router.get('/:id/timeline', async (req, res) => {
         const profileIdNum = profileId ? parseInt(profileId as string, 10) : null
 
         // Build profile condition
-        const profileCondition = profileIdNum ? `AND profile_id = ${profileIdNum}` : ''
+        const profileCondition = profileIdNum ? `AND "profileId" = ${profileIdNum}` : ''
 
-        // Ultra-optimized query with pre-aggregation and limited scope
+        // Complete timeline query - shows ALL activity from first to last play (or today)
         const timelineQuery = `
-            WITH daily_plays AS (
+            WITH track_stats AS (
+                SELECT 
+                    MIN(timestamp)::date as first_play_date,
+                    MAX(timestamp)::date as last_play_date,
+                    COUNT(*) as total_plays
+                FROM plays 
+                WHERE "trackId" = $1 
+                ${profileCondition}
+            ),
+            date_series AS (
+                SELECT generate_series(
+                    (SELECT first_play_date FROM track_stats),
+                    GREATEST(
+                        (SELECT last_play_date FROM track_stats),
+                        CURRENT_DATE
+                    ),
+                    '1 day'::interval
+                )::date as play_date
+                FROM track_stats
+                WHERE (SELECT total_plays FROM track_stats) > 0
+            ),
+            daily_plays AS (
                 SELECT 
                     DATE(timestamp) as play_date,
                     COUNT(*) as daily_count,
-                    SUM(ms_played) as daily_ms
+                    SUM("msPlayed") as daily_ms
                 FROM plays 
-                WHERE track_id = $1 
+                WHERE "trackId" = $1 
                 ${profileCondition}
-                AND timestamp >= CURRENT_DATE - INTERVAL '6 months'
                 GROUP BY DATE(timestamp)
             )
             SELECT 
-                play_date as date,
-                daily_count as plays,
-                ROUND((daily_ms / 60000.0)::numeric, 1) as minutes
-            FROM daily_plays
-            ORDER BY play_date DESC
-            LIMIT 180
+                ds.play_date as date,
+                COALESCE(dp.daily_count, 0) as plays,
+                ROUND((COALESCE(dp.daily_ms, 0) / 60000.0)::numeric, 1) as minutes
+            FROM date_series ds
+            LEFT JOIN daily_plays dp ON ds.play_date = dp.play_date
+            ORDER BY ds.play_date ASC
         `
 
         const timeline = await sequelize.query(timelineQuery, {
@@ -371,12 +391,17 @@ router.get('/:id/timeline', async (req, res) => {
             date: (row as any).date,
             plays: parseInt((row as any).plays as string),
             minutes: parseFloat((row as any).minutes as string) || 0
-        })).reverse() // Reverse to show oldest first for chart
+        })) // No need to reverse, already ordered ASC
 
-        // Set cache headers for 5 minutes
+        // Debug logging
+        const totalTimelinePlays = processedData.reduce((sum, day) => sum + day.plays, 0)
+        console.log(`Timeline for track ${trackId}: ${processedData.length} days, ${totalTimelinePlays} total plays`)
+
+        // Set cache headers for 5 minutes - TYMCZASOWO WYŁĄCZONE
         res.set({
-            'Cache-Control': 'public, max-age=300',
-            'ETag': `timeline-${trackId}-${profileIdNum || 'all'}-${new Date().toISOString().split('T')[0]}`
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
         })
 
         res.json({
