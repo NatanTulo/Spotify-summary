@@ -38,21 +38,6 @@ interface ColumnConfig {
     format?: (value: any) => string
 }
 
-const availableColumns: ColumnConfig[] = [
-    { key: 'trackName', labelKey: 'trackName', sortable: true },
-    { key: 'artistName', labelKey: 'artistName', sortable: true },
-    { key: 'albumName', labelKey: 'albumName', sortable: true },
-    { key: 'totalPlays', labelKey: 'totalPlays', sortable: true },
-    { key: 'totalMinutes', labelKey: 'totalMinutes', sortable: true },
-    { key: 'avgPlayDuration', labelKey: 'avgPlayDuration', sortable: true, format: (val) => `${Math.floor(val / 60)}:${Math.floor(val % 60).toString().padStart(2, '0')}` },
-    { key: 'skipPercentage', labelKey: 'skipPercentage', sortable: true, format: (val) => `${val.toFixed(1)}%` },
-    { key: 'duration', labelKey: 'duration', sortable: true, format: (val) => val ? `${Math.floor(val / 60000)}:${Math.floor((val % 60000) / 1000).toString().padStart(2, '0')}` : 'N/A' },
-    { key: 'firstPlay', labelKey: 'firstPlay', sortable: true, format: (val) => val ? new Date(val).toLocaleDateString() : 'N/A' },
-    { key: 'lastPlay', labelKey: 'lastPlay', sortable: true, format: (val) => val ? new Date(val).toLocaleDateString() : 'N/A' },
-    { key: 'platforms', labelKey: 'platforms', sortable: false, format: (val) => val ? val.join(', ') : 'N/A' },
-    { key: 'countries', labelKey: 'countries', sortable: false, format: (val) => val ? val.join(', ') : 'N/A' },
-]
-
 interface TracksListProps {
     tracks: ExtendedTrack[]
     loading?: boolean
@@ -80,7 +65,23 @@ export function TracksList({
     onSort,
     currentSort
 }: TracksListProps) {
-    const { language, t } = useLanguage()
+    const { language, t, formatDate: localizedFormatDate } = useLanguage()
+
+    // Define available columns inside component to access functions
+    const availableColumns: ColumnConfig[] = [
+        { key: 'trackName', labelKey: 'trackName', sortable: true },
+        { key: 'artistName', labelKey: 'artistName', sortable: true },
+        { key: 'albumName', labelKey: 'albumName', sortable: true },
+        { key: 'totalPlays', labelKey: 'totalPlays', sortable: true },
+        { key: 'totalMinutes', labelKey: 'totalMinutes', sortable: true },
+        { key: 'avgPlayDuration', labelKey: 'avgPlayDuration', sortable: true, format: (val) => `${Math.floor(val / 60)}:${Math.floor(val % 60).toString().padStart(2, '0')}` },
+        { key: 'skipPercentage', labelKey: 'skipPercentage', sortable: true, format: (val) => `${val.toFixed(1)}%` },
+        { key: 'duration', labelKey: 'duration', sortable: true, format: (val) => val ? `${Math.floor(val / 60000)}:${Math.floor((val % 60000) / 1000).toString().padStart(2, '0')}` : t('notAvailable') },
+        { key: 'firstPlay', labelKey: 'firstPlay', sortable: true, format: (val) => val ? localizedFormatDate(val) : t('notAvailable') },
+        { key: 'lastPlay', labelKey: 'lastPlay', sortable: true, format: (val) => val ? localizedFormatDate(val) : t('notAvailable') },
+        { key: 'platforms', labelKey: 'platforms', sortable: false, format: (val) => val ? val.join(', ') : t('notAvailable') },
+        { key: 'countries', labelKey: 'countries', sortable: false, format: (val) => val ? val.join(', ') : t('notAvailable') },
+    ]
 
     const [expandedTrack, setExpandedTrack] = useState<string | null>(null)
     const [trackTimelineData, setTrackTimelineData] = useState<any[]>([])

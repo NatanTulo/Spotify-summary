@@ -71,7 +71,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
     onProfilesChanged,
     isLoading = false
 }) => {
-    const { t } = useLanguage()
+    const { t, formatDate: localizedFormatDate } = useLanguage()
     const [profiles, setProfiles] = useState<Profile[]>([])
     const [availableProfiles, setAvailableProfiles] = useState<Array<{ name: string, files: any[] }>>([])
     const [isLoadingProfiles, setIsLoadingProfiles] = useState(false)
@@ -256,16 +256,6 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
         }
     }
 
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('pl-PL', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        })
-    }
-
     const formatDuration = (minutes: number) => {
         const hours = Math.floor(minutes / 60)
         const mins = minutes % 60
@@ -428,10 +418,10 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                                         {/* Debug info */}
                                         {process.env.NODE_ENV === 'development' && (
                                             <div className="text-xs text-gray-500 mt-2">
-                                                <div>Active imports: {Array.from(activeImports).join(', ')}</div>
-                                                <div>Progress exists: {progress ? 'YES' : 'NO'}</div>
-                                                <div>Progress running: {progress?.isRunning ? 'YES' : 'NO'}</div>
-                                                <div>Progress %: {progress?.percentage}</div>
+                                                <div>{t('debugActiveImports')}: {Array.from(activeImports).join(', ')}</div>
+                                                <div>{t('debugProgressExists')}: {progress ? t('debugYes') : t('debugNo')}</div>
+                                                <div>{t('debugProgressRunning')}: {progress?.isRunning ? t('debugYes') : t('debugNo')}</div>
+                                                <div>{t('debugProgressPercentage')}: {progress?.percentage}</div>
                                             </div>
                                         )}
                                     </div>
@@ -477,7 +467,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                                     {profile.lastImport && (
                                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                             <Calendar className="h-3 w-3" />
-                                            {formatDate(profile.lastImport)}
+                                            {localizedFormatDate(profile.lastImport, true)}
                                         </div>
                                     )}
 

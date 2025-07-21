@@ -48,34 +48,6 @@ interface ColumnConfig {
     labelKey: string  // Changed from label object to single key
 }
 
-// Function to get column configurations with translations
-const getAvailableColumns = (): ColumnConfig[] => [
-    { key: 'trackName', sortable: true, labelKey: 'trackNameFull' },
-    { key: 'artistName', sortable: true, labelKey: 'artistFull' },
-    { key: 'albumName', sortable: true, labelKey: 'albumFull' },
-    { key: 'totalPlays', sortable: true, labelKey: 'playsFull' },
-    { key: 'totalMinutes', sortable: true, labelKey: 'timeMinutesFull' },
-    {
-        key: 'avgPlayDuration', sortable: true, format: (val) => {
-            const duration = Number(val) || 0;
-            return `${Math.floor(duration / 60)}:${Math.floor(duration % 60).toString().padStart(2, '0')}`;
-        }, labelKey: 'avgTimeFull'
-    },
-    {
-        key: 'skipPercentage', sortable: true, format: (val) => {
-            const percentage = Number(val) || 0;
-            return `${percentage.toFixed(1)}%`;
-        }, labelKey: 'skipPercentageFull'
-    },
-    { key: 'firstPlay', sortable: true, format: (val) => val ? new Date(val).toLocaleDateString() : '', labelKey: 'firstPlayFull' },
-    { key: 'lastPlay', sortable: true, format: (val) => val ? new Date(val).toLocaleDateString() : '', labelKey: 'lastPlayFull' },
-    { key: 'platforms', sortable: false, format: (val) => val && val.length > 0 ? val.join(', ') : '', labelKey: 'platformsFull' },
-    { key: 'countries', sortable: false, format: (val) => val && val.length > 0 ? val.join(', ') : '', labelKey: 'countriesFull' },
-    { key: 'uri', sortable: false, labelKey: 'uriFull' },
-    { key: 'reasonStart', sortable: false, format: (val) => val && val.length > 0 ? val.join(', ') : '', labelKey: 'reasonStartFull' },
-    { key: 'reasonEnd', sortable: false, format: (val) => val && val.length > 0 ? val.join(', ') : '', labelKey: 'reasonEndFull' },
-]
-
 interface TracksListProps {
     tracks: ExtendedTrack[]
     loading?: boolean
@@ -105,9 +77,43 @@ export function TracksList({
     onSort,
     currentSort
 }: TracksListProps) {
-    const { t } = useLanguage()
+    const { t, formatDate: localizedFormatDate } = useLanguage()
 
-    // Get available columns with translations
+    // Get available columns with translations (moved inside component to access localizedFormatDate)
+    const getAvailableColumns = (): ColumnConfig[] => [
+        { key: 'trackName', sortable: true, labelKey: 'trackNameFull' },
+        { key: 'artistName', sortable: true, labelKey: 'artistFull' },
+        { key: 'albumName', sortable: true, labelKey: 'albumFull' },
+        { key: 'totalPlays', sortable: true, labelKey: 'playsFull' },
+        {
+            key: 'totalMinutes', sortable: true, format: (val) => {
+                const minutes = Number(val) || 0;
+                const hours = Math.floor(minutes / 60);
+                const remainingMinutes = Math.floor(minutes % 60);
+                return hours > 0 ? `${hours}h ${remainingMinutes}m` : `${remainingMinutes}m`;
+            }, labelKey: 'timeMinutesFull'
+        },
+        {
+            key: 'avgPlayDuration', sortable: true, format: (val) => {
+                const duration = Number(val) || 0;
+                return `${Math.floor(duration / 60)}:${Math.floor(duration % 60).toString().padStart(2, '0')}`;
+            }, labelKey: 'avgTimeFull'
+        },
+        {
+            key: 'skipPercentage', sortable: true, format: (val) => {
+                const percentage = Number(val) || 0;
+                return `${percentage.toFixed(1)}%`;
+            }, labelKey: 'skipPercentageFull'
+        },
+        { key: 'firstPlay', sortable: true, format: (val) => val ? localizedFormatDate(val) : '', labelKey: 'firstPlayFull' },
+        { key: 'lastPlay', sortable: true, format: (val) => val ? localizedFormatDate(val) : '', labelKey: 'lastPlayFull' },
+        { key: 'platforms', sortable: false, format: (val) => val && val.length > 0 ? val.join(', ') : '', labelKey: 'platformsFull' },
+        { key: 'countries', sortable: false, format: (val) => val && val.length > 0 ? val.join(', ') : '', labelKey: 'countriesFull' },
+        { key: 'uri', sortable: false, labelKey: 'uriFull' },
+        { key: 'reasonStart', sortable: false, format: (val) => val && val.length > 0 ? val.join(', ') : '', labelKey: 'reasonStartFull' },
+        { key: 'reasonEnd', sortable: false, format: (val) => val && val.length > 0 ? val.join(', ') : '', labelKey: 'reasonEndFull' },
+    ]
+
     const availableColumns = getAvailableColumns()
 
     const [expandedTrack, setExpandedTrack] = useState<string | null>(null)

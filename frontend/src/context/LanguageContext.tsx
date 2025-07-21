@@ -6,6 +6,7 @@ interface LanguageContextType {
     language: Language
     setLanguage: (language: Language) => void
     t: (key: string) => string
+    formatDate: (date: string | Date, includeTime?: boolean) => string
 }
 
 const translations = {
@@ -33,6 +34,19 @@ const translations = {
         delete: 'Usuń',
         edit: 'Edytuj',
         loading: 'Ładowanie...',
+
+        // Empty state messages
+        noDataState: 'Brak danych',
+        noDataMessage: 'Umieść foldery danych Spotify w folderze /data aby rozpocząć import',
+        refresh: 'Odśwież',
+        
+        // Debug messages (development only)
+        debugActiveImports: 'Aktywne importy',
+        debugProgressExists: 'Status importu',
+        debugProgressRunning: 'Import w toku',
+        debugProgressPercentage: 'Postęp %',
+        debugYes: 'TAK',
+        debugNo: 'NIE',
 
         // TracksList
         clickHeaders: 'Kliknij nagłówki kolumn aby sortować według różnych kryteriów.',
@@ -347,10 +361,21 @@ const translations = {
         reasonEndShort: 'Przyczyna koniec',
         uriShort: 'URI',
         
-        // Empty state messages  
-        noDataState: 'Brak Danych',
-        noDataMessage: 'Umieść foldery z danymi Spotify w folderze /data aby rozpocząć import',
-        refresh: 'Odśwież'
+        // TracksList columns - detailed names
+        trackNameFull: 'Nazwa utworu',
+        artistFull: 'Wykonawca',
+        albumFull: 'Album',
+        playsFull: 'Odtworz.',
+        timeMinutesFull: 'Czas (min)',
+        avgTimeFull: 'Śr. czas',
+        skipPercentageFull: 'Pomiń. (%)',
+        firstPlayFull: 'Pierwsze',
+        lastPlayFull: 'Ostatnie',
+        platformsFull: 'Platformy',
+        countriesFull: 'Kraje',
+        reasonStartFull: 'Przyczyna start',
+        reasonEndFull: 'Przyczyna koniec',
+        uriFull: 'URI'
     },
     en: {
         // Navigation
@@ -690,26 +715,34 @@ const translations = {
         reasonEndShort: 'Reason End',
         uriShort: 'URI',
         
-        // TracksList columns - detailed names for Polish
-        trackNameFull: 'Nazwa utworu',
-        artistFull: 'Wykonawca',
-        albumFull: 'Album',
-        playsFull: 'Odtworz.',
-        timeMinutesFull: 'Czas (min)',
-        avgTimeFull: 'Śr. czas',
-        skipPercentageFull: 'Pomiń. (%)',
-        firstPlayFull: 'Pierwsze',
-        lastPlayFull: 'Ostatnie',
-        platformsFull: 'Platformy',
-        countriesFull: 'Kraje',
-        reasonStartFull: 'Przyczyna start',
-        reasonEndFull: 'Przyczyna koniec',
-        uriFull: 'URI',
-        
         // Empty state messages
         noDataState: 'No Data',
         noDataMessage: 'Place Spotify data folders in /data folder to start import',
-        refresh: 'Refresh'
+        refresh: 'Refresh',
+        
+        // TracksList columns - detailed names for English
+        trackNameFull: 'Track Name',
+        artistFull: 'Artist',
+        albumFull: 'Album',
+        playsFull: 'Plays',
+        timeMinutesFull: 'Time (min)',
+        avgTimeFull: 'Avg Time',
+        skipPercentageFull: 'Skip (%)',
+        firstPlayFull: 'First Play',
+        lastPlayFull: 'Last Play',
+        platformsFull: 'Platforms',
+        countriesFull: 'Countries',
+        reasonStartFull: 'Reason Start',
+        reasonEndFull: 'Reason End',
+        uriFull: 'URI',
+        
+        // Debug messages (development only)
+        debugActiveImports: 'Active imports',
+        debugProgressExists: 'Progress exists',
+        debugProgressRunning: 'Progress running',
+        debugProgressPercentage: 'Progress %',
+        debugYes: 'YES',
+        debugNo: 'NO'
     }
 }
 
@@ -722,8 +755,19 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
         return translations[language][key as keyof typeof translations[typeof language]] || key
     }
 
+    const formatDate = (date: string | Date, includeTime: boolean = false): string => {
+        const dateObj = typeof date === 'string' ? new Date(date) : date
+        const locale = language === 'pl' ? 'pl-PL' : 'en-US'
+        
+        if (includeTime) {
+            return `${dateObj.toLocaleDateString(locale)} ${dateObj.toLocaleTimeString(locale)}`
+        }
+        
+        return dateObj.toLocaleDateString(locale)
+    }
+
     return (
-        <LanguageContext.Provider value={{ language, setLanguage, t }}>
+        <LanguageContext.Provider value={{ language, setLanguage, t, formatDate }}>
             {children}
         </LanguageContext.Provider>
     )

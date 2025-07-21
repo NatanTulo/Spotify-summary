@@ -50,7 +50,7 @@ interface Play {
 }
 
 export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) {
-    const { t } = useLanguage()
+    const { t, formatDate: localizedFormatDate } = useLanguage()
     const [track, setTrack] = useState<DetailedTrack | null>(null)
     const [plays, setPlays] = useState<Play[]>([])
     const [timelineData, setTimelineData] = useState<any[]>([])
@@ -128,11 +128,6 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
         const minutes = Math.floor(ms / 60000)
         const seconds = Math.floor((ms % 60000) / 1000)
         return `${minutes}:${seconds.toString().padStart(2, '0')}`
-    }
-
-    const formatDate = (date?: Date) => {
-        if (!date) return t('notAvailable')
-        return new Date(date).toLocaleDateString()
     }
 
     const formatBoolean = (value?: boolean | null) => {
@@ -328,7 +323,7 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
                                 <Calendar className="h-3 w-3" />
                                 {t('firstPlay')}
                             </div>
-                            <div className="text-sm">{formatDate(track.firstPlay)}</div>
+                            <div className="text-sm">{track.firstPlay ? localizedFormatDate(track.firstPlay) : t('notAvailable')}</div>
                         </div>
 
                         <div>
@@ -336,7 +331,7 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
                                 <Calendar className="h-3 w-3" />
                                 {t('lastPlay')}
                             </div>
-                            <div className="text-sm">{formatDate(track.lastPlay)}</div>
+                            <div className="text-sm">{track.lastPlay ? localizedFormatDate(track.lastPlay) : t('notAvailable')}</div>
                         </div>
 
                         <div>
@@ -434,7 +429,7 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
                                                 <div className="flex items-center gap-4">
                                                     <div>
                                                         <div className="font-medium">
-                                                            {new Date(play.timestamp).toLocaleDateString('pl-PL')} {new Date(play.timestamp).toLocaleTimeString('pl-PL')}
+                                                            {localizedFormatDate(play.timestamp, true)}
                                                         </div>
                                                         <div className="text-sm text-muted-foreground">
                                                             {play.durationMinutes} min • {play.platform} • {play.country}
