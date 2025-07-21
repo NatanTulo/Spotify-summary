@@ -401,8 +401,8 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
                 <CardHeader>
                     <div className="flex items-center justify-between">
                         <div>
-                            <CardTitle>Historia odtworzeń</CardTitle>
-                            <CardDescription>Szczegółowe informacje o każdym odtworzeniu</CardDescription>
+                            <CardTitle>{t('playHistory')}</CardTitle>
+                            <CardDescription>{t('playHistoryDesc')}</CardDescription>
                         </div>
                         <button
                             onClick={() => {
@@ -423,7 +423,7 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
                         {playsLoading ? (
                             <div className="text-center py-4">
                                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                                <p className="mt-2 text-sm text-muted-foreground">Ładowanie historii...</p>
+                                <p className="mt-2 text-sm text-muted-foreground">{t('loadingHistory')}</p>
                             </div>
                         ) : plays.length > 0 ? (
                             <>
@@ -445,19 +445,19 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
                                                     {play.shuffle && (
                                                         <div className="flex items-center gap-1 text-xs bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded">
                                                             <Shuffle className="h-3 w-3" />
-                                                            Losowo
+                                                            {t('shuffleLabel')}
                                                         </div>
                                                     )}
                                                     {play.offline && (
                                                         <div className="flex items-center gap-1 text-xs bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
                                                             <WifiOff className="h-3 w-3" />
-                                                            Offline
+                                                            {t('offlineLabel')}
                                                         </div>
                                                     )}
                                                     {play.incognitoMode && (
                                                         <div className="flex items-center gap-1 text-xs bg-purple-100 dark:bg-purple-900 px-2 py-1 rounded">
                                                             <EyeOff className="h-3 w-3" />
-                                                            Incognito
+                                                            {t('incognitoLabel')}
                                                         </div>
                                                     )}
                                                 </div>
@@ -466,10 +466,10 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
                                             {(play.reasonStart || play.reasonEnd) && (
                                                 <div className="text-xs text-muted-foreground border-t pt-2">
                                                     {play.reasonStart && (
-                                                        <div>Start: {play.reasonStart}</div>
+                                                        <div>{t('startReason')} {play.reasonStart}</div>
                                                     )}
                                                     {play.reasonEnd && (
-                                                        <div>Koniec: {play.reasonEnd}</div>
+                                                        <div>{t('endReason')} {play.reasonEnd}</div>
                                                     )}
                                                 </div>
                                             )}
@@ -484,24 +484,24 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
                                             disabled={playsPagination.page <= 1}
                                             className="px-3 py-1 text-sm border rounded disabled:opacity-50"
                                         >
-                                            Poprzednia
+                                            {t('previous')}
                                         </button>
                                         <span className="text-sm">
-                                            Strona {playsPagination.page} z {playsPagination.pages}
+                                            {t('pageLabel')} {playsPagination.page} {t('fromLabel')} {playsPagination.pages}
                                         </span>
                                         <button
                                             onClick={() => fetchTrackPlays(playsPagination.page + 1)}
                                             disabled={playsPagination.page >= playsPagination.pages}
                                             className="px-3 py-1 text-sm border rounded disabled:opacity-50"
                                         >
-                                            Następna
+                                            {t('next')}
                                         </button>
                                     </div>
                                 )}
                             </>
                         ) : (
                             <div className="text-center text-muted-foreground py-8">
-                                Nie znaleziono odtworzeń dla tego utworu
+                                {t('noPlaysFound')}
                             </div>
                         )}
                     </CardContent>

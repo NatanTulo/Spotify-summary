@@ -45,37 +45,35 @@ interface ColumnConfig {
     key: keyof ExtendedTrack
     sortable: boolean
     format?: (value: any) => string
-    label: {
-        pl: string
-        en: string
-    }
+    labelKey: string  // Changed from label object to single key
 }
 
-const availableColumns: ColumnConfig[] = [
-    { key: 'trackName', sortable: true, label: { pl: 'Nazwa utworu', en: 'Track Name' } },
-    { key: 'artistName', sortable: true, label: { pl: 'Wykonawca', en: 'Artist' } },
-    { key: 'albumName', sortable: true, label: { pl: 'Album', en: 'Album' } },
-    { key: 'totalPlays', sortable: true, label: { pl: 'Odtworz.', en: 'Plays' } },
-    { key: 'totalMinutes', sortable: true, label: { pl: 'Czas (min)', en: 'Time (min)' } },
+// Function to get column configurations with translations
+const getAvailableColumns = (): ColumnConfig[] => [
+    { key: 'trackName', sortable: true, labelKey: 'trackNameFull' },
+    { key: 'artistName', sortable: true, labelKey: 'artistFull' },
+    { key: 'albumName', sortable: true, labelKey: 'albumFull' },
+    { key: 'totalPlays', sortable: true, labelKey: 'playsFull' },
+    { key: 'totalMinutes', sortable: true, labelKey: 'timeMinutesFull' },
     {
         key: 'avgPlayDuration', sortable: true, format: (val) => {
             const duration = Number(val) || 0;
             return `${Math.floor(duration / 60)}:${Math.floor(duration % 60).toString().padStart(2, '0')}`;
-        }, label: { pl: 'Śr. czas', en: 'Avg Time' }
+        }, labelKey: 'avgTimeFull'
     },
     {
         key: 'skipPercentage', sortable: true, format: (val) => {
             const percentage = Number(val) || 0;
             return `${percentage.toFixed(1)}%`;
-        }, label: { pl: 'Pomiń. (%)', en: 'Skip (%)' }
+        }, labelKey: 'skipPercentageFull'
     },
-    { key: 'firstPlay', sortable: true, format: (val) => val ? new Date(val).toLocaleDateString() : '', label: { pl: 'Pierwsze', en: 'First Play' } },
-    { key: 'lastPlay', sortable: true, format: (val) => val ? new Date(val).toLocaleDateString() : '', label: { pl: 'Ostatnie', en: 'Last Play' } },
-    { key: 'platforms', sortable: false, format: (val) => val && val.length > 0 ? val.join(', ') : '', label: { pl: 'Platformy', en: 'Platforms' } },
-    { key: 'countries', sortable: false, format: (val) => val && val.length > 0 ? val.join(', ') : '', label: { pl: 'Kraje', en: 'Countries' } },
-    { key: 'uri', sortable: false, label: { pl: 'URI', en: 'URI' } },
-    { key: 'reasonStart', sortable: false, format: (val) => val && val.length > 0 ? val.join(', ') : '', label: { pl: 'Przyczyna start', en: 'Reason Start' } },
-    { key: 'reasonEnd', sortable: false, format: (val) => val && val.length > 0 ? val.join(', ') : '', label: { pl: 'Przyczyna koniec', en: 'Reason End' } },
+    { key: 'firstPlay', sortable: true, format: (val) => val ? new Date(val).toLocaleDateString() : '', labelKey: 'firstPlayFull' },
+    { key: 'lastPlay', sortable: true, format: (val) => val ? new Date(val).toLocaleDateString() : '', labelKey: 'lastPlayFull' },
+    { key: 'platforms', sortable: false, format: (val) => val && val.length > 0 ? val.join(', ') : '', labelKey: 'platformsFull' },
+    { key: 'countries', sortable: false, format: (val) => val && val.length > 0 ? val.join(', ') : '', labelKey: 'countriesFull' },
+    { key: 'uri', sortable: false, labelKey: 'uriFull' },
+    { key: 'reasonStart', sortable: false, format: (val) => val && val.length > 0 ? val.join(', ') : '', labelKey: 'reasonStartFull' },
+    { key: 'reasonEnd', sortable: false, format: (val) => val && val.length > 0 ? val.join(', ') : '', labelKey: 'reasonEndFull' },
 ]
 
 interface TracksListProps {
@@ -107,7 +105,10 @@ export function TracksList({
     onSort,
     currentSort
 }: TracksListProps) {
-    const { language, t } = useLanguage()
+    const { t } = useLanguage()
+
+    // Get available columns with translations
+    const availableColumns = getAvailableColumns()
 
     const [expandedTrack, setExpandedTrack] = useState<string | null>(null)
     const [trackTimelineData, setTrackTimelineData] = useState<any[]>([])
@@ -272,7 +273,7 @@ export function TracksList({
                                         onChange={() => toggleColumnVisibility(column.key)}
                                         className="rounded"
                                     />
-                                    <span>{column.label[language]}</span>
+                                    <span>{t(column.labelKey)}</span>
                                 </label>
                             ))}
                         </div>
@@ -302,11 +303,11 @@ export function TracksList({
                                                             className="flex items-center space-x-1 font-semibold hover:bg-transparent"
                                                             onClick={() => handleSort(columnKey)}
                                                         >
-                                                            <span>{config.label[language]}</span>
+                                                            <span>{t(config.labelKey)}</span>
                                                             {getSortIcon(columnKey)}
                                                         </button>
                                                     ) : (
-                                                        <span className="font-semibold">{config.label[language]}</span>
+                                                        <span className="font-semibold">{t(config.labelKey)}</span>
                                                     )}
                                                 </th>
                                             )
@@ -378,8 +379,8 @@ export function TracksList({
                                                                             axisLine={{ stroke: 'hsl(var(--border))' }}
                                                                         />
                                                                         <Tooltip
-                                                                            labelFormatter={(value) => `${language === 'pl' ? 'Data' : 'Date'}: ${value}`}
-                                                                            formatter={(value: any) => [value, language === 'pl' ? 'Odtworzenia' : 'Plays']}
+                                                                            labelFormatter={(value) => `${t('date')}: ${value}`}
+                                                                            formatter={(value: any) => [value, t('plays')]}
                                                                             contentStyle={{
                                                                                 backgroundColor: 'hsl(var(--card))',
                                                                                 border: '1px solid hsl(var(--border))',
@@ -418,7 +419,7 @@ export function TracksList({
                                         ({pagination.total.toLocaleString()} {t('tracksCount')})
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-sm text-muted-foreground">Na stronie:</span>
+                                        <span className="text-sm text-muted-foreground">{t('perPage')}</span>
                                         <select
                                             value={pagination.limit}
                                             onChange={(e) => onPageSizeChange?.(parseInt(e.target.value))}

@@ -55,6 +55,7 @@ const translations = {
         selectColumns: 'Wybierz kolumny do wyświetlenia',
         showing: 'Wyświetlono',
         pageSize: 'Rozmiar strony',
+        perPage: 'Na stronie:',
 
         // Column names
         trackName: 'Utwór',
@@ -84,6 +85,7 @@ const translations = {
         notAvailable: 'Niedostępne',
         back: 'Powrót',
         hours: 'godzin',
+        date: 'Data',
         technicalInfo: 'Informacje techniczne',
         listeningBehavior: 'Zachowania słuchania',
         playHistoryDescription: 'Wykres odtworzeń w czasie',
@@ -317,6 +319,17 @@ const translations = {
         hideHistory: 'Ukryj',
         showHistory: 'Pokaż',
         historyLabel: 'historię',
+        playHistory: 'Historia odtworzeń',
+        playHistoryDesc: 'Szczegółowe informacje o każdym odtworzeniu',
+        loadingHistory: 'Ładowanie historii...',
+        shuffleLabel: 'Losowo',
+        offlineLabel: 'Offline',
+        incognitoLabel: 'Incognito',
+        startReason: 'Start:',
+        endReason: 'Koniec:',
+        pageLabel: 'Strona',
+        fromLabel: 'z',
+        noPlaysFound: 'Nie znaleziono odtworzeń dla tego utworu',
         
         // TracksList additional columns
         trackNameShort: 'Nazwa utworu',
@@ -385,6 +398,7 @@ const translations = {
         selectColumns: 'Select columns to display',
         showing: 'Showing',
         pageSize: 'Page size',
+        perPage: 'Per page:',
 
         // Column names
         trackName: 'Track',
@@ -414,6 +428,7 @@ const translations = {
         notAvailable: 'N/A',
         back: 'Back',
         hours: 'hours',
+        date: 'Date',
         technicalInfo: 'Technical Information',
         listeningBehavior: 'Listening Behavior',
         playHistoryDescription: 'Play count over time',
@@ -647,6 +662,17 @@ const translations = {
         hideHistory: 'Hide',
         showHistory: 'Show',
         historyLabel: 'history',
+        playHistory: 'Play History',
+        playHistoryDesc: 'Detailed information about each play',
+        loadingHistory: 'Loading history...',
+        shuffleLabel: 'Shuffle',
+        offlineLabel: 'Offline',
+        incognitoLabel: 'Incognito',
+        startReason: 'Start:',
+        endReason: 'End:',
+        pageLabel: 'Page',
+        fromLabel: 'of',
+        noPlaysFound: 'No plays found for this track',
         
         // TracksList additional columns
         trackNameShort: 'Track Name',
@@ -663,6 +689,22 @@ const translations = {
         reasonStartShort: 'Reason Start',
         reasonEndShort: 'Reason End',
         uriShort: 'URI',
+        
+        // TracksList columns - detailed names for Polish
+        trackNameFull: 'Nazwa utworu',
+        artistFull: 'Wykonawca',
+        albumFull: 'Album',
+        playsFull: 'Odtworz.',
+        timeMinutesFull: 'Czas (min)',
+        avgTimeFull: 'Śr. czas',
+        skipPercentageFull: 'Pomiń. (%)',
+        firstPlayFull: 'Pierwsze',
+        lastPlayFull: 'Ostatnie',
+        platformsFull: 'Platformy',
+        countriesFull: 'Kraje',
+        reasonStartFull: 'Przyczyna start',
+        reasonEndFull: 'Przyczyna koniec',
+        uriFull: 'URI',
         
         // Empty state messages
         noDataState: 'No Data',
