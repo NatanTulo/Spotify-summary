@@ -3,54 +3,7 @@ import { ChevronUp, ChevronDown, Play, TrendingUp, Settings2 } from 'lucide-reac
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-
-// Tłumaczenia
-const translations = {
-    pl: {
-        tracks: 'Lista utworów',
-        clickHeaders: 'Kliknij nagłówki kolumn aby sortować według różnych kryteriów.',
-        noTracks: 'Nie znaleziono utworów spełniających kryteria',
-        loading: 'Ładowanie utworów...',
-        track: 'Utwór',
-        artist: 'Artysta',
-        album: 'Album',
-        plays: 'Odtworzenia',
-        minutes: 'Minuty',
-        avgDuration: 'Śr. długość',
-        skipPercentage: '% pominiętych',
-        timelineTitle: 'Historia odtworzeń',
-        noTimelineData: 'Brak danych timeline dla tego utworu',
-        page: 'Strona',
-        of: 'z',
-        tracksCount: 'utworów',
-        previous: 'Poprzednia',
-        next: 'Następna',
-        columns: 'Kolumny',
-        selectColumns: 'Wybierz kolumny do wyświetlenia'
-    },
-    en: {
-        tracks: 'Tracks List',
-        clickHeaders: 'Click column headers to sort by different criteria.',
-        noTracks: 'No tracks found matching the criteria',
-        loading: 'Loading tracks...',
-        track: 'Track',
-        artist: 'Artist',
-        album: 'Album',
-        plays: 'Plays',
-        minutes: 'Minutes',
-        avgDuration: 'Avg. Duration',
-        skipPercentage: '% Skipped',
-        timelineTitle: 'Play History',
-        noTimelineData: 'No timeline data for this track',
-        page: 'Page',
-        of: 'of',
-        tracksCount: 'tracks',
-        previous: 'Previous',
-        next: 'Next',
-        columns: 'Columns',
-        selectColumns: 'Select columns to display'
-    }
-}
+import { useLanguage } from '../context/LanguageContext'
 
 // Rozszerzony interface dla utworu z wszystkimi dostępnymi danymi
 interface ExtendedTrack {
@@ -80,24 +33,24 @@ interface ExtendedTrack {
 // Dostępne kolumny
 interface ColumnConfig {
     key: keyof ExtendedTrack
-    label: { pl: string; en: string }
+    labelKey: string // klucz do globalnego systemu tłumaczeń
     sortable: boolean
     format?: (value: any) => string
 }
 
 const availableColumns: ColumnConfig[] = [
-    { key: 'trackName', label: { pl: 'Utwór', en: 'Track' }, sortable: true },
-    { key: 'artistName', label: { pl: 'Artysta', en: 'Artist' }, sortable: true },
-    { key: 'albumName', label: { pl: 'Album', en: 'Album' }, sortable: true },
-    { key: 'totalPlays', label: { pl: 'Odtworzenia', en: 'Plays' }, sortable: true },
-    { key: 'totalMinutes', label: { pl: 'Minuty', en: 'Minutes' }, sortable: true },
-    { key: 'avgPlayDuration', label: { pl: 'Śr. długość', en: 'Avg. Duration' }, sortable: true, format: (val) => `${Math.floor(val / 60)}:${Math.floor(val % 60).toString().padStart(2, '0')}` },
-    { key: 'skipPercentage', label: { pl: '% pominiętych', en: '% Skipped' }, sortable: true, format: (val) => `${val.toFixed(1)}%` },
-    { key: 'duration', label: { pl: 'Długość utworu', en: 'Track Duration' }, sortable: true, format: (val) => val ? `${Math.floor(val / 60000)}:${Math.floor((val % 60000) / 1000).toString().padStart(2, '0')}` : 'N/A' },
-    { key: 'firstPlay', label: { pl: 'Pierwsze odtworzenie', en: 'First Play' }, sortable: true, format: (val) => val ? new Date(val).toLocaleDateString() : 'N/A' },
-    { key: 'lastPlay', label: { pl: 'Ostatnie odtworzenie', en: 'Last Play' }, sortable: true, format: (val) => val ? new Date(val).toLocaleDateString() : 'N/A' },
-    { key: 'platforms', label: { pl: 'Platformy', en: 'Platforms' }, sortable: false, format: (val) => val ? val.join(', ') : 'N/A' },
-    { key: 'countries', label: { pl: 'Kraje', en: 'Countries' }, sortable: false, format: (val) => val ? val.join(', ') : 'N/A' },
+    { key: 'trackName', labelKey: 'trackName', sortable: true },
+    { key: 'artistName', labelKey: 'artistName', sortable: true },
+    { key: 'albumName', labelKey: 'albumName', sortable: true },
+    { key: 'totalPlays', labelKey: 'totalPlays', sortable: true },
+    { key: 'totalMinutes', labelKey: 'totalMinutes', sortable: true },
+    { key: 'avgPlayDuration', labelKey: 'avgPlayDuration', sortable: true, format: (val) => `${Math.floor(val / 60)}:${Math.floor(val % 60).toString().padStart(2, '0')}` },
+    { key: 'skipPercentage', labelKey: 'skipPercentage', sortable: true, format: (val) => `${val.toFixed(1)}%` },
+    { key: 'duration', labelKey: 'duration', sortable: true, format: (val) => val ? `${Math.floor(val / 60000)}:${Math.floor((val % 60000) / 1000).toString().padStart(2, '0')}` : 'N/A' },
+    { key: 'firstPlay', labelKey: 'firstPlay', sortable: true, format: (val) => val ? new Date(val).toLocaleDateString() : 'N/A' },
+    { key: 'lastPlay', labelKey: 'lastPlay', sortable: true, format: (val) => val ? new Date(val).toLocaleDateString() : 'N/A' },
+    { key: 'platforms', labelKey: 'platforms', sortable: false, format: (val) => val ? val.join(', ') : 'N/A' },
+    { key: 'countries', labelKey: 'countries', sortable: false, format: (val) => val ? val.join(', ') : 'N/A' },
 ]
 
 interface TracksListProps {
@@ -127,8 +80,7 @@ export function TracksList({
     onSort,
     currentSort
 }: TracksListProps) {
-    const [language, setLanguage] = useState<'pl' | 'en'>('pl')
-    const t = translations[language]
+    const { language, t } = useLanguage()
 
     const [expandedTrack, setExpandedTrack] = useState<string | null>(null)
     const [trackTimelineData, setTrackTimelineData] = useState<any[]>([])
@@ -213,7 +165,7 @@ export function TracksList({
                 <CardContent className="p-8">
                     <div className="text-center">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                        <p className="mt-2 text-muted-foreground">{t.loading}</p>
+                        <p className="mt-2 text-muted-foreground">{t('loading')}</p>
                     </div>
                 </CardContent>
             </Card>
@@ -227,25 +179,18 @@ export function TracksList({
                     <div>
                         <CardTitle className="flex items-center space-x-2">
                             <Play className="h-5 w-5" />
-                            <span>{t.tracks}</span>
+                            <span>{t('tracks')}</span>
                             {pagination && (
                                 <span className="text-sm text-muted-foreground">
-                                    ({pagination.total.toLocaleString()} {t.tracksCount})
+                                    ({pagination.total.toLocaleString()} {t('tracksCount')})
                                 </span>
                             )}
                         </CardTitle>
                         <CardDescription>
-                            {t.clickHeaders}
+                            {t('clickHeaders')}
                         </CardDescription>
                     </div>
-                    <div className="flex items-center space-x-2">
-                        {/* Wybór języka */}
-                        <Button
-                            onClick={() => setLanguage(language === 'pl' ? 'en' : 'pl')}
-                            className="px-3 py-1 text-xs"
-                        >
-                            {language === 'pl' ? 'EN' : 'PL'}
-                        </Button>
+                    <div className="flex items-center space-x-2">{/* Kontrolki bez wyboru języka */}
 
                         {/* Wybór kolumn */}
                         <Button
@@ -253,7 +198,7 @@ export function TracksList({
                             className="px-3 py-1 text-xs"
                         >
                             <Settings2 className="h-4 w-4 mr-1" />
-                            {t.columns}
+                            {t('columns')}
                         </Button>
                     </div>
                 </div>
@@ -261,7 +206,7 @@ export function TracksList({
                 {/* Selektor kolumn */}
                 {showColumnSelector && (
                     <div className="mt-4 p-4 border rounded-lg bg-muted/50">
-                        <h4 className="text-sm font-medium mb-2">{t.selectColumns}</h4>
+                        <h4 className="text-sm font-medium mb-2">{t('selectColumns')}</h4>
                         <div className="grid grid-cols-3 gap-2">
                             {availableColumns.map(column => (
                                 <label key={column.key} className="flex items-center space-x-2 text-sm">
@@ -271,7 +216,7 @@ export function TracksList({
                                         onChange={() => toggleColumnVisibility(column.key)}
                                         className="rounded"
                                     />
-                                    <span>{column.label[language]}</span>
+                                    <span>{t(column.labelKey)}</span>
                                 </label>
                             ))}
                         </div>
@@ -281,7 +226,7 @@ export function TracksList({
             <CardContent>
                 {tracks.length === 0 ? (
                     <div className="text-center py-8">
-                        <p className="text-muted-foreground">{t.noTracks}</p>
+                        <p className="text-muted-foreground">{t('noTracks')}</p>
                     </div>
                 ) : (
                     <>
@@ -300,12 +245,11 @@ export function TracksList({
                                                         <button
                                                             className="flex items-center space-x-1 font-semibold hover:bg-transparent"
                                                             onClick={() => handleSort(columnKey)}
-                                                        >
-                                                            <span>{config.label[language]}</span>
-                                                            {getSortIcon(columnKey)}
+                                                        >                                            <span>{t(config.labelKey)}</span>
+                                            {getSortIcon(columnKey)}
                                                         </button>
                                                     ) : (
-                                                        <span className="font-semibold">{config.label[language]}</span>
+                                                        <span className="font-semibold">{t(config.labelKey)}</span>
                                                     )}
                                                 </th>
                                             )
@@ -347,7 +291,7 @@ export function TracksList({
                                                     <td colSpan={visibleColumns.length} className="p-4 bg-muted/30">
                                                         <div className="space-y-4">
                                                             <h4 className="font-semibold text-sm">
-                                                                {t.timelineTitle}: {track.trackName}
+                                                                {t('timelineTitle')}: {track.trackName}
                                                             </h4>
                                                             <div className="h-64">
                                                                 <ResponsiveContainer width="100%" height="100%">
@@ -372,7 +316,7 @@ export function TracksList({
                                                             </div>
                                                             {trackTimelineData.length === 0 && (
                                                                 <div className="text-center text-muted-foreground py-8">
-                                                                    {t.noTimelineData}
+                                                                    {t('noTimelineData')}
                                                                 </div>
                                                             )}
                                                         </div>
@@ -389,8 +333,8 @@ export function TracksList({
                         {pagination && pagination.pages > 1 && (
                             <div className="flex items-center justify-between mt-4">
                                 <div className="text-sm text-muted-foreground">
-                                    {t.page} {pagination.page} {t.of} {pagination.pages}
-                                    ({pagination.total.toLocaleString()} {t.tracksCount})
+                                    {t('page')} {pagination.page} {t('of')} {pagination.pages}
+                                    ({pagination.total.toLocaleString()} {t('tracksCount')})
                                 </div>
                                 <div className="flex space-x-2">
                                     <button
@@ -398,7 +342,7 @@ export function TracksList({
                                         onClick={() => onPageChange?.(pagination.page - 1)}
                                         disabled={pagination.page <= 1}
                                     >
-                                        {t.previous}
+                                        {t('previous')}
                                     </button>
 
                                     {/* Numeracja stron */}
@@ -423,7 +367,7 @@ export function TracksList({
                                         onClick={() => onPageChange?.(pagination.page + 1)}
                                         disabled={pagination.page >= pagination.pages}
                                     >
-                                        {t.next}
+                                        {t('next')}
                                     </button>
                                 </div>
                             </div>

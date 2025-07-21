@@ -237,7 +237,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
     }
 
     const handleClearProfile = async (profileId: string) => {
-        if (!confirm('Czy na pewno chcesz usunąć wszystkie dane tego profilu?')) return
+        if (!confirm(t('confirmDeleteProfileData'))) return
 
         try {
             const response = await fetch(`/api/import/clear?profileId=${profileId}`, {
@@ -282,10 +282,10 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Users className="h-5 w-5" />
-                        Wybór Profilu
+                        {t('profileSelection')}
                     </CardTitle>
                     <CardDescription>
-                        Wybierz profil do analizy lub wyświetl dane ze wszystkich profili
+                        {t('profileSelectionDesc')}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -356,9 +356,9 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
             {availableProfiles.length > 0 && (
                 <Card>
                     <CardHeader>
-                        <CardTitle>Dostępne Dane do Importu</CardTitle>
+                        <CardTitle>{t('availableDataImport')}</CardTitle>
                         <CardDescription>
-                            Profile wykryte w folderze data, które można zaimportować
+                            {t('availableDataImportDesc')}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -379,11 +379,11 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                                                 onClick={() => handleImportProfile(profile.name)}
                                                 disabled={isImporting}
                                             >
-                                                {isImporting ? 'Importowanie...' : 'Importuj'}
+                                                {isImporting ? t('importingStatus') : t('importAction')}
                                             </button>
                                         </div>
                                         <p className="text-sm text-muted-foreground">
-                                            {profile.files.length} plików JSON
+                                            {profile.files.length} {t('jsonFiles')}
                                         </p>
                                         
                                         {/* Progress Bar */}
@@ -391,10 +391,10 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                                             <div className="space-y-2 pt-2 border-t">
                                                 <div className="flex items-center justify-between text-sm">
                                                     <span className="text-muted-foreground">
-                                                        {progress.status === 'preparing' ? 'Przygotowywanie...' :
-                                                         progress.status === 'importing' ? `Plik ${progress.currentFileIndex + 1}/${progress.totalFiles}` :
-                                                         progress.status === 'completed' ? 'Zakończono' :
-                                                         progress.status === 'error' ? 'Błąd' : 'Import...'}
+                                                        {progress.status === 'preparing' ? t('preparingStatus') :
+                                                         progress.status === 'importing' ? `${t('fileProgress')} ${progress.currentFileIndex + 1}/${progress.totalFiles}` :
+                                                         progress.status === 'completed' ? t('completedStatus') :
+                                                         progress.status === 'error' ? t('errorStatus') : t('importStatusGeneral')}
                                                     </span>
                                                     <span className="font-medium">{Math.round(progress.percentage)}%</span>
                                                 </div>
@@ -406,19 +406,19 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                                                 )}
                                                 {progress.totalRecordsProcessed > 0 && (
                                                     <p className="text-xs text-muted-foreground">
-                                                        {progress.totalRecordsProcessed.toLocaleString()} / {progress.estimatedTotalRecords.toLocaleString()} rekordów
+                                                        {progress.totalRecordsProcessed.toLocaleString()} / {progress.estimatedTotalRecords.toLocaleString()} {t('recordsStats')}
                                                     </p>
                                                 )}
                                                 
                                                 {/* Real-time Statistics */}
                                                 {progress.stats.currentStats && (
                                                     <div className="bg-gray-50 dark:bg-gray-800 rounded p-2 text-xs space-y-1">
-                                                        <div className="font-medium text-gray-700 dark:text-gray-300">Bieżące statystyki:</div>
+                                                        <div className="font-medium text-gray-700 dark:text-gray-300">{t('currentStats')}</div>
                                                         <div className="grid grid-cols-2 gap-1 text-gray-600 dark:text-gray-400">
-                                                            <div>▶️ {progress.stats.currentStats.totalPlays.toLocaleString()} odtworzeń</div>
-                                                            <div>🎵 {progress.stats.currentStats.uniqueTracks.toLocaleString()} utworów</div>
-                                                            <div>👨‍🎤 {progress.stats.currentStats.uniqueArtists.toLocaleString()} artystów</div>
-                                                            <div>💿 {progress.stats.currentStats.uniqueAlbums.toLocaleString()} albumów</div>
+                                                            <div>{t('playsIcon')} {progress.stats.currentStats.totalPlays.toLocaleString()} {t('playsStats')}</div>
+                                                            <div>{t('songsIcon')} {progress.stats.currentStats.uniqueTracks.toLocaleString()} {t('songsStats')}</div>
+                                                            <div>{t('artistsIcon')} {progress.stats.currentStats.uniqueArtists.toLocaleString()} {t('artistsStats')}</div>
+                                                            <div>{t('albumsIcon')} {progress.stats.currentStats.uniqueAlbums.toLocaleString()} {t('albumsStats')}</div>
                                                         </div>
                                                     </div>
                                                 )}
@@ -446,9 +446,9 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
             {profiles.length > 0 && (
                 <Card>
                     <CardHeader>
-                        <CardTitle>Zaimportowane Profile</CardTitle>
+                        <CardTitle>{t('importedProfiles')}</CardTitle>
                         <CardDescription>
-                            Profile z danymi gotowymi do analizy
+                            {t('profilesReadyDesc')}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -470,7 +470,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                                             className="h-9 rounded-md px-3 text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                             onClick={() => handleClearProfile(profile._id)}
                                         >
-                                            Usuń
+                                            {t('removeAction')}
                                         </button>
                                     </div>
 
@@ -484,7 +484,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                                     <div className="grid grid-cols-2 gap-2 text-sm">
                                         <div className="flex items-center gap-1">
                                             <Play className="h-3 w-3" />
-                                            {(profile.statistics?.totalPlays || 0).toLocaleString()} odtworzeń
+                                            {(profile.statistics?.totalPlays || 0).toLocaleString()} {t('playsStats')}
                                         </div>
                                         <div className="flex items-center gap-1">
                                             <Clock className="h-3 w-3" />
@@ -492,11 +492,11 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                                         </div>
                                         <div className="flex items-center gap-1">
                                             <Music className="h-3 w-3" />
-                                            {(profile.statistics?.uniqueTracks || 0).toLocaleString()} utworów
+                                            {(profile.statistics?.uniqueTracks || 0).toLocaleString()} {t('songsStats')}
                                         </div>
                                         <div className="flex items-center gap-1">
                                             <User className="h-3 w-3" />
-                                            {(profile.statistics?.uniqueArtists || 0).toLocaleString()} artystów
+                                            {(profile.statistics?.uniqueArtists || 0).toLocaleString()} {t('artistsStats')}
                                         </div>
                                     </div>
                                 </div>
@@ -511,16 +511,16 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                 <Card>
                     <CardContent className="flex flex-col items-center justify-center py-8">
                         <User className="h-12 w-12 text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-medium mb-2">Brak Danych</h3>
+                        <h3 className="text-lg font-medium mb-2">{t('noDataState')}</h3>
                         <p className="text-muted-foreground text-center mb-4">
-                            Umieść foldery z danymi Spotify w folderze /data aby rozpocząć import
+                            {t('noDataMessage')}
                         </p>
                         <button
                             onClick={fetchProfiles}
                             disabled={isLoadingProfiles}
                             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            Odśwież
+                            {t('refresh')}
                         </button>
                     </CardContent>
                 </Card>

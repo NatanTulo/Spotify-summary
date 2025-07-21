@@ -261,7 +261,7 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
                             {loading ? (
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                             ) : (
-                                'Brak danych timeline do wyświetlenia'
+                                t('noTimelineData')
                             )}
                         </div>
                     )}
@@ -413,7 +413,7 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
                             }}
                             className="px-4 py-2 text-sm border rounded-md hover:bg-accent hover:text-accent-foreground"
                         >
-                            {showPlays ? 'Ukryj' : 'Pokaż'} historię ({track.totalPlays})
+                            {showPlays ? t('hideHistory') : t('showHistory')} {t('historyLabel')} ({track.totalPlays})
                         </button>
                     </div>
                 </CardHeader>
