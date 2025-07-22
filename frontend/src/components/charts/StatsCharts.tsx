@@ -264,6 +264,30 @@ export function YearlyStatsChart({ data }: YearlyStatsProps) {
             />
           </BarChart>
         </ResponsiveContainer>
+        
+        {/* Detailed Stats Table */}
+        <div className="mt-6 overflow-hidden rounded-lg border">
+          <table className="w-full">
+            <thead className="bg-muted/50">
+              <tr className="border-b">
+                <th className="px-4 py-2 text-left font-medium">{t("year")}</th>
+                <th className="px-4 py-2 text-right font-medium">{t("playsLabel")}</th>
+                <th className="px-4 py-2 text-right font-medium">{t("minutesLabel")}</th>
+                <th className="px-4 py-2 text-right font-medium">{t("hoursLabel")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((stat, index) => (
+                <tr key={stat.year} className={index % 2 === 0 ? "bg-muted/25" : ""}>
+                  <td className="px-4 py-2 font-medium">{stat.year}</td>
+                  <td className="px-4 py-2 text-right">{stat.plays.toLocaleString()}</td>
+                  <td className="px-4 py-2 text-right">{stat.minutes.toLocaleString()}</td>
+                  <td className="px-4 py-2 text-right">{(stat.minutes / 60).toFixed(1)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </CardContent>
     </Card>
   );

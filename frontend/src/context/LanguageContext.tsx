@@ -212,8 +212,10 @@ const translations = {
     timelineDesc: "Twoja aktywność słuchania w czasie",
     noData: "Brak danych do wyświetlenia",
     playsLabel: "Odtworzeń",
+    minutesLabel: "Minuty",
     daysLabel: "Dni",
     hoursLabel: "Godziny",
+    year: "Rok",
 
     // Dashboard
     totalPlaysCard: "Łączne odtworzenia",
@@ -286,7 +288,7 @@ const translations = {
 
     // Tooltip labels
     playsTooltip: "Odtworzenia",
-    minutesTooltip: "Minuty",
+    minutesTooltip: "Czas",
 
     // ImportProgressDisplay
     preparingImport: "Przygotowywanie importu...",
@@ -575,8 +577,10 @@ const translations = {
     timelineDesc: "Your listening activity over time",
     noData: "No data to display",
     playsLabel: "Plays",
+    minutesLabel: "Minutes", 
     daysLabel: "Days",
     hoursLabel: "Hours",
+    year: "Year",
 
     // Dashboard
     totalPlaysCard: "Total Plays",
@@ -649,7 +653,7 @@ const translations = {
 
     // Tooltip labels
     playsTooltip: "Plays",
-    minutesTooltip: "Minutes",
+    minutesTooltip: "Time",
 
     // ImportProgressDisplay
     preparingImport: "Preparing import...",

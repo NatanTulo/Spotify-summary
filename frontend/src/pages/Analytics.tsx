@@ -122,7 +122,12 @@ export default function Analytics() {
 
             if (yearlyRes.ok) {
                 const yearlyData = await yearlyRes.json()
-                setYearlyStats(yearlyData.data || [])
+                // Mapowanie danych API na oczekiwaną strukturę komponentu
+                const mappedYearlyStats = (yearlyData.data || []).map((stat: any) => ({
+                    ...stat,
+                    minutes: stat.totalMinutes // Mapowanie totalMinutes -> minutes
+                }))
+                setYearlyStats(mappedYearlyStats)
             }
 
             if (countryRes.ok) {
