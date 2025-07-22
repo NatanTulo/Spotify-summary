@@ -96,7 +96,6 @@ export default function Analytics() {
             const response = await fetch(`/api/tracks?${params}&_t=${Date.now()}`)
             if (response.ok) {
                 const data = await response.json()
-                console.log('Analytics: Received tracks data:', data.data?.slice(0, 1)) // Debug first track
                 setTracks(data.data || [])
                 setPagination(data.pagination || pagination)
             }
@@ -188,7 +187,18 @@ export default function Analytics() {
 
     useEffect(() => {
         fetchTracks(1)
-    }, [filters])
+    }, [
+        filters.search,
+        filters.minPlays,
+        filters.dateFrom,
+        filters.dateTo,
+        filters.country,
+        filters.platform,
+        filters.sortBy,
+        filters.sortOrder,
+        filters.showSkipped,
+        filters.showShuffle
+    ])
 
     const handlePageChange = (page: number) => {
         setPagination(prev => ({ ...prev, page }))

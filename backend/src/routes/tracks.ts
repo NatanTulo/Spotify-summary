@@ -113,13 +113,6 @@ router.get('/', async (req, res) => {
             }
         })
 
-        console.log('Tracks query debug:', {
-            profileId: profileIdNum,
-            profileIdType: typeof profileIdNum,
-            foundTracks: tracks.length,
-            firstTrackPlays: tracks[0] ? (tracks[0] as any).totalPlays : 'none'
-        })
-
         const countResult = await sequelize.query(countQuery, {
             type: QueryTypes.SELECT
         }) as any[]
@@ -394,9 +387,6 @@ router.get('/:id/timeline', async (req, res) => {
         })) // No need to reverse, already ordered ASC
 
         // Debug logging
-        const totalTimelinePlays = processedData.reduce((sum, day) => sum + day.plays, 0)
-        console.log(`Timeline for track ${trackId}: ${processedData.length} days, ${totalTimelinePlays} total plays`)
-
         // Set cache headers for 5 minutes - TYMCZASOWO WYŁĄCZONE
         res.set({
             'Cache-Control': 'no-cache, no-store, must-revalidate',

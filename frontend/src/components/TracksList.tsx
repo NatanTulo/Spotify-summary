@@ -1,4 +1,4 @@
-import { useState, Fragment, useEffect } from "react";
+import { useState, Fragment, useEffect, useCallback } from "react";
 import {
   ChevronUp,
   ChevronDown,
@@ -100,6 +100,94 @@ export function TracksList({
 }: TracksListProps) {
   const { t, formatDate: localizedFormatDate } = useLanguage();
 
+  // Wszystkie hooki muszą być na początku - przed jakimikolwiek warunkowymi returnami
+  const [expandedTrack, setExpandedTrack] = useState<string | null>(null);
+  const [trackTimelineData, setTrackTimelineData] = useState<any[]>([]);
+  const [timelineLoading, setTimelineLoading] = useState<string | null>(null);
+  const [timelineCache, setTimelineCache] = useState<Map<string, any[]>>(
+    new Map()
+  );
+  const [selectedTrackForDetails, setSelectedTrackForDetails] = useState<
+    string | null
+  >(null);
+  const [extendToToday, setExtendToToday] = useState<boolean>(true);
+  const [visibleColumns, setVisibleColumns] = useState<(keyof ExtendedTrack)[]>(
+    [
+      "trackName",
+      "artistName",
+      "albumName",
+      "totalPlays",
+      "totalMinutes",
+      "avgPlayDuration",
+      "skipPercentage",
+      "firstPlay",
+      "lastPlay",
+    ]
+  );
+  const [showColumnSelector, setShowColumnSelector] = useState(false);
+
+  // Domyślne kolumny
+  const defaultColumns: (keyof ExtendedTrack)[] = [
+    "trackName",
+    "artistName",
+    "albumName",
+    "totalPlays",
+    "totalMinutes",
+    "avgPlayDuration",
+    "skipPercentage",
+    "firstPlay",
+    "lastPlay",
+  ];
+
+  // Inteligentny prefetching dla top utworów
+  const prefetchPopularTracks = useCallback(async () => {
+    if (tracks.length === 0) return;
+
+    // Prefetch timeline dla top 3 utworów (które mają najwięcej odtworzeń)
+    const topTracks = tracks
+      .filter((t) => t.totalPlays > 10) // Tylko utwory z więcej niż 10 odtworzeń
+      .sort((a, b) => b.totalPlays - a.totalPlays)
+      .slice(0, 3);
+
+    for (const track of topTracks) {
+      const cacheKey = `${track.trackId}-${profileId || "all"}`;
+
+      // Skip if already cached
+      if (timelineCache.has(cacheKey)) continue;
+
+      try {
+        const params = new URLSearchParams();
+        if (profileId) {
+          params.append("profileId", profileId);
+        }
+
+        const response = await fetch(
+          `/api/tracks/${track.trackId}/timeline?${params}`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setTimelineCache((prev) =>
+            new Map(prev).set(cacheKey, data.data || [])
+          );
+        }
+      } catch (error) {
+        // Silent fail for prefetch
+      }
+
+      // Small delay between prefetch requests
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+  }, [tracks, profileId, timelineCache]);
+
+  // Prefetch po załadowaniu utworów - MUSI BYĆ PRZED WARUNKOWYMI RETURNAMI
+  useEffect(() => {
+    if (tracks.length > 0) {
+      // Delay prefetch by 1 second to not interfere with main UI
+      const timer = setTimeout(prefetchPopularTracks, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [prefetchPopularTracks]);
+
   // Get available columns with translations (moved inside component to access localizedFormatDate)
   const getAvailableColumns = (): ColumnConfig[] => [
     { key: "trackName", sortable: true, labelKey: "trackNameFull" },
@@ -182,52 +270,6 @@ export function TracksList({
   ];
 
   const availableColumns = getAvailableColumns();
-
-  // Debug tracks data
-  console.log(
-    "TracksList received:",
-    tracks?.length,
-    "tracks, first track:",
-    tracks?.[0]
-  );
-
-  const [expandedTrack, setExpandedTrack] = useState<string | null>(null);
-  const [trackTimelineData, setTrackTimelineData] = useState<any[]>([]);
-  const [timelineLoading, setTimelineLoading] = useState<string | null>(null);
-  const [timelineCache, setTimelineCache] = useState<Map<string, any[]>>(
-    new Map()
-  );
-  const [selectedTrackForDetails, setSelectedTrackForDetails] = useState<
-    string | null
-  >(null);
-  const [extendToToday, setExtendToToday] = useState<boolean>(true);
-  const [visibleColumns, setVisibleColumns] = useState<(keyof ExtendedTrack)[]>(
-    [
-      "trackName",
-      "artistName",
-      "albumName",
-      "totalPlays",
-      "totalMinutes",
-      "avgPlayDuration",
-      "skipPercentage",
-      "firstPlay",
-      "lastPlay",
-    ]
-  );
-  const [showColumnSelector, setShowColumnSelector] = useState(false);
-
-  // Domyślne kolumny
-  const defaultColumns: (keyof ExtendedTrack)[] = [
-    "trackName",
-    "artistName",
-    "albumName",
-    "totalPlays",
-    "totalMinutes",
-    "avgPlayDuration",
-    "skipPercentage",
-    "firstPlay",
-    "lastPlay",
-  ];
 
   // Jeśli wybrano utwór do szczegółów, pokaż TrackDetails
   if (selectedTrackForDetails) {
@@ -361,55 +403,6 @@ export function TracksList({
   const resetColumnsToDefault = () => {
     setVisibleColumns([...defaultColumns]);
   };
-
-  // Inteligentny prefetching dla top utworów
-  const prefetchPopularTracks = async () => {
-    if (tracks.length === 0) return;
-
-    // Prefetch timeline dla top 3 utworów (które mają najwięcej odtworzeń)
-    const topTracks = tracks
-      .filter((t) => t.totalPlays > 10) // Tylko utwory z więcej niż 10 odtworzeń
-      .sort((a, b) => b.totalPlays - a.totalPlays)
-      .slice(0, 3);
-
-    for (const track of topTracks) {
-      const cacheKey = `${track.trackId}-${profileId || "all"}`;
-
-      // Skip if already cached
-      if (timelineCache.has(cacheKey)) continue;
-
-      try {
-        const params = new URLSearchParams();
-        if (profileId) {
-          params.append("profileId", profileId);
-        }
-
-        const response = await fetch(
-          `/api/tracks/${track.trackId}/timeline?${params}`
-        );
-        if (response.ok) {
-          const data = await response.json();
-          setTimelineCache((prev) =>
-            new Map(prev).set(cacheKey, data.data || [])
-          );
-        }
-      } catch (error) {
-        // Silent fail for prefetch
-      }
-
-      // Small delay between prefetch requests
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-  };
-
-  // Prefetch po załadowaniu utworów
-  useEffect(() => {
-    if (tracks.length > 0) {
-      // Delay prefetch by 1 second to not interfere with main UI
-      const timer = setTimeout(prefetchPopularTracks, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [tracks, profileId]);
 
   const getColumnConfig = (key: keyof ExtendedTrack) => {
     return availableColumns.find((col) => col.key === key);

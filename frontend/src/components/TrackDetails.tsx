@@ -85,6 +85,8 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
             }
         } catch (error) {
             console.error('Error fetching track details:', error)
+        } finally {
+            setLoading(false)
         }
     }
 
@@ -213,7 +215,7 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
                         <Play className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{track.totalPlays.toLocaleString()}</div>
+                        <div className="text-2xl font-bold">{(track.totalPlays || 0).toLocaleString()}</div>
                     </CardContent>
                 </Card>
 
@@ -223,20 +225,18 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
                         <Clock className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{track.totalMinutes.toLocaleString()}</div>
+                        <div className="text-2xl font-bold">{(track.totalMinutes || 0).toLocaleString()}</div>
                         <p className="text-xs text-muted-foreground">
-                            ≈ {Math.round(track.totalMinutes / 60)} {t('hours')}
+                            ≈ {Math.round((track.totalMinutes || 0) / 60)} {t('hours')}
                         </p>
                     </CardContent>
-                </Card>
-
-                <Card>
+                </Card>                <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">{t('avgPlayDuration')}</CardTitle>
                         <Hash className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{formatDuration(track.avgPlayDuration * 1000)}</div>
+                        <div className="text-2xl font-bold">{formatDuration((track.avgPlayDuration || 0) * 1000)}</div>
                     </CardContent>
                 </Card>
 
@@ -246,11 +246,11 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
                         <Hash className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className={`text-2xl font-bold ${track.skipPercentage > 50 ? 'text-red-500' :
-                            track.skipPercentage > 20 ? 'text-yellow-500' :
+                        <div className={`text-2xl font-bold ${(track.skipPercentage || 0) > 50 ? 'text-red-500' :
+                            (track.skipPercentage || 0) > 20 ? 'text-yellow-500' :
                                 'text-green-500'
                             }`}>
-                            {track.skipPercentage.toFixed(1)}%
+                            {(track.skipPercentage || 0).toFixed(1)}%
                         </div>
                     </CardContent>
                 </Card>
@@ -344,7 +344,7 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
 
                         <div>
                             <div className="text-sm font-medium text-muted-foreground">{t('duration')}</div>
-                            <div className="text-sm">{formatDuration(track.duration)}</div>
+                            <div className="text-sm">{formatDuration(track.duration || 0)}</div>
                         </div>
                     </CardContent>
                 </Card>
