@@ -6,7 +6,7 @@ interface LanguageContextType {
   language: Language;
   setLanguage: (language: Language) => void;
   t: (key: string) => string;
-  formatDate: (date: string | Date, includeTime?: boolean) => string;
+  formatDate: (date: string | Date | null | undefined, includeTime?: boolean) => string;
 }
 
 const translations = {
@@ -781,10 +781,16 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   };
 
   const formatDate = (
-    date: string | Date,
+    date: string | Date | null | undefined,
     includeTime: boolean = false
   ): string => {
+    if (!date) return 'N/A'; // Handle null, undefined, empty string
+    
     const dateObj = typeof date === "string" ? new Date(date) : date;
+    
+    // Check if date is valid
+    if (isNaN(dateObj.getTime())) return 'Invalid Date';
+    
     const locale = language === "pl" ? "pl-PL" : "en-US";
 
     if (includeTime) {

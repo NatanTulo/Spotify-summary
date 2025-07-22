@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
-import { ArrowLeft, Play, Clock, Hash, MapPin, Smartphone, Calendar, Shuffle, WifiOff, EyeOff, User } from 'lucide-react'
+import { ArrowLeft, Play, Clock, Hash, Shuffle, WifiOff, EyeOff } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { useLanguage } from '../context/LanguageContext'
 
@@ -35,7 +35,7 @@ interface DetailedTrack {
 
 interface Play {
     id: string
-    timestamp: Date
+    playedAt: Date | string // API returns string, but can be Date after parsing
     msPlayed: number
     durationMinutes: number
     platform?: string
@@ -61,7 +61,6 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
     const [loading, setLoading] = useState(true)
     const [timelineLoading, setTimelineLoading] = useState(true)
     const [playsLoading, setPlaysLoading] = useState(false)
-    const [showPlays, setShowPlays] = useState(false)
     const [playsPagination, setPlaysPagination] = useState({
         page: 1,
         limit: 50,
@@ -81,7 +80,40 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
             const response = await fetch(`/api/tracks/${trackId}`)
             if (response.ok) {
                 const data = await response.json()
-                setTrack(data.data)
+                const rawTrack = data.data
+                
+                // Map API response to expected format
+                const mappedTrack: DetailedTrack = {
+                    trackId: rawTrack.id.toString(),
+                    trackName: rawTrack.name,
+                    artistName: rawTrack.album?.artist?.name || '',
+                    albumName: rawTrack.album?.name || '',
+                    uri: rawTrack.uri,
+                    duration: rawTrack.duration,
+                    totalPlays: rawTrack.stats?.totalPlays || 0,
+                    totalMinutes: rawTrack.stats?.totalMinutes || 0,
+                    avgPlayDuration: rawTrack.stats?.avgPlayDuration || 0,
+                    skipPercentage: rawTrack.stats?.skipPercentage || 0,
+                    // Extract platforms and countries from recent plays
+                    platforms: rawTrack.recentPlays ? 
+                        [...new Set(rawTrack.recentPlays.map((play: any) => play.platform).filter(Boolean))] as string[] : [],
+                    countries: rawTrack.recentPlays ? 
+                        [...new Set(rawTrack.recentPlays.map((play: any) => play.country).filter(Boolean))] as string[] : [],
+                    // Get first and last play dates from stats (aggregated data)
+                    firstPlay: rawTrack.stats?.firstPlay ? new Date(rawTrack.stats.firstPlay) : undefined,
+                    lastPlay: rawTrack.stats?.lastPlay ? new Date(rawTrack.stats.lastPlay) : undefined,
+                    // Extract other fields from recent plays (take most common values)
+                    username: rawTrack.recentPlays?.[0]?.profile?.name,
+                    reasonStart: rawTrack.recentPlays ? 
+                        [...new Set(rawTrack.recentPlays.map((play: any) => play.reasonStart).filter(Boolean))] as string[] : [],
+                    reasonEnd: rawTrack.recentPlays ? 
+                        [...new Set(rawTrack.recentPlays.map((play: any) => play.reasonEnd).filter(Boolean))] as string[] : [],
+                    shuffle: rawTrack.recentPlays?.[0]?.shuffle,
+                    offline: rawTrack.recentPlays?.[0]?.offline,
+                    incognitoMode: rawTrack.recentPlays?.[0]?.incognitoMode,
+                }
+                
+                setTrack(mappedTrack)
             }
         } catch (error) {
             console.error('Error fetching track details:', error)
@@ -170,11 +202,6 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
         const minutes = Math.floor(ms / 60000)
         const seconds = Math.floor((ms % 60000) / 1000)
         return `${minutes}:${seconds.toString().padStart(2, '0')}`
-    }
-
-    const formatBoolean = (value?: boolean | null) => {
-        if (value === null || value === undefined) return t('notAvailable')
-        return value ? t('yes') : t('no')
     }
 
     if (loading || !track) {
@@ -303,158 +330,16 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
                 </CardContent>
             </Card>
 
-            {/* Szczegółowe informacje */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Informacje techniczne */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Smartphone className="h-5 w-5" />
-                            {t('technicalInfo')}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div>
-                            <div className="text-sm font-medium text-muted-foreground">{t('platforms')}</div>
-                            <div className="text-sm">
-                                {track.platforms && track.platforms.length > 0
-                                    ? track.platforms.join(', ')
-                                    : t('notAvailable')
-                                }
-                            </div>
-                        </div>
 
-                        <div>
-                            <div className="text-sm font-medium text-muted-foreground">{t('countries')}</div>
-                            <div className="text-sm flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                {track.countries && track.countries.length > 0
-                                    ? track.countries.join(', ')
-                                    : t('notAvailable')
-                                }
-                            </div>
-                        </div>
-
-                        <div>
-                            <div className="text-sm font-medium text-muted-foreground">{t('uri')}</div>
-                            <div className="text-xs font-mono break-all">
-                                {track.uri || t('notAvailable')}
-                            </div>
-                        </div>
-
-                        <div>
-                            <div className="text-sm font-medium text-muted-foreground">{t('duration')}</div>
-                            <div className="text-sm">{formatDuration(track.duration || 0)}</div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Zachowania słuchania */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <User className="h-5 w-5" />
-                            {t('listeningBehavior')}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div>
-                            <div className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                {t('firstPlay')}
-                            </div>
-                            <div className="text-sm">{track.firstPlay ? localizedFormatDate(track.firstPlay) : t('notAvailable')}</div>
-                        </div>
-
-                        <div>
-                            <div className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                {t('lastPlay')}
-                            </div>
-                            <div className="text-sm">{track.lastPlay ? localizedFormatDate(track.lastPlay) : t('notAvailable')}</div>
-                        </div>
-
-                        <div>
-                            <div className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                                <User className="h-3 w-3" />
-                                {t('username')}
-                            </div>
-                            <div className="text-sm">{track.username || t('notAvailable')}</div>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-4">
-                            <div>
-                                <div className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                                    <Shuffle className="h-3 w-3" />
-                                    {t('shuffle')}
-                                </div>
-                                <div className="text-sm">{formatBoolean(track.shuffle)}</div>
-                            </div>
-
-                            <div>
-                                <div className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                                    <WifiOff className="h-3 w-3" />
-                                    {t('offline')}
-                                </div>
-                                <div className="text-sm">{formatBoolean(track.offline)}</div>
-                            </div>
-
-                            <div>
-                                <div className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                                    <EyeOff className="h-3 w-3" />
-                                    {t('incognitoMode')}
-                                </div>
-                                <div className="text-sm">{formatBoolean(track.incognitoMode)}</div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <div className="text-sm font-medium text-muted-foreground">{t('reasonStart')}</div>
-                            <div className="text-sm">
-                                {track.reasonStart && track.reasonStart.length > 0
-                                    ? track.reasonStart.join(', ')
-                                    : t('notAvailable')
-                                }
-                            </div>
-                        </div>
-
-                        <div>
-                            <div className="text-sm font-medium text-muted-foreground">{t('reasonEnd')}</div>
-                            <div className="text-sm">
-                                {track.reasonEnd && track.reasonEnd.length > 0
-                                    ? track.reasonEnd.join(', ')
-                                    : t('notAvailable')
-                                }
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
 
             {/* Lista szczegółowych odtworzeń */}
             <Card>
                 <CardHeader>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <CardTitle>{t('playHistory')}</CardTitle>
-                            <CardDescription>{t('playHistoryDesc')}</CardDescription>
-                        </div>
-                        <button
-                            onClick={() => {
-                                setShowPlays(!showPlays)
-                                if (!showPlays && plays.length === 0) {
-                                    fetchTrackPlays(1)
-                                }
-                            }}
-                            className="px-4 py-2 text-sm border rounded-md hover:bg-accent hover:text-accent-foreground"
-                        >
-                            {showPlays ? t('hideHistory') : t('showHistory')} {t('historyLabel')} ({track.totalPlays})
-                        </button>
-                    </div>
+                    <CardTitle>{t('playHistory')}</CardTitle>
+                    <CardDescription>{t('playHistoryDesc')}</CardDescription>
                 </CardHeader>
 
-                {showPlays && (
-                    <CardContent>
+                <CardContent>
                         {playsLoading ? (
                             <div className="text-center py-4">
                                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
@@ -469,7 +354,7 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
                                                 <div className="flex items-center gap-4">
                                                     <div>
                                                         <div className="font-medium">
-                                                            {localizedFormatDate(play.timestamp, true)}
+                                                            {play.playedAt ? localizedFormatDate(play.playedAt, true) : t('notAvailable')}
                                                         </div>
                                                         <div className="text-sm text-muted-foreground">
                                                             {play.durationMinutes} min • {play.platform} • {play.country}
@@ -539,8 +424,7 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
                                 {t('noPlaysFound')}
                             </div>
                         )}
-                    </CardContent>
-                )}
+                </CardContent>
             </Card>
         </div>
     )

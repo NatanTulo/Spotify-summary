@@ -203,15 +203,17 @@ router.get('/:id', async (req, res) => {
             })
         }
 
-        // Get plays statistics
+        // Get plays statistics and date range
         const playCondition = profileId ? { profileId, trackId: id } : { trackId: id }
-
+        
         const playsStats = await Play.findOne({
             where: playCondition,
             attributes: [
                 [fn('COUNT', col('id')), 'totalPlays'],
                 [fn('COALESCE', fn('SUM', col('msPlayed')), 0), 'totalMsPlayed'],
                 [fn('COALESCE', fn('AVG', col('msPlayed')), 0), 'avgMsPlayed'],
+                [fn('MIN', col('timestamp')), 'firstPlay'],
+                [fn('MAX', col('timestamp')), 'lastPlay'],
                 [
                     literal(`COALESCE(COUNT(CASE WHEN skipped = true THEN 1 END)::float / NULLIF(COUNT(*), 0) * 100, 0)`),
                     'skipPercentage'
@@ -242,7 +244,9 @@ router.get('/:id', async (req, res) => {
                     totalPlays: parseInt((playsStats as any)?.totalPlays as string) || 0,
                     totalMinutes: Math.round((parseInt((playsStats as any)?.totalMsPlayed as string) || 0) / 60000),
                     avgPlayDuration: Math.round((parseInt((playsStats as any)?.avgMsPlayed as string) || 0) / 1000),
-                    skipPercentage: Math.round(parseFloat((playsStats as any)?.skipPercentage as string) || 0)
+                    skipPercentage: Math.round(parseFloat((playsStats as any)?.skipPercentage as string) || 0),
+                    firstPlay: (playsStats as any)?.firstPlay || null,
+                    lastPlay: (playsStats as any)?.lastPlay || null,
                 },
                 recentPlays: recentPlays.map(play => ({
                     id: play.id,
@@ -251,6 +255,12 @@ router.get('/:id', async (req, res) => {
                     skipped: play.skipped,
                     platform: play.platform,
                     country: play.country,
+                    username: play.username,
+                    reasonStart: play.reasonStart,
+                    reasonEnd: play.reasonEnd,
+                    shuffle: play.shuffle,
+                    offline: play.offline,
+                    incognitoMode: play.incognitoMode,
                     profile: play.profile
                 }))
             }
@@ -300,9 +310,16 @@ router.get('/:id/plays', async (req, res) => {
                 id: play.id,
                 playedAt: (play as any).timestamp,
                 msPlayed: play.msPlayed,
+                durationMinutes: Math.round(play.msPlayed / 60000), // Convert ms to minutes
                 skipped: play.skipped,
                 platform: play.platform,
                 country: play.country,
+                username: play.username,
+                reasonStart: play.reasonStart,
+                reasonEnd: play.reasonEnd,
+                shuffle: play.shuffle,
+                offline: play.offline,
+                incognitoMode: play.incognitoMode,
                 profile: play.profile
             })),
             pagination: {
