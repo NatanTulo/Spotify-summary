@@ -118,8 +118,15 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
             console.log("✅ No active imports found");
           }
 
-          setImportProgress(activeProgressMap);
-          setActiveImports(activeImportSet);
+          // Only update state if there's an actual change to prevent unnecessary re-renders
+          const currentActiveCount = activeImports.size;
+          const newActiveCount = activeImportSet.size;
+          
+          if (currentActiveCount !== newActiveCount || 
+              !Array.from(activeImportSet).every(name => activeImports.has(name))) {
+            setImportProgress(activeProgressMap);
+            setActiveImports(activeImportSet);
+          }
         }
       }
     } catch (error) {
@@ -177,43 +184,79 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
     }
   }, [activeImports]);
 
-  // Auto-refresh profiles periodically and check for active imports
+  // Auto-refresh profiles periodically - only when there are active imports
   useEffect(() => {
-    const interval = setInterval(() => {
-      fetchProfiles();
-      // Also check for any new active imports
-      checkActiveImports();
-    }, 3000); // Refresh every 3 seconds
+    if (activeImports.size > 0) {
+      const interval = setInterval(() => {
+        fetchProfiles();
+        checkActiveImports();
+      }, 3000); // Refresh every 3 seconds only when imports are active
 
-    return () => clearInterval(interval);
-  }, []);
+      return () => clearInterval(interval);
+    }
+  }, [activeImports.size]);
 
-  const fetchProfiles = async () => {
-    setIsLoadingProfiles(true);
+  // Separate interval for checking new imports when no active imports exist
+  useEffect(() => {
+    if (activeImports.size === 0) {
+      const interval = setInterval(() => {
+        checkActiveImports();
+      }, 15000); // Check for new imports every 15 seconds when no active imports
+
+      return () => clearInterval(interval);
+    }
+  }, [activeImports.size]);
+
+  const fetchProfiles = async (forceRefresh = false) => {
+    // Only show loading on initial load or forced refresh
+    if (forceRefresh || profiles.length === 0) {
+      setIsLoadingProfiles(true);
+    }
+    
     try {
       const [profilesRes, availableRes] = await Promise.all([
         fetch("/api/import/profiles"),
         fetch("/api/import/available"),
       ]);
 
+      let profilesChanged = false;
+      let availableProfilesChanged = false;
+
       if (profilesRes.ok) {
         const profilesData = await profilesRes.json();
-        setProfiles(profilesData.data || []);
-        // Powiadom parent component o zmianie profili
-        onProfilesChanged?.();
+        const newProfiles = profilesData.data || [];
+        
+        // Only update profiles if they actually changed
+        if (JSON.stringify(newProfiles) !== JSON.stringify(profiles)) {
+          setProfiles(newProfiles);
+          profilesChanged = true;
+          // Powiadom parent component o zmianie profili
+          onProfilesChanged?.();
+        }
       }
 
       if (availableRes.ok) {
         const availableData = await availableRes.json();
-        setAvailableProfiles(availableData.data || []);
+        const newAvailableProfiles = availableData.data || [];
+        
+        // Only update available profiles if they actually changed
+        if (JSON.stringify(newAvailableProfiles) !== JSON.stringify(availableProfiles)) {
+          setAvailableProfiles(newAvailableProfiles);
+          availableProfilesChanged = true;
+        }
       }
 
-      // Check for active imports after loading profiles
-      await checkActiveImports();
+      // Only check for active imports if there are currently active imports, 
+      // or if profiles/available profiles changed (might indicate new data)
+      if (activeImports.size > 0 || profilesChanged || availableProfilesChanged || forceRefresh) {
+        await checkActiveImports();
+      }
     } catch (error) {
       console.error("Error fetching profiles:", error);
     } finally {
-      setIsLoadingProfiles(false);
+      if (forceRefresh || profiles.length === 0) {
+        setIsLoadingProfiles(false);
+      }
     }
   };
 
@@ -221,9 +264,8 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
     console.log(
       "🔄 ProfileManager component mounted, fetching profiles and checking imports..."
     );
-    fetchProfiles();
-    // Also check for active imports immediately when component mounts
-    checkActiveImports();
+    fetchProfiles(true); // Force refresh on initial load
+    // checkActiveImports is called within fetchProfiles, no need to call it separately
   }, []);
 
   const handleImportProfile = async (profileName: string) => {
@@ -242,7 +284,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
         }
         onImportProfile(profileName);
         // Refresh profiles after a delay to allow import to start
-        setTimeout(fetchProfiles, 2000);
+        setTimeout(() => fetchProfiles(true), 2000);
       }
     } catch (error) {
       console.error("Error importing profile:", error);
@@ -261,7 +303,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
 
       if (response.ok) {
         onClearProfile(profileId);
-        await fetchProfiles();
+        await fetchProfiles(true);
         if (selectedProfile === profileId) {
           onProfileSelect(null);
         }
@@ -516,7 +558,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                 {t("noDataMessage")}
               </p>
               <button
-                onClick={fetchProfiles}
+                onClick={() => fetchProfiles(true)}
                 disabled={isLoadingProfiles}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >

@@ -118,6 +118,7 @@ const translations = {
     step2Title: "Przygotuj Strukturę Folderów",
     step2Description:
       "Po otrzymaniu danych, utwórz następującą strukturę w folderze",
+    step2FolderNaming: "⚠️ Ważne: Nazwa folderu będzie używana jako nazwa profilu w aplikacji. Zmień domyślną nazwę 'Spotify Extended Streaming History' na coś bardziej przyjaznego, np. imię, pseudonim itp.",
     step3Title: "Rodzaje Plików Danych",
     step3Description: "Spotify dostarcza różne typy plików:",
     step3Audio: "Historia odtwarzania muzyki",
@@ -283,8 +284,8 @@ const translations = {
     listeningTimelineDaily: "Timeline słuchania (dzienne)",
     dailyMusicActivity: "Twoja codzienna aktywność muzyczna w czasie",
     noDataToDisplay: "Brak danych do wyświetlenia",
-    resetZoom: "Resetuj zoom",
     selectPeriodToZoom: "Wybierz okres do przybliżenia:",
+    extendToToday: "Rozszerz do dziś",
 
     // Tooltip labels
     playsTooltip: "Odtworzenia",
@@ -486,6 +487,7 @@ const translations = {
     step2Title: "Prepare Folder Structure",
     step2Description:
       "After receiving data, create the following structure in the folder",
+    step2FolderNaming: "⚠️ Important: Folder name will be used as profile name in the application. Change the default name 'Spotify Extended Streaming History' to something more friendly such as name, nickname, etc.",
     step3Title: "Data File Types",
     step3Description: "Spotify provides different types of files:",
     step3Audio: "Music playback history",
@@ -648,8 +650,8 @@ const translations = {
     listeningTimelineDaily: "Listening Timeline (daily)",
     dailyMusicActivity: "Your daily music activity over time",
     noDataToDisplay: "No data to display",
-    resetZoom: "Reset zoom",
     selectPeriodToZoom: "Select period to zoom:",
+    extendToToday: "Extend to today",
 
     // Tooltip labels
     playsTooltip: "Plays",

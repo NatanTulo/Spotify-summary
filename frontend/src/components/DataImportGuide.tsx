@@ -25,7 +25,7 @@ export const DataImportGuide = () => {
                     <div className="space-y-2">
                         <h4 className="font-medium">{t('step1Title')}</h4>
                         <ol className="text-sm space-y-1 list-decimal list-inside ml-4 text-muted-foreground">
-                            <li>{t('step1GoTo')} <a href="https://www.spotify.com/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Spotify Privacy Settings</a></li>
+                            <li>{t('step1GoTo')} <a href="https://www.spotify.com/account/privacy/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Spotify Privacy Settings</a></li>
                             <li>{t('step1Login')}</li>
                             <li>{t('step1ScrollTo')}</li>
                             <li>{t('step1SelectExtended')}</li>
@@ -57,6 +57,11 @@ export const DataImportGuide = () => {
                                 <div>│   └── ...</div>
                                 <div>└── Anna/</div>
                                 <div>    └── ...</div>
+                            </div>
+                            <div className="bg-orange-50 dark:bg-orange-950/30 p-3 rounded-lg border border-orange-200 dark:border-orange-800">
+                                <p className="text-sm text-orange-800 dark:text-orange-200 font-medium mb-1">
+                                    {t('step2FolderNaming')}
+                                </p>
                             </div>
                         </div>
                     </div>

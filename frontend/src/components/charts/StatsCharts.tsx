@@ -407,7 +407,6 @@ export function ListeningTimelineChart({ data }: ListeningTimelineProps) {
     endIndex?: number;
     isZoomed: boolean;
   }>({ isZoomed: false });
-  const [extendToToday, setExtendToToday] = useState<boolean>(true);
 
   // Inject custom styles for brush
   React.useEffect(() => {
@@ -438,46 +437,13 @@ export function ListeningTimelineChart({ data }: ListeningTimelineProps) {
     );
   }
 
-  const handleResetZoom = () => {
-    setZoomState({ isZoomed: false });
-  };
-
-  // Filtruj dane w zależności od ustawienia extendToToday
-  const processedData = React.useMemo(() => {
-    if (!data || data.length === 0) return [];
-
-    if (extendToToday) {
-      // Zwróć wszystkie dane (od pierwszego do dzisiaj z zerami)
-      return data;
-    } else {
-      // Znajdź ostatnie odtworzenie (ostatni dzień z plays > 0)
-      let lastPlayIndex = data.length - 1;
-      for (let i = data.length - 1; i >= 0; i--) {
-        if (data[i].plays > 0) {
-          lastPlayIndex = i;
-          break;
-        }
-      }
-      // Zwróć dane tylko do ostatniego odtworzenia
-      return data.slice(0, lastPlayIndex + 1);
-    }
-  }, [data, extendToToday]);
-
-  // Resetuj zoom gdy zmieniamy tryb extendToToday
-  React.useEffect(() => {
-    if (zoomState.isZoomed) {
-      setZoomState({ isZoomed: false });
-    }
-  }, [extendToToday]); // eslint-disable-line react-hooks/exhaustive-deps
-
   // Dane do wyświetlenia - cały zestaw lub przefiltrowany według zoom
-  const baseData = processedData; // Użyj przefiltrowanych danych zamiast oryginalnych
   const displayData =
     zoomState.isZoomed &&
     zoomState.startIndex !== undefined &&
     zoomState.endIndex !== undefined
-      ? baseData.slice(zoomState.startIndex, zoomState.endIndex + 1)
-      : baseData;
+      ? data.slice(zoomState.startIndex, zoomState.endIndex + 1)
+      : data;
 
   return (
     <Card>
@@ -488,33 +454,8 @@ export function ListeningTimelineChart({ data }: ListeningTimelineProps) {
             <CardDescription>
               {t("dailyMusicActivity")}
               {zoomState.isZoomed &&
-                ` (${displayData.length} z ${baseData.length} dni)`}
+                ` (${displayData.length} z ${data.length} dni)`}
             </CardDescription>
-          </div>
-          <div className="flex items-center gap-3">
-            {zoomState.isZoomed && (
-              <button
-                onClick={handleResetZoom}
-                className="px-3 py-1 text-sm border rounded-md hover:bg-accent hover:text-accent-foreground"
-              >
-                {t("resetZoom")}
-              </button>
-            )}
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="extend-to-today"
-                checked={extendToToday}
-                onChange={(e) => setExtendToToday(e.target.checked)}
-                className="rounded border-gray-300 text-primary focus:ring-primary focus:ring-offset-0"
-              />
-              <label
-                htmlFor="extend-to-today"
-                className="text-sm text-muted-foreground cursor-pointer"
-              >
-                {t("extendToToday")}
-              </label>
-            </div>
           </div>
         </div>
       </CardHeader>
@@ -574,7 +515,7 @@ export function ListeningTimelineChart({ data }: ListeningTimelineProps) {
               {t("selectPeriodToZoom")}
             </div>
             <ResponsiveContainer width="100%" height={80}>
-              <LineChart data={baseData}>
+              <LineChart data={data}>
                 <XAxis
                   dataKey="date"
                   tick={false}

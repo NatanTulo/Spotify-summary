@@ -123,6 +123,8 @@ data/
 │   └── Streaming_History_Audio_2024_3.json
 ```
 
+**⚠️ Ważne:** Nazwa folderu będzie używana jako nazwa profilu w aplikacji. Zmień domyślną nazwę `Spotify Extended Streaming History` na coś bardziej przyjaznego, np. imię, nazwę konta czy pseudonim.
+
 ### 6. Uruchomienie
 
 ```bash
