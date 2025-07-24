@@ -107,6 +107,8 @@ const translations = {
     howToImportTitle: "Jak Uzyskać i Zaimportować Dane Spotify",
     importGuideDescription:
       "Szczegółowy przewodnik po procesie pobierania i importowania danych z Spotify",
+    expandGuide: "Rozwiń",
+    collapseGuide: "Zwiń",
     step1Title: "Pobierz Swoje Dane ze Spotify",
     step1GoTo: "Przejdź na stronę",
     step1Login: "Zaloguj się na swoje konto Spotify",
@@ -476,6 +478,8 @@ const translations = {
     howToImportTitle: "How to Get and Import Spotify Data",
     importGuideDescription:
       "Detailed guide for downloading and importing Spotify data",
+    expandGuide: "Expand",
+    collapseGuide: "Collapse",
     step1Title: "Download Your Spotify Data",
     step1GoTo: "Go to",
     step1Login: "Log in to your Spotify account",

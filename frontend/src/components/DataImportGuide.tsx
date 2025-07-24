@@ -1,22 +1,44 @@
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
-import { Download, FolderOpen, FileJson, Database, Info } from 'lucide-react'
+import { Download, FolderOpen, FileJson, Database, Info, ChevronDown, ChevronUp } from 'lucide-react'
+import { Button } from './ui/button'
 import { useLanguage } from '@/context/LanguageContext'
 
 export const DataImportGuide = () => {
     const { t } = useLanguage()
+    const [isExpanded, setIsExpanded] = useState(false)
     
     return (
         <Card className="mt-8">
             <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <Download className="h-5 w-5" />
-                    {t('howToImportTitle')}
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Download className="h-5 w-5" />
+                        <CardTitle>{t('howToImportTitle')}</CardTitle>
+                    </div>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsExpanded(!isExpanded)}
+                        className="flex items-center gap-2"
+                    >
+                        <span className="text-sm">
+                            {isExpanded ? t('collapseGuide') : t('expandGuide')}
+                        </span>
+                        {isExpanded ? (
+                            <ChevronUp className="h-4 w-4" />
+                        ) : (
+                            <ChevronDown className="h-4 w-4" />
+                        )}
+                    </Button>
+                </div>
                 <CardDescription>
                     {t('importGuideDescription')}
                 </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            
+            {isExpanded && (
+                <CardContent className="space-y-6">
                 {/* Krok 1 */}
                 <div className="flex gap-4">
                     <div className="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 font-semibold">
@@ -126,6 +148,7 @@ export const DataImportGuide = () => {
                     </ul>
                 </div>
             </CardContent>
+            )}
         </Card>
     )
 }
