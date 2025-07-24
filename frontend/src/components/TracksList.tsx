@@ -182,16 +182,6 @@ export function TracksList({
   // Prefetch po załadowaniu utworów - MUSI BYĆ PRZED WARUNKOWYMI RETURNAMI
   useEffect(() => {
     if (tracks.length > 0) {
-      // Debug aktualnego sortowania
-      if (currentSort?.field === "firstPlay" || currentSort?.field === "lastPlay") {
-        console.log(`📊 Aktualne sortowanie: ${currentSort.field} ${currentSort.order}`);
-        console.log("Otrzymane utwory (pierwsze 3):", tracks.slice(0, 3).map(t => ({
-          name: t.trackName,
-          [currentSort.field]: t[currentSort.field as keyof ExtendedTrack],
-          formatted: localizedFormatDate(t[currentSort.field as keyof ExtendedTrack] as string)
-        })));
-      }
-      
       // Delay prefetch by 1 second to not interfere with main UI
       const timer = setTimeout(prefetchPopularTracks, 1000);
       return () => clearTimeout(timer);
@@ -240,13 +230,13 @@ export function TracksList({
     {
       key: "firstPlay",
       sortable: true,
-      format: (val) => (val ? `${localizedFormatDate(val)} [${val}]` : ""),
+      format: (val) => (val ? localizedFormatDate(val) : ""),
       labelKey: "firstPlayFull",
     },
     {
       key: "lastPlay",
       sortable: true,
-      format: (val) => (val ? `${localizedFormatDate(val)} [${val}]` : ""),
+      format: (val) => (val ? localizedFormatDate(val) : ""),
       labelKey: "lastPlayFull",
     },
     {
@@ -298,6 +288,7 @@ export function TracksList({
       currentSort?.field === field && currentSort.order === "desc"
         ? "asc"
         : "desc";
+    
     onSort(field, newOrder);
   };
 

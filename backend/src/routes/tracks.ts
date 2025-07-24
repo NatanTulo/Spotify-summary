@@ -42,6 +42,10 @@ router.get('/', async (req, res) => {
             orderBy = `ORDER BY t.name ${sortOrder}`
         } else if (sortBy === 'artist') {
             orderBy = `ORDER BY ar.name ${sortOrder}`
+        } else if (sortBy === 'firstPlay') {
+            orderBy = `ORDER BY p.first_play ${sortOrder}`
+        } else if (sortBy === 'lastPlay') {
+            orderBy = `ORDER BY p.last_play ${sortOrder}`
         } else {
             orderBy = `ORDER BY t.id ${sortOrder}`
         }
