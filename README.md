@@ -261,6 +261,8 @@ spotify-analytics/
 - ✅ **Import UI cleanup** - Usunięto redundantne teksty "Aktywne importy"
 - ✅ **Backend data integrity** - `/api/tracks/:id/plays` zwraca wszystkie wymagane pola
 - ✅ **TypeScript improvements** - Usunięto wszystkie nieużywane importy i zmienne
+- ✅ **Bundle optimization** - Code-splitting: 733kB → 248kB główny bundle (-64% gzip)
+- ✅ **Lazy loading** - Komponenty ładują się na żądanie dla szybszego startu aplikacji
 
 ### Timeline & Analytics (poprzednie wersje)
 

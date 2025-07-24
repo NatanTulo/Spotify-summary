@@ -22,4 +22,24 @@ export default defineConfig({
             },
         },
     },
+    build: {
+        // Zwiększ limit ostrzeżenia do 1MB (dla głównego chunk'a)
+        chunkSizeWarningLimit: 1000,
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    // Vendor libraries - największe zależności
+                    'vendor-react': ['react', 'react-dom'],
+                    'vendor-ui': ['@radix-ui/react-dialog', '@radix-ui/react-progress', '@radix-ui/react-select', '@radix-ui/react-tabs'],
+                    'vendor-charts': ['recharts'],
+                    'vendor-utils': ['clsx', 'class-variance-authority', 'tailwind-merge'],
+                    
+                    // Komponenty aplikacji - największe strony
+                    'components-charts': ['./src/components/charts/StatsCharts.tsx'],
+                    'components-tracks': ['./src/components/TracksList.tsx', './src/components/TracksListNew.tsx'],
+                    'pages': ['./src/pages/Dashboard.tsx', './src/pages/Analytics.tsx'],
+                }
+            }
+        }
+    }
 })

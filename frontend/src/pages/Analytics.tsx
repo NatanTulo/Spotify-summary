@@ -1,18 +1,25 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { BarChart3, PieChart, TrendingUp, Calendar, Music } from 'lucide-react'
 import { AdvancedFilters } from '@/components/filters/AdvancedFilters'
-import { TracksList } from '@/components/TracksList'
-import {
-    PlaysByCountryChart,
-    YearlyStatsChart,
-    TopArtistsChart,
-    ListeningTimelineChart
-} from '@/components/charts/StatsCharts'
 import { useProfile } from '../context/ProfileContext'
 import { useLanguage } from '../context/LanguageContext'
+
+// Lazy load dużych komponentów
+const TracksList = lazy(() => import('@/components/TracksList').then(module => ({ default: module.TracksList })))
+const PlaysByCountryChart = lazy(() => import('@/components/charts/StatsCharts').then(module => ({ default: module.PlaysByCountryChart })))
+const YearlyStatsChart = lazy(() => import('@/components/charts/StatsCharts').then(module => ({ default: module.YearlyStatsChart })))
+const TopArtistsChart = lazy(() => import('@/components/charts/StatsCharts').then(module => ({ default: module.TopArtistsChart })))
+const ListeningTimelineChart = lazy(() => import('@/components/charts/StatsCharts').then(module => ({ default: module.ListeningTimelineChart })))
+
+// Loading component dla wykresów
+const ChartLoader = () => (
+    <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+    </div>
+)
 
 interface Track {
     trackId: string
@@ -266,8 +273,12 @@ export default function Analytics() {
                 {/* Overview Tab */}
                 <TabsContent value="overview">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <YearlyStatsChart data={yearlyStats} />
-                        <PlaysByCountryChart data={countryStats} loading={statsLoading} />
+                        <Suspense fallback={<ChartLoader />}>
+                            <YearlyStatsChart data={yearlyStats} />
+                        </Suspense>
+                        <Suspense fallback={<ChartLoader />}>
+                            <PlaysByCountryChart data={countryStats} loading={statsLoading} />
+                        </Suspense>
                     </div>
                 </TabsContent>
 
@@ -275,10 +286,16 @@ export default function Analytics() {
                 <TabsContent value="charts">
                     <div className="space-y-6">
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <TopArtistsChart data={topArtists} loading={statsLoading} />
-                            <PlaysByCountryChart data={countryStats} loading={statsLoading} />
+                            <Suspense fallback={<ChartLoader />}>
+                                <TopArtistsChart data={topArtists} loading={statsLoading} />
+                            </Suspense>
+                            <Suspense fallback={<ChartLoader />}>
+                                <PlaysByCountryChart data={countryStats} loading={statsLoading} />
+                            </Suspense>
                         </div>
-                        <YearlyStatsChart data={yearlyStats} />
+                        <Suspense fallback={<ChartLoader />}>
+                            <YearlyStatsChart data={yearlyStats} />
+                        </Suspense>
                     </div>
                 </TabsContent>
 
@@ -307,26 +324,30 @@ export default function Analytics() {
                             countries={availableCountries}
                             platforms={availablePlatforms}
                         />
-                        <TracksList
-                            tracks={tracks}
-                            loading={loading}
-                            profileId={selectedProfile || undefined}
-                            pagination={pagination}
-                            onPageChange={handlePageChange}
-                            onPageSizeChange={handlePageSizeChange}
-                            onSort={handleSort}
-                            currentSort={{
-                                field: filters.sortBy,
-                                order: filters.sortOrder
-                            }}
-                        />
+                        <Suspense fallback={<ChartLoader />}>
+                            <TracksList
+                                tracks={tracks}
+                                loading={loading}
+                                profileId={selectedProfile || undefined}
+                                pagination={pagination}
+                                onPageChange={handlePageChange}
+                                onPageSizeChange={handlePageSizeChange}
+                                onSort={handleSort}
+                                currentSort={{
+                                    field: filters.sortBy,
+                                    order: filters.sortOrder
+                                }}
+                            />
+                        </Suspense>
                     </div>
                 </TabsContent>
 
                 {/* Timeline Tab */}
                 <TabsContent value="timeline">
                     <div className="space-y-6">
-                        <ListeningTimelineChart data={timelineData} />
+                        <Suspense fallback={<ChartLoader />}>
+                            <ListeningTimelineChart data={timelineData} />
+                        </Suspense>
                         <Card>
                             <CardHeader>
                                 <CardTitle>{t('listeningPatternsAnalysis')}</CardTitle>
