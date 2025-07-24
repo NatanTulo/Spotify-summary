@@ -407,14 +407,6 @@ router.get('/:id/timeline', async (req, res) => {
             minutes: parseFloat((row as any).minutes as string) || 0
         })) // No need to reverse, already ordered ASC
 
-        // Debug logging
-        // Set cache headers for 5 minutes - TYMCZASOWO WYŁĄCZONE
-        res.set({
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0'
-        })
-
         res.json({
             success: true,
             data: processedData,

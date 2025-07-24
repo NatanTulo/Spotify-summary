@@ -1,4 +1,4 @@
-import { useState, Fragment, useEffect, useCallback } from "react";
+import { useState, Fragment, useEffect, useCallback, useMemo } from "react";
 import {
   ChevronUp,
   ChevronDown,
@@ -139,17 +139,19 @@ export function TracksList({
     "lastPlay",
   ];
 
-  // Inteligentny prefetching dla top utworów
-  const prefetchPopularTracks = useCallback(async () => {
-    if (tracks.length === 0) return;
-
-    // Prefetch timeline dla top 3 utworów (które mają najwięcej odtworzeń)
-    const topTracks = tracks
+  // Inteligentny prefetching dla top utworów - użyjemy useMemo dla stability
+  const topTracksForPrefetch = useMemo(() => {
+    if (tracks.length === 0) return [];
+    return tracks
       .filter((t) => t.totalPlays > 10) // Tylko utwory z więcej niż 10 odtworzeń
       .sort((a, b) => b.totalPlays - a.totalPlays)
       .slice(0, 3);
+  }, [tracks]);
 
-    for (const track of topTracks) {
+  const prefetchPopularTracks = useCallback(async () => {
+    if (topTracksForPrefetch.length === 0) return;
+
+    for (const track of topTracksForPrefetch) {
       const cacheKey = `${track.trackId}-${profileId || "all"}`;
 
       // Skip if already cached
@@ -177,16 +179,16 @@ export function TracksList({
       // Small delay between prefetch requests
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
-  }, [tracks, profileId, timelineCache]);
+  }, [topTracksForPrefetch, profileId, timelineCache]);
 
   // Prefetch po załadowaniu utworów - MUSI BYĆ PRZED WARUNKOWYMI RETURNAMI
   useEffect(() => {
-    if (tracks.length > 0) {
+    if (topTracksForPrefetch.length > 0) {
       // Delay prefetch by 1 second to not interfere with main UI
       const timer = setTimeout(prefetchPopularTracks, 1000);
       return () => clearTimeout(timer);
     }
-  }, [prefetchPopularTracks, currentSort, tracks]);
+  }, [prefetchPopularTracks, topTracksForPrefetch.length, currentSort]);
 
   // Get available columns with translations (moved inside component to access localizedFormatDate)
   const getAvailableColumns = (): ColumnConfig[] => [
@@ -242,10 +244,7 @@ export function TracksList({
     {
       key: "platforms",
       sortable: false,
-      format: (val) => {
-        console.log("Debug platforms:", val, Array.isArray(val));
-        return val && val.length > 0 ? val.join(", ") : "N/A";
-      },
+      format: (val) => (val && val.length > 0 ? val.join(", ") : "N/A"),
       labelKey: "platformsFull",
     },
     {
@@ -300,13 +299,6 @@ export function TracksList({
 
     setExpandedTrack(trackId);
 
-    // Check cache first
-    // DEBUG: Wyczyść cache dla testowania
-    // if (timelineCache.has(cacheKey)) {
-    //     setTrackTimelineData(timelineCache.get(cacheKey)!)
-    //     return
-    // }
-
     // Show loading state
     setTimelineLoading(trackId);
     setTrackTimelineData([]);
@@ -325,12 +317,6 @@ export function TracksList({
         `/api/tracks/${trackId}/timeline?${params}`,
         {
           signal: controller.signal,
-          cache: "no-cache", // Wymuś przeładowanie z serwera
-          headers: {
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-            Pragma: "no-cache",
-            Expires: "0",
-          },
         }
       );
 
@@ -340,8 +326,6 @@ export function TracksList({
         const data = await response.json();
         const timelineData = data.data || [];
 
-        // Cache the result - TYMCZASOWO WYŁĄCZONE
-        // setTimelineCache(prev => new Map(prev).set(cacheKey, timelineData))
         setTrackTimelineData(timelineData);
       } else {
         console.error(

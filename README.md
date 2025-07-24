@@ -127,30 +127,44 @@ data/
 
 ### 6. Uruchomienie
 
+**Tryb rozwoju (z hot reload):**
+
 ```bash
-# Uruchom aplikację (frontend + backend jednocześnie)
 npm run dev
+# Otwórz: http://localhost:3000
 ```
 
-Aplikacja będzie dostępna pod:
+**Tryb produkcyjny:**
 
-- **Frontend:** http://localhost:3000 (lub kolejny dostępny port)
+```bash
+npm run build
+npm start
+# Otwórz: http://localhost:5000
+```
+
+Aplikacja w trybie dev będzie dostępna pod:
+
+- **Frontend:** http://localhost:3000 (Vite dev server z hot reload)
 - **Backend API:** http://localhost:5000
-- **Health check:** http://localhost:5000/api/health
+
+Aplikacja w trybie produkcyjnym będzie dostępna pod:
+
+- **Frontend + Backend:** http://localhost:5000 (pliki statyczne + API)
 
 ## 📁 Import danych
 
-1. Uruchom aplikację: `npm run dev`
-2. Kliknij **"Importuj dane"** w górnym menu
-3. Aplikacja automatycznie wykryje profile w folderze `data/`
-4. Wybierz profile i kliknij **"Importuj"**
-5. Obserwuj progress bar - import może zająć kilka minut
+1. **Tryb dev:** Uruchom `npm run dev` → otwórz http://localhost:3000
+2. **Tryb prod:** Uruchom `npm start` → otwórz http://localhost:5000
+3. Kliknij **"Importuj dane"** w górnym menu
+4. Aplikacja automatycznie wykryje profile w folderze `data/`
+5. Wybierz profile i kliknij **"Importuj"**
+6. Obserwuj progress bar - import może zająć kilka minut
 
 ## 🛠️ Dostępne komendy
 
 ```bash
 # Rozwój
-npm run dev              # Frontend + backend jednocześnie
+npm run dev              # Frontend (port 3000) + backend (port 5000) - tryb dev z hot reload
 npm run dev:client       # Tylko frontend (port 3000)
 npm run dev:server       # Tylko backend (port 5000)
 
@@ -160,9 +174,9 @@ npm run install:all      # Instaluj wszystkie zależności
 # Import danych (alternatywnie przez CLI)
 npm run import-data
 
-# Budowanie (produkcja)
-npm run build
-npm start
+# Budowanie i uruchomienie (produkcja)
+npm run build           # Buduje frontend + backend
+npm start               # Uruchamia aplikację produkcyjną (port 5000 - frontend + API)
 ```
 
 ## 🏗️ Struktura projektu

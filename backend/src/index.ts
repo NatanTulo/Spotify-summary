@@ -4,6 +4,8 @@ import helmet from 'helmet'
 import compression from 'compression'
 import rateLimit from 'express-rate-limit'
 import dotenv from 'dotenv'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import 'reflect-metadata'
 import { connectDB } from './config/database.js'
 import tracksRouter from './routes/tracks.js'
@@ -65,13 +67,33 @@ app.get('/api/health', (_req, res) => {
 
 // Setup routes
 function setupRoutes() {
-    // Routes
+    // API Routes
     app.use('/api/tracks', tracksRouter)
     app.use('/api/stats', statsRouter)
     app.use('/api/artists', artistsRouter)
     app.use('/api/albums', albumsRouter)
     app.use('/api/import', importRouter)
-    app.use('/api/import', importRouter)
+
+    // Serve static files from frontend dist
+    const __filename = fileURLToPath(import.meta.url)
+    const __dirname = path.dirname(__filename)
+    const frontendDistPath = path.join(__dirname, '../../frontend/dist')
+    
+    app.use(express.static(frontendDistPath))
+    
+    // SPA fallback - serve index.html for all non-API routes
+    app.get('*', (req, res) => {
+        // Skip API routes
+        if (req.path.startsWith('/api/')) {
+            return res.status(404).json({
+                success: false,
+                error: 'Route not found',
+                message: `Cannot ${req.method} ${req.originalUrl}`
+            })
+        }
+        
+        res.sendFile(path.join(frontendDistPath, 'index.html'))
+    })
 
     // 404 handler - MUST be after all routes
     // app.all('*', (req, res) => {

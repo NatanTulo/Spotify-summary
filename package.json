@@ -25,6 +25,7 @@
     "author": "Natan Tułodziecki",
     "license": "MIT",
     "devDependencies": {
-        "concurrently": "^8.2.2"
+        "concurrently": "^8.2.2",
+        "serve": "^14.2.4"
     }
 }
