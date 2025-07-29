@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express'
 import { Op } from 'sequelize'
-import { Show, Episode, VideoPlay, Profile } from '../models/index.js'
+import { Show, Episode, PodcastPlay, Profile } from '../models/index.js'
 
 const router = Router()
 
@@ -9,7 +9,7 @@ const router = Router()
  */
 router.get('/shows', async (req: Request, res: Response) => {
     try {
-        const { profileId, limit = 50, offset = 0, search } = req.query
+        const { limit = 50, offset = 0, search } = req.query
 
         const whereClause: any = {}
         if (search) {
@@ -18,20 +18,6 @@ router.get('/shows', async (req: Request, res: Response) => {
 
         const shows = await Show.findAndCountAll({
             where: whereClause,
-            include: [
-                {
-                    model: Episode,
-                    include: [
-                        {
-                            model: VideoPlay,
-                            where: profileId ? { profileId } : undefined,
-                            required: !!profileId,
-                            attributes: []
-                        }
-                    ],
-                    required: false
-                }
-            ],
             limit: parseInt(limit as string),
             offset: parseInt(offset as string),
             order: [['name', 'ASC']],
@@ -60,7 +46,7 @@ router.get('/shows', async (req: Request, res: Response) => {
 router.get('/shows/:showId/episodes', async (req: Request, res: Response) => {
     try {
         const { showId } = req.params
-        const { profileId, limit = 50, offset = 0, search } = req.query
+        const { limit = 50, offset = 0, search } = req.query
 
         const whereClause: any = { showId }
         if (search) {
@@ -69,18 +55,6 @@ router.get('/shows/:showId/episodes', async (req: Request, res: Response) => {
 
         const episodes = await Episode.findAndCountAll({
             where: whereClause,
-            include: [
-                {
-                    model: Show,
-                    attributes: ['name']
-                },
-                {
-                    model: VideoPlay,
-                    where: profileId ? { profileId } : undefined,
-                    required: !!profileId,
-                    attributes: ['timestamp', 'msPlayed', 'platform', 'country']
-                }
-            ],
             limit: parseInt(limit as string),
             offset: parseInt(offset as string),
             order: [['name', 'ASC']]
@@ -125,24 +99,24 @@ router.get('/video-stats', async (req: Request, res: Response) => {
             })
         }
 
-        // Podstawowe statystyki video - uproszczone zapytania
-        const totalVideoPlays = await VideoPlay.count({
+        // Podstawowe statystyki podcastów - uproszczone zapytania
+        const totalPodcastPlays = await PodcastPlay.count({
             where: { profileId }
         }) || 0
 
-        const totalVideoTimeResult = await VideoPlay.sum('msPlayed', {
+        const totalPodcastTimeResult = await PodcastPlay.sum('msPlayed', {
             where: { profileId }
         })
-        const totalVideoTime = totalVideoTimeResult || 0
+        const totalPodcastTime = totalPodcastTimeResult || 0
 
-        const uniqueEpisodes = await VideoPlay.count({
+        const uniqueEpisodes = await PodcastPlay.count({
             distinct: true,
             col: 'episodeId',
             where: { profileId }
         }) || 0
 
         // Proste zapytanie dla uniqueShows przez subquery
-        const uniqueShowsResult = await VideoPlay.count({
+        const uniqueShowsResult = await PodcastPlay.count({
             distinct: true,
             col: 'episodeId',
             where: { profileId },
@@ -159,8 +133,8 @@ router.get('/video-stats', async (req: Request, res: Response) => {
             success: true,
             data: {
                 overview: {
-                    totalVideoPlays,
-                    totalVideoMinutes: Math.round(totalVideoTime / 60000),
+                    totalPodcastPlays: totalPodcastPlays,
+                    totalPodcastMinutes: Math.round(totalPodcastTime / 60000),
                     uniqueShows: uniqueShowsResult,
                     uniqueEpisodes
                 },
@@ -168,14 +142,14 @@ router.get('/video-stats', async (req: Request, res: Response) => {
             }
         })
     } catch (error) {
-        console.error('Error fetching video stats:', error)
+        console.error('Error fetching podcast stats:', error)
         // Zwróć podstawowe statystyki zerowe jeśli wystąpi błąd
         res.json({
             success: true,
             data: {
                 overview: {
-                    totalVideoPlays: 0,
-                    totalVideoMinutes: 0,
+                    totalPodcastPlays: 0,
+                    totalPodcastMinutes: 0,
                     uniqueShows: 0,
                     uniqueEpisodes: 0
                 },

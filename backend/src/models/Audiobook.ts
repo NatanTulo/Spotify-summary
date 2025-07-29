@@ -1,35 +1,37 @@
-import { Table, Column, Model, DataType, CreatedAt, UpdatedAt, PrimaryKey, AutoIncrement, Unique } from 'sequelize-typescript'
+import { Table, Column, Model, DataType, CreatedAt, UpdatedAt, PrimaryKey, AutoIncrement } from 'sequelize-typescript'
 
 @Table({
-    tableName: 'shows',
+    tableName: 'audiobooks',
     timestamps: true,
     indexes: [
         { fields: ['name'] },
+        { fields: ['spotifyUri'] },
         { fields: ['createdAt'] }
     ]
 })
-export class Show extends Model {
+export class Audiobook extends Model {
     @PrimaryKey
     @AutoIncrement
     @Column(DataType.INTEGER)
     id!: number
 
-    @Unique
     @Column({
-        type: DataType.STRING(500),
+        type: DataType.STRING,
         allowNull: false
     })
     name!: string
 
     @Column({
-        type: DataType.TEXT,
+        type: DataType.STRING,
         allowNull: true
     })
-    description?: string
+    spotifyUri?: string
 
     @CreatedAt
+    @Column(DataType.DATE)
     createdAt!: Date
 
     @UpdatedAt
+    @Column(DataType.DATE)
     updatedAt!: Date
 }

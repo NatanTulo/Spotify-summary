@@ -70,7 +70,7 @@ const Layout = ({ children }: LayoutProps) => {
                                     to="/video"
                                     className="px-4 py-2 text-muted-foreground hover:text-foreground transition-colors"
                                 >
-                                    {t('video')}
+                                    {t('videoPodcastsTitle')}
                                 </Link>
                             </nav>
                         </div>

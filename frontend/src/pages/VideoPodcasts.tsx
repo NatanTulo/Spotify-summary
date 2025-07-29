@@ -19,9 +19,9 @@ interface SpotifyEpisode {
     show?: SpotifyShow
 }
 
-interface VideoStats {
-    totalVideoPlays: number
-    totalVideoMinutes: number
+interface PodcastStats {
+    totalPodcastPlays: number
+    totalPodcastMinutes: number
     uniqueShows: number
     uniqueEpisodes: number
 }
@@ -32,8 +32,8 @@ interface ApiResponse<T> {
     message?: string
 }
 
-interface VideoStatsResponse {
-    overview: VideoStats
+interface PodcastStatsResponse {
+    overview: PodcastStats
     topShows: Array<{
         id: string
         name: string
@@ -46,27 +46,27 @@ const VideoPodcasts: React.FC = () => {
     const { selectedProfile } = useProfile()
     const { t } = useLanguage()
     const [loading, setLoading] = useState(true)
-    const [videoStats, setVideoStats] = useState<VideoStatsResponse | null>(null)
+    const [podcastStats, setPodcastStats] = useState<PodcastStatsResponse | null>(null)
     const [shows, setShows] = useState<SpotifyShow[]>([])
     const [selectedShow, setSelectedShow] = useState<SpotifyShow | null>(null)
     const [episodes, setEpisodes] = useState<SpotifyEpisode[]>([])
 
-    const fetchVideoStats = async () => {
+    const fetchPodcastStats = async () => {
         // Jeśli nie ma wybranego profilu, nie pobieraj statystyk
         if (!selectedProfile) {
-            setVideoStats(null)
+            setPodcastStats(null)
             return
         }
 
         try {
             const response = await fetch(`/api/video/video-stats?profileId=${selectedProfile}`)
-            const result: ApiResponse<VideoStatsResponse> = await response.json()
+            const result: ApiResponse<PodcastStatsResponse> = await response.json()
             
             if (result.success) {
-                setVideoStats(result.data)
+                setPodcastStats(result.data)
             }
         } catch (error) {
-            console.error('Error fetching video stats:', error)
+            console.error('Error fetching podcast stats:', error)
         }
     }
 
@@ -112,7 +112,7 @@ const VideoPodcasts: React.FC = () => {
         if (selectedProfile) {
             setLoading(true)
             Promise.all([
-                fetchVideoStats(),
+                fetchPodcastStats(),
                 fetchShows()
             ]).finally(() => setLoading(false))
         }
@@ -165,11 +165,11 @@ const VideoPodcasts: React.FC = () => {
             </div>
 
             {/* Overview Stats */}
-            {videoStats && (
+            {podcastStats && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <Card className="p-4">
                         <div className="text-2xl font-bold text-primary">
-                            {videoStats.overview.totalVideoPlays.toLocaleString()}
+                            {podcastStats.overview.totalPodcastPlays.toLocaleString()}
                         </div>
                         <div className="text-sm text-gray-600 dark:text-gray-400">
                             {t('videoPlaysStats')}
@@ -177,7 +177,7 @@ const VideoPodcasts: React.FC = () => {
                     </Card>
                     <Card className="p-4">
                         <div className="text-2xl font-bold text-primary">
-                            {videoStats.overview.totalVideoMinutes.toLocaleString()}
+                            {podcastStats.overview.totalPodcastMinutes.toLocaleString()}
                         </div>
                         <div className="text-sm text-gray-600 dark:text-gray-400">
                             {t('videoMinutesStats')}
@@ -185,7 +185,7 @@ const VideoPodcasts: React.FC = () => {
                     </Card>
                     <Card className="p-4">
                         <div className="text-2xl font-bold text-primary">
-                            {videoStats.overview.uniqueShows}
+                            {podcastStats.overview.uniqueShows}
                         </div>
                         <div className="text-sm text-gray-600 dark:text-gray-400">
                             {t('uniqueShowsStats')}
@@ -193,7 +193,7 @@ const VideoPodcasts: React.FC = () => {
                     </Card>
                     <Card className="p-4">
                         <div className="text-2xl font-bold text-primary">
-                            {videoStats.overview.uniqueEpisodes}
+                            {podcastStats.overview.uniqueEpisodes}
                         </div>
                         <div className="text-sm text-gray-600 dark:text-gray-400">
                             {t('uniqueEpisodesStats')}
@@ -243,7 +243,7 @@ const VideoPodcasts: React.FC = () => {
                     <Card className="p-6">
                         <h3 className="text-lg font-semibold mb-4">{t('topShowsTitle')}</h3>
                         <div className="space-y-3">
-                            {videoStats?.topShows && Array.isArray(videoStats.topShows) ? videoStats.topShows.map((show, index) => (
+                            {podcastStats?.topShows && Array.isArray(podcastStats.topShows) ? podcastStats.topShows.map((show, index) => (
                                 <div key={show.id} className="flex items-center justify-between p-3 rounded-lg border">
                                     <div className="flex items-center space-x-3">
                                         <div className="text-lg font-bold text-primary">#{index + 1}</div>

@@ -2,6 +2,7 @@ import express from 'express'
 import { Op, fn, col, QueryTypes } from 'sequelize'
 import { sequelize } from '../config/database.js'
 import { Play } from '../models/Play.js'
+import { PodcastPlay } from '../models/PodcastPlay.js'
 
 console.log('Stats router loaded')
 const router = express.Router()
@@ -251,28 +252,25 @@ router.get('/video', async (req, res) => {
 
         const filter = { profileId }
 
-        // Import VideoPlay model
-        const { VideoPlay } = await import('../models/VideoPlay.js')
-
         const [
             totalVideoPlays,
             totalVideoMinutes,
             uniqueShows,
             uniqueEpisodes
         ] = await Promise.all([
-            VideoPlay.count({ where: filter }),
-            VideoPlay.sum('msPlayed', { where: filter }),
+            PodcastPlay.count({ where: filter }),
+            PodcastPlay.sum('msPlayed', { where: filter }),
             sequelize.query(`
                 SELECT COUNT(DISTINCT shows.id) as count
-                FROM video_plays
-                JOIN episodes ON video_plays."episodeId" = episodes.id
+                FROM podcast_plays
+                JOIN episodes ON podcast_plays."episodeId" = episodes.id
                 JOIN shows ON episodes."showId" = shows.id
-                WHERE video_plays."profileId" = :profileId
+                WHERE podcast_plays."profileId" = :profileId
             `, {
                 replacements: { profileId },
                 type: QueryTypes.SELECT
             }).then((result: any[]) => parseInt(result[0]?.count) || 0),
-            VideoPlay.count({
+            PodcastPlay.count({
                 where: filter,
                 distinct: true,
                 col: 'episodeId'
@@ -293,6 +291,63 @@ router.get('/video', async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Failed to fetch video statistics'
+        })
+    }
+})
+
+// GET /api/stats/podcasts - Statystyki podcastów
+router.get('/podcasts', async (req, res) => {
+    try {
+        const { profileId } = req.query
+
+        if (!profileId) {
+            return res.status(400).json({
+                success: false,
+                error: 'ProfileId is required'
+            })
+        }
+
+        const filter = { profileId }
+
+        const [
+            totalPodcastPlays,
+            totalPodcastMinutes,
+            uniqueShows,
+            uniqueEpisodes
+        ] = await Promise.all([
+            PodcastPlay.count({ where: filter }),
+            PodcastPlay.sum('msPlayed', { where: filter }),
+            sequelize.query(`
+                SELECT COUNT(DISTINCT shows.id) as count
+                FROM podcast_plays
+                JOIN episodes ON podcast_plays."episodeId" = episodes.id
+                JOIN shows ON episodes."showId" = shows.id
+                WHERE podcast_plays."profileId" = :profileId
+            `, {
+                replacements: { profileId },
+                type: QueryTypes.SELECT
+            }).then((result: any[]) => parseInt(result[0]?.count) || 0),
+            PodcastPlay.count({
+                where: filter,
+                distinct: true,
+                col: 'episodeId'
+            })
+        ])
+
+        res.json({
+            success: true,
+            data: {
+                totalPodcastPlays: totalPodcastPlays || 0,
+                totalPodcastMinutes: Math.round((totalPodcastMinutes || 0) / 60000),
+                uniqueShows: uniqueShows || 0,
+                uniqueEpisodes: uniqueEpisodes || 0
+            }
+        })
+    } catch (error) {
+        console.error('Error fetching podcast stats:', error)
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch podcast statistics'
         })
     }
 })

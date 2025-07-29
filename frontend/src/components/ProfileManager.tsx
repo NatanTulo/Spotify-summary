@@ -493,9 +493,9 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                               {((progress.stats.currentStats.totalVideoPlays ?? 0) > 0) && (
                                 <>
                                   <div>
-                                    {t("videoplaysIcon")}{" "}
+                                    {t("podcastplaysIcon")}{" "}
                                     {(progress.stats.currentStats.totalVideoPlays ?? 0).toLocaleString()}{" "}
-                                    {t("videoplaysStats")}
+                                    {t("podcastplaysStats")}
                                   </div>
                                   <div>
                                     {t("showsIcon")}{" "}
@@ -588,7 +588,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                           {(
                             profile.statistics?.totalVideoPlays || 0
                           ).toLocaleString()}{" "}
-                          {t("videoplaysStats")}
+                          {t("podcastplaysStats")}
                         </div>
                         <div className="flex items-center gap-1">
                           <span className="h-3 w-3 text-center">🎬</span>

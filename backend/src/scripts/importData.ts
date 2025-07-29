@@ -10,7 +10,9 @@ import { Play } from '../models/Play.js'
 import { Profile } from '../models/Profile.js'
 import { Show } from '../models/Show.js'
 import { Episode } from '../models/Episode.js'
-import { VideoPlay } from '../models/VideoPlay.js'
+import { PodcastPlay } from '../models/PodcastPlay.js'
+import { Audiobook } from '../models/Audiobook.js'
+import { AudiobookPlay } from '../models/AudiobookPlay.js'
 import ImportProgressManager from '../utils/ImportProgressManager.js'
 import { StatsAggregator } from '../utils/StatsAggregator.js'
 
@@ -25,19 +27,23 @@ interface SpotifyPlayData {
     ip_addr?: string
     ip_addr_decrypted?: string
     user_agent_decrypted?: string
-    master_metadata_track_name?: string
-    master_metadata_album_artist_name?: string
-    master_metadata_album_album_name?: string
-    spotify_track_uri?: string
+    master_metadata_track_name?: string | null
+    master_metadata_album_artist_name?: string | null
+    master_metadata_album_album_name?: string | null
+    spotify_track_uri?: string | null
     episode_name?: string | null
     episode_show_name?: string | null
     spotify_episode_uri?: string | null
+    audiobook_title?: string | null
+    audiobook_uri?: string | null
+    audiobook_chapter_uri?: string | null
+    audiobook_chapter_title?: string | null
     reason_start?: string
     reason_end?: string
     shuffle?: boolean
     skipped?: boolean
     offline?: boolean
-    offline_timestamp?: string | null
+    offline_timestamp?: string | null | number
     incognito_mode?: boolean
 }
 
@@ -55,6 +61,9 @@ class SpotifyDataImporter {
         showsCreated: 0,
         episodesCreated: 0,
         videoPlaysCreated: 0,
+        podcastPlaysCreated: 0,
+        audiobooksCreated: 0,
+        audiobookPlaysCreated: 0,
         skippedRecords: 0
     }
 
@@ -63,6 +72,7 @@ class SpotifyDataImporter {
     private tracks = new Map<string, number>()   // name:albumId -> id
     private shows = new Map<string, number>()    // name -> id
     private episodes = new Map<string, number>() // name:showId -> id
+    private audiobooks = new Map<string, number>() // name -> id
     private progressManager: ImportProgressManager
 
     constructor(dataDir: string = '../data', profileName?: string) {
@@ -305,31 +315,69 @@ class SpotifyDataImporter {
      * Przetwórz pojedynczy rekord
      */
     private async processRecord(record: SpotifyPlayData): Promise<void> {
-        // Sprawdź czy to dane video/podcast
-        const isVideoContent = !!(record.episode_name || record.episode_show_name || record.spotify_episode_uri)
+        // Kategorizuj typ treści na podstawie zawartości JSON
+        const contentType = this.categorizeContent(record)
         
-        if (isVideoContent) {
-            return this.processVideoRecord(record)
-        } else {
-            return this.processMusicRecord(record)
+        switch (contentType) {
+            case 'music':
+                return this.processMusicRecord(record)
+            case 'podcast':
+                return this.processPodcastRecord(record)
+            case 'audiobook':
+                return this.processAudiobookRecord(record)
+            default:
+                console.warn('Unknown content type, skipping record:', {
+                    track: record.master_metadata_track_name,
+                    episode: record.episode_name,
+                    audiobook: record.audiobook_title
+                })
+                this.stats.skippedRecords++
         }
+    }
+
+    /**
+     * Kategoryzuj typ treści na podstawie dostępnych pól JSON
+     */
+    private categorizeContent(record: SpotifyPlayData): 'music' | 'podcast' | 'audiobook' | 'unknown' {
+        // Muzyka - ma master_metadata_track_name różne od null
+        if (record.master_metadata_track_name && record.master_metadata_track_name !== null) {
+            return 'music'
+        }
+        
+        // Epizody/Podcasty - mają episode_name różne od null
+        if (record.episode_name && record.episode_name !== null) {
+            return 'podcast'
+        }
+        
+        // Audiobooki - mają audiobook_title różne od null
+        if (record.audiobook_title && record.audiobook_title !== null) {
+            return 'audiobook'
+        }
+        
+        return 'unknown'
     }
 
     /**
      * Przetwórz rekord muzyczny
      */
     private async processMusicRecord(record: SpotifyPlayData): Promise<void> {
-        // Skip jeśli brak podstawowych danych
+        // Sprawdź podstawowe dane - jeśli brak, zgłoś błąd
         if (!record.master_metadata_track_name ||
             !record.master_metadata_album_artist_name ||
             !record.master_metadata_album_album_name ||
             !record.ts) {
+            console.warn('Missing essential music data:', {
+                track: record.master_metadata_track_name,
+                artist: record.master_metadata_album_artist_name,
+                album: record.master_metadata_album_album_name,
+                timestamp: record.ts
+            })
             this.stats.skippedRecords++
             return
         }
 
-        // Pomiń odtwarzania krótsze niż 30 sekund (30000ms)
-        if (record.ms_played < 30000) {
+        // Pomiń odtwarzania krótsze niż 5 sekund (5000ms)
+        if (record.ms_played < 5000) {
             this.stats.skippedRecords++
             return
         }
@@ -342,24 +390,29 @@ class SpotifyDataImporter {
         const trackId = await this.getOrCreateTrack(
             record.master_metadata_track_name,
             albumId,
-            record.spotify_track_uri
+            record.spotify_track_uri || undefined
         )
 
         await this.createPlay(record, trackId)
     }
 
     /**
-     * Przetwórz rekord video/podcast
+     * Przetwórz rekord podcastu
      */
-    private async processVideoRecord(record: SpotifyPlayData): Promise<void> {
-        // Skip jeśli brak podstawowych danych video
+    private async processPodcastRecord(record: SpotifyPlayData): Promise<void> {
+        // Sprawdź podstawowe dane - jeśli brak, zgłoś błąd
         if (!record.episode_name || !record.episode_show_name || !record.ts) {
+            console.warn('Missing essential podcast data:', {
+                episode: record.episode_name,
+                show: record.episode_show_name,
+                timestamp: record.ts
+            })
             this.stats.skippedRecords++
             return
         }
 
-        // Pomiń odtwarzania krótsze niż 30 sekund (30000ms)
-        if (record.ms_played < 30000) {
+        // Pomiń odtwarzania krótsze niż 5 sekund (5000ms)
+        if (record.ms_played < 5000) {
             this.stats.skippedRecords++
             return
         }
@@ -371,7 +424,35 @@ class SpotifyDataImporter {
             record.spotify_episode_uri || undefined
         )
 
-        await this.createVideoPlay(record, episodeId)
+        await this.createPodcastPlay(record, episodeId)
+    }
+
+    /**
+     * Przetwórz rekord audiobooka
+     */
+    private async processAudiobookRecord(record: SpotifyPlayData): Promise<void> {
+        // Sprawdź podstawowe dane - jeśli brak, zgłoś błąd
+        if (!record.audiobook_title || !record.ts) {
+            console.warn('Missing essential audiobook data:', {
+                title: record.audiobook_title,
+                timestamp: record.ts
+            })
+            this.stats.skippedRecords++
+            return
+        }
+
+        // Pomiń odtwarzania krótsze niż 5 sekund (5000ms)
+        if (record.ms_played < 5000) {
+            this.stats.skippedRecords++
+            return
+        }
+
+        const audiobookId = await this.getOrCreateAudiobook(
+            record.audiobook_title,
+            record.audiobook_uri || undefined
+        )
+
+        await this.createAudiobookPlay(record, audiobookId)
     }
 
     /**
@@ -461,14 +542,18 @@ class SpotifyDataImporter {
             profileId: this.profileId!,
             timestamp: new Date(record.ts),
             msPlayed: record.ms_played,
-            country: record.conn_country || null,
+            username: record.username || null,
             platform: record.platform || null,
+            country: record.conn_country || null,
+            ipAddress: record.ip_addr || null,
+            userAgent: record.user_agent_decrypted || null,
             reasonStart: record.reason_start || null,
             reasonEnd: record.reason_end || null,
             shuffle: record.shuffle || false,
             skipped: record.skipped || false,
             offline: record.offline || false,
-            incognito: record.incognito_mode || false,
+            offlineTimestamp: record.offline_timestamp ? new Date(Number(record.offline_timestamp) * 1000) : null,
+            incognitoMode: record.incognito_mode || false,
             createdAt: new Date(),
             updatedAt: new Date()
         })
@@ -532,27 +617,85 @@ class SpotifyDataImporter {
     }
 
     /**
-     * Utwórz video play
+     * Utwórz lub pobierz audiobook
      */
-    private async createVideoPlay(record: SpotifyPlayData, episodeId: number): Promise<void> {
-        await VideoPlay.create({
+    private async getOrCreateAudiobook(name: string, spotifyUri?: string): Promise<number> {
+        if (this.audiobooks.has(name)) {
+            return this.audiobooks.get(name)!
+        }
+
+        let audiobook = await Audiobook.findOne({ where: { name } })
+
+        if (!audiobook) {
+            audiobook = await Audiobook.create({
+                name,
+                spotifyUri: spotifyUri || null,
+                createdAt: new Date(),
+                updatedAt: new Date()
+            })
+            this.stats.audiobooksCreated++
+        }
+
+        this.audiobooks.set(name, audiobook.id)
+        return audiobook.id
+    }
+
+    /**
+     * Utwórz podcast play
+     */
+    private async createPodcastPlay(record: SpotifyPlayData, episodeId: number): Promise<void> {
+        await PodcastPlay.create({
             episodeId,
             profileId: this.profileId!,
             timestamp: new Date(record.ts),
             msPlayed: record.ms_played,
-            country: record.conn_country || null,
+            username: record.username || null,
             platform: record.platform || null,
+            country: record.conn_country || null,
+            ipAddr: record.ip_addr || null,
+            userAgent: record.user_agent_decrypted || null,
             reasonStart: record.reason_start || null,
             reasonEnd: record.reason_end || null,
             shuffle: record.shuffle || false,
             skipped: record.skipped || false,
             offline: record.offline || false,
-            incognito: record.incognito_mode || false,
+            offlineTimestamp: record.offline_timestamp ? new Date(Number(record.offline_timestamp) * 1000) : null,
+            incognitoMode: record.incognito_mode || false,
             createdAt: new Date(),
             updatedAt: new Date()
         })
 
-        this.stats.videoPlaysCreated++
+        this.stats.podcastPlaysCreated++
+    }
+
+    /**
+     * Utwórz audiobook play
+     */
+    private async createAudiobookPlay(record: SpotifyPlayData, audiobookId: number): Promise<void> {
+        await AudiobookPlay.create({
+            audiobookId,
+            profileId: this.profileId!,
+            timestamp: new Date(record.ts),
+            msPlayed: record.ms_played,
+            username: record.username || null,
+            chapterTitle: record.audiobook_chapter_title || null,
+            chapterUri: record.audiobook_chapter_uri || null,
+            country: record.conn_country || null,
+            platform: record.platform || null,
+            ipAddr: record.ip_addr || null,
+            userAgent: record.user_agent_decrypted || null,
+            reasonStart: record.reason_start || null,
+            reasonEnd: record.reason_end || null,
+            shuffle: record.shuffle || false,
+            skipped: record.skipped || false,
+            offline: record.offline || false,
+            offlineTimestamp: record.offline_timestamp ? new Date(Number(record.offline_timestamp) * 1000) : null,
+            incognitoMode: record.incognito_mode || false,
+            createdAt: new Date(),
+            updatedAt: new Date()
+        })
+
+        this.stats.audiobookPlaysCreated++
     }
 
     /**
@@ -668,7 +811,7 @@ class SpotifyDataImporter {
                     type: QueryTypes.SELECT
                 }).then(result => parseInt((result[0] as any).count)),
                 // Statystyki video
-                VideoPlay.count({ where: { profileId: this.profileId } }),
+                PodcastPlay.count({ where: { profileId: this.profileId } }),
                 // Unikalne programy
                 sequelize.query(`
                     SELECT COUNT(DISTINCT shows.id) as count 
@@ -681,7 +824,7 @@ class SpotifyDataImporter {
                     type: QueryTypes.SELECT
                 }).then(result => parseInt((result[0] as any).count)),
                 // Unikalne odcinki
-                VideoPlay.count({
+                PodcastPlay.count({
                     where: { profileId: this.profileId },
                     distinct: true,
                     col: 'episodeId'
@@ -745,7 +888,9 @@ class SpotifyDataImporter {
         console.log(`   ▶️ Plays created: ${this.stats.playsCreated}`)
         console.log(`   📺 Shows created: ${this.stats.showsCreated}`)
         console.log(`   🎙️ Episodes created: ${this.stats.episodesCreated}`)
-        console.log(`   📽️ Video plays created: ${this.stats.videoPlaysCreated}`)
+        console.log(`   🎧 Podcast plays created: ${this.stats.podcastPlaysCreated}`)
+        console.log(`   📖 Audiobooks created: ${this.stats.audiobooksCreated}`)
+        console.log(`   📚 Audiobook plays created: ${this.stats.audiobookPlaysCreated}`)
         console.log(`   ⏭️ Records skipped: ${this.stats.skippedRecords}`)
     }
 
@@ -756,7 +901,7 @@ class SpotifyDataImporter {
         console.log('🗑️ Clearing all data...')
         await Promise.all([
             Play.destroy({ where: {} }),
-            VideoPlay.destroy({ where: {} }),
+            PodcastPlay.destroy({ where: {} }),
             Track.destroy({ where: {} }),
             Episode.destroy({ where: {} }),
             Album.destroy({ where: {} }),

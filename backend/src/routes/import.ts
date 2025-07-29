@@ -437,7 +437,8 @@ router.delete('/clear', async (req, res) => {
                 'daily_stats', 
                 'country_stats',
                 'artist_stats',  // To musi być usunięte PRZED usunięciem artists
-                'video_plays'
+                'video_plays',
+                'podcast_plays'
             ]
 
             for (const table of tablesToClear) {
