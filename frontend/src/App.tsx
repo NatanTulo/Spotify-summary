@@ -6,6 +6,7 @@ import { LanguageProvider } from './context/LanguageContext'
 // Lazy load głównych stron dla code-splitting
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Analytics = lazy(() => import('./pages/Analytics'))
+const VideoPodcasts = lazy(() => import('./pages/VideoPodcasts'))
 
 // Loading component
 const LoadingSpinner = () => (
@@ -23,6 +24,7 @@ function App() {
                         <Route path="/" element={<Dashboard />} />
                         <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/analytics" element={<Analytics />} />
+                        <Route path="/video" element={<VideoPodcasts />} />
                     </Routes>
                 </Suspense>
             </Layout>

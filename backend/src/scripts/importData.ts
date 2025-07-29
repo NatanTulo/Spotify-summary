@@ -8,6 +8,9 @@ import { Album } from '../models/Album.js'
 import { Track } from '../models/Track.js'
 import { Play } from '../models/Play.js'
 import { Profile } from '../models/Profile.js'
+import { Show } from '../models/Show.js'
+import { Episode } from '../models/Episode.js'
+import { VideoPlay } from '../models/VideoPlay.js'
 import ImportProgressManager from '../utils/ImportProgressManager.js'
 import { StatsAggregator } from '../utils/StatsAggregator.js'
 
@@ -49,12 +52,17 @@ class SpotifyDataImporter {
         albumsCreated: 0,
         tracksCreated: 0,
         playsCreated: 0,
+        showsCreated: 0,
+        episodesCreated: 0,
+        videoPlaysCreated: 0,
         skippedRecords: 0
     }
 
     private artists = new Map<string, number>() // name -> id
     private albums = new Map<string, number>()   // name:artistId -> id
     private tracks = new Map<string, number>()   // name:albumId -> id
+    private shows = new Map<string, number>()    // name -> id
+    private episodes = new Map<string, number>() // name:showId -> id
     private progressManager: ImportProgressManager
 
     constructor(dataDir: string = '../data', profileName?: string) {
@@ -207,7 +215,8 @@ class SpotifyDataImporter {
         }
 
         return fs.readdirSync(this.dataDir)
-            .filter(file => file.endsWith('.json') && file.includes('Streaming_History'))
+            .filter(file => file.endsWith('.json') && 
+                   (file.includes('Streaming_History_Audio') || file.includes('Streaming_History_Video')))
             .sort()
     }
 
@@ -296,6 +305,20 @@ class SpotifyDataImporter {
      * Przetwórz pojedynczy rekord
      */
     private async processRecord(record: SpotifyPlayData): Promise<void> {
+        // Sprawdź czy to dane video/podcast
+        const isVideoContent = !!(record.episode_name || record.episode_show_name || record.spotify_episode_uri)
+        
+        if (isVideoContent) {
+            return this.processVideoRecord(record)
+        } else {
+            return this.processMusicRecord(record)
+        }
+    }
+
+    /**
+     * Przetwórz rekord muzyczny
+     */
+    private async processMusicRecord(record: SpotifyPlayData): Promise<void> {
         // Skip jeśli brak podstawowych danych
         if (!record.master_metadata_track_name ||
             !record.master_metadata_album_artist_name ||
@@ -323,6 +346,32 @@ class SpotifyDataImporter {
         )
 
         await this.createPlay(record, trackId)
+    }
+
+    /**
+     * Przetwórz rekord video/podcast
+     */
+    private async processVideoRecord(record: SpotifyPlayData): Promise<void> {
+        // Skip jeśli brak podstawowych danych video
+        if (!record.episode_name || !record.episode_show_name || !record.ts) {
+            this.stats.skippedRecords++
+            return
+        }
+
+        // Pomiń odtwarzania krótsze niż 30 sekund (30000ms)
+        if (record.ms_played < 30000) {
+            this.stats.skippedRecords++
+            return
+        }
+
+        const showId = await this.getOrCreateShow(record.episode_show_name)
+        const episodeId = await this.getOrCreateEpisode(
+            record.episode_name,
+            showId,
+            record.spotify_episode_uri || undefined
+        )
+
+        await this.createVideoPlay(record, episodeId)
     }
 
     /**
@@ -428,6 +477,85 @@ class SpotifyDataImporter {
     }
 
     /**
+     * Utwórz lub pobierz show/podcast
+     */
+    private async getOrCreateShow(name: string): Promise<number> {
+        if (this.shows.has(name)) {
+            return this.shows.get(name)!
+        }
+
+        let show = await Show.findOne({ where: { name } })
+
+        if (!show) {
+            show = await Show.create({
+                name,
+                createdAt: new Date(),
+                updatedAt: new Date()
+            })
+            this.stats.showsCreated++
+        }
+
+        this.shows.set(name, show.id)
+        return show.id
+    }
+
+    /**
+     * Utwórz lub pobierz episode
+     */
+    private async getOrCreateEpisode(name: string, showId: number, spotifyUri?: string): Promise<number> {
+        const cacheKey = `${name}:${showId}`
+        
+        if (this.episodes.has(cacheKey)) {
+            return this.episodes.get(cacheKey)!
+        }
+
+        let episode = await Episode.findOne({ 
+            where: { 
+                name, 
+                showId 
+            }
+        })
+
+        if (!episode) {
+            episode = await Episode.create({
+                name,
+                showId,
+                spotifyUri: spotifyUri || null,
+                createdAt: new Date(),
+                updatedAt: new Date()
+            })
+            this.stats.episodesCreated++
+        }
+
+        this.episodes.set(cacheKey, episode.id)
+        return episode.id
+    }
+
+    /**
+     * Utwórz video play
+     */
+    private async createVideoPlay(record: SpotifyPlayData, episodeId: number): Promise<void> {
+        await VideoPlay.create({
+            episodeId,
+            profileId: this.profileId!,
+            timestamp: new Date(record.ts),
+            msPlayed: record.ms_played,
+            country: record.conn_country || null,
+            platform: record.platform || null,
+            reasonStart: record.reason_start || null,
+            reasonEnd: record.reason_end || null,
+            shuffle: record.shuffle || false,
+            skipped: record.skipped || false,
+            offline: record.offline || false,
+            incognito: record.incognito_mode || false,
+            createdAt: new Date(),
+            updatedAt: new Date()
+        })
+
+        this.stats.videoPlaysCreated++
+    }
+
+    /**
      * Aktualizuj statystyki profilu
      */
     private async updateProfileStatistics(): Promise<void> {
@@ -504,7 +632,10 @@ class SpotifyDataImporter {
                 totalMsPlayed,
                 uniqueTracks,
                 uniqueArtists,
-                uniqueAlbums
+                uniqueAlbums,
+                totalVideoPlays,
+                uniqueShows,
+                uniqueEpisodes
             ] = await Promise.all([
                 Play.count({ where: { profileId: this.profileId } }),
                 Play.sum('msPlayed', { where: { profileId: this.profileId } }),
@@ -535,7 +666,26 @@ class SpotifyDataImporter {
                 `, {
                     replacements: { profileId: this.profileId },
                     type: QueryTypes.SELECT
-                }).then(result => parseInt((result[0] as any).count))
+                }).then(result => parseInt((result[0] as any).count)),
+                // Statystyki video
+                VideoPlay.count({ where: { profileId: this.profileId } }),
+                // Unikalne programy
+                sequelize.query(`
+                    SELECT COUNT(DISTINCT shows.id) as count 
+                    FROM video_plays 
+                    JOIN episodes ON video_plays."episodeId" = episodes.id
+                    JOIN shows ON episodes."showId" = shows.id  
+                    WHERE video_plays."profileId" = :profileId
+                `, {
+                    replacements: { profileId: this.profileId },
+                    type: QueryTypes.SELECT
+                }).then(result => parseInt((result[0] as any).count)),
+                // Unikalne odcinki
+                VideoPlay.count({
+                    where: { profileId: this.profileId },
+                    distinct: true,
+                    col: 'episodeId'
+                })
             ])
 
             // Aktualizuj profil z bieżącymi statystykami
@@ -545,7 +695,10 @@ class SpotifyDataImporter {
                     totalMinutes: Math.round((totalMsPlayed || 0) / 60000),
                     uniqueTracks: uniqueTracks || 0,
                     uniqueArtists: uniqueArtists || 0,
-                    uniqueAlbums: uniqueAlbums || 0
+                    uniqueAlbums: uniqueAlbums || 0,
+                    totalVideoPlays: totalVideoPlays || 0,
+                    uniqueShows: uniqueShows || 0,
+                    uniqueEpisodes: uniqueEpisodes || 0
                 },
                 updatedAt: new Date()
             }, {
@@ -560,7 +713,10 @@ class SpotifyDataImporter {
                     totalMinutes: Math.round((totalMsPlayed || 0) / 60000),
                     uniqueTracks: uniqueTracks || 0,
                     uniqueArtists: uniqueArtists || 0,
-                    uniqueAlbums: uniqueAlbums || 0
+                    uniqueAlbums: uniqueAlbums || 0,
+                    totalVideoPlays: totalVideoPlays || 0,
+                    uniqueShows: uniqueShows || 0,
+                    uniqueEpisodes: uniqueEpisodes || 0
                 }
             })
 
@@ -587,6 +743,9 @@ class SpotifyDataImporter {
         console.log(`   💿 Albums created: ${this.stats.albumsCreated}`)
         console.log(`   🎶 Tracks created: ${this.stats.tracksCreated}`)
         console.log(`   ▶️ Plays created: ${this.stats.playsCreated}`)
+        console.log(`   📺 Shows created: ${this.stats.showsCreated}`)
+        console.log(`   🎙️ Episodes created: ${this.stats.episodesCreated}`)
+        console.log(`   📽️ Video plays created: ${this.stats.videoPlaysCreated}`)
         console.log(`   ⏭️ Records skipped: ${this.stats.skippedRecords}`)
     }
 
@@ -597,8 +756,11 @@ class SpotifyDataImporter {
         console.log('🗑️ Clearing all data...')
         await Promise.all([
             Play.destroy({ where: {} }),
+            VideoPlay.destroy({ where: {} }),
             Track.destroy({ where: {} }),
+            Episode.destroy({ where: {} }),
             Album.destroy({ where: {} }),
+            Show.destroy({ where: {} }),
             Artist.destroy({ where: {} }),
             Profile.destroy({ where: {} })
         ])

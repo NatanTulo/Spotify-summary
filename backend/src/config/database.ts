@@ -8,6 +8,9 @@ import { ArtistStats } from '../models/ArtistStats.js'
 import { CountryStats } from '../models/CountryStats.js'
 import { DailyStats } from '../models/DailyStats.js'
 import { YearlyStats } from '../models/YearlyStats.js'
+import { Show } from '../models/Show.js'
+import { Episode } from '../models/Episode.js'
+import { VideoPlay } from '../models/VideoPlay.js'
 
 const sequelize = new Sequelize({
     dialect: 'postgres',
@@ -25,7 +28,10 @@ const sequelize = new Sequelize({
         ArtistStats,
         CountryStats,
         DailyStats,
-        YearlyStats
+        YearlyStats,
+        Show,
+        Episode,
+        VideoPlay
     ],
     logging: process.env.NODE_ENV === 'development' ? console.log : false,
     pool: {

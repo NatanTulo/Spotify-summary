@@ -66,6 +66,12 @@ const Layout = ({ children }: LayoutProps) => {
                                 >
                                     {t('analytics')}
                                 </Link>
+                                <Link
+                                    to="/video"
+                                    className="px-4 py-2 text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                    {t('video')}
+                                </Link>
                             </nav>
                         </div>
 

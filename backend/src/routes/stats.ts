@@ -237,4 +237,64 @@ router.get('/timeline', async (req, res) => {
     }
 })
 
+// GET /api/stats/video - Statystyki wideo
+router.get('/video', async (req, res) => {
+    try {
+        const { profileId } = req.query
+
+        if (!profileId) {
+            return res.status(400).json({
+                success: false,
+                error: 'ProfileId is required'
+            })
+        }
+
+        const filter = { profileId }
+
+        // Import VideoPlay model
+        const { VideoPlay } = await import('../models/VideoPlay.js')
+
+        const [
+            totalVideoPlays,
+            totalVideoMinutes,
+            uniqueShows,
+            uniqueEpisodes
+        ] = await Promise.all([
+            VideoPlay.count({ where: filter }),
+            VideoPlay.sum('msPlayed', { where: filter }),
+            sequelize.query(`
+                SELECT COUNT(DISTINCT shows.id) as count
+                FROM video_plays
+                JOIN episodes ON video_plays."episodeId" = episodes.id
+                JOIN shows ON episodes."showId" = shows.id
+                WHERE video_plays."profileId" = :profileId
+            `, {
+                replacements: { profileId },
+                type: QueryTypes.SELECT
+            }).then((result: any[]) => parseInt(result[0]?.count) || 0),
+            VideoPlay.count({
+                where: filter,
+                distinct: true,
+                col: 'episodeId'
+            })
+        ])
+
+        res.json({
+            success: true,
+            data: {
+                totalVideoPlays: totalVideoPlays || 0,
+                totalVideoMinutes: Math.round((totalVideoMinutes || 0) / 60000),
+                uniqueShows: uniqueShows || 0,
+                uniqueEpisodes: uniqueEpisodes || 0
+            }
+        })
+    } catch (error) {
+        console.error('Error fetching video stats:', error)
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch video statistics'
+        })
+    }
+})
+
 export default router

@@ -55,15 +55,20 @@ router.get('/available', async (_req, res) => {
             .map(dirent => {
                 const profilePath = path.join(dataDir, dirent.name)
                 const files = fs.readdirSync(profilePath)
-                const jsonFiles = files.filter(file =>
+                const audioFiles = files.filter(file =>
                     file.startsWith('Streaming_History_Audio_') && file.endsWith('.json')
+                )
+                const videoFiles = files.filter(file =>
+                    file.startsWith('Streaming_History_Video_') && file.endsWith('.json')
                 )
 
                 return {
                     name: dirent.name,
                     path: profilePath,
-                    files: jsonFiles,
-                    fileCount: jsonFiles.length
+                    files: [...audioFiles, ...videoFiles],
+                    audioFiles: audioFiles.length,
+                    videoFiles: videoFiles.length,
+                    fileCount: audioFiles.length + videoFiles.length
                 }
             })
             .filter(profile => profile.fileCount > 0)
@@ -102,14 +107,19 @@ router.get('/status', async (_req, res) => {
             .map(dirent => {
                 const profilePath = path.join(dataDir, dirent.name)
                 const files = fs.readdirSync(profilePath)
-                const jsonFiles = files.filter(file =>
+                const audioFiles = files.filter(file =>
                     file.startsWith('Streaming_History_Audio_') && file.endsWith('.json')
+                )
+                const videoFiles = files.filter(file =>
+                    file.startsWith('Streaming_History_Video_') && file.endsWith('.json')
                 )
 
                 return {
                     name: dirent.name,
-                    files: jsonFiles,
-                    fileCount: jsonFiles.length
+                    files: [...audioFiles, ...videoFiles],
+                    audioFiles: audioFiles.length,
+                    videoFiles: videoFiles.length,
+                    fileCount: audioFiles.length + videoFiles.length
                 }
             })
             .filter(profile => profile.fileCount > 0)
@@ -419,67 +429,89 @@ router.delete('/clear', async (req, res) => {
         const transaction = await sequelize.transaction()
 
         try {
-            // Usuń wszystkie powiązane tabele statystyk
-            await sequelize.query(`
-                DELETE FROM "yearly_stats" WHERE "profileId" = :profileId
-            `, {
-                replacements: { profileId },
-                transaction
-            })
+            console.log(`🗑️ Deleting profile ${profileId} and all associated data...`)
 
-            await sequelize.query(`
-                DELETE FROM "daily_stats" WHERE "profileId" = :profileId
-            `, {
-                replacements: { profileId },
-                transaction
-            })
+            // Usuń wszystkie powiązane tabele statystyk - z obsługą błędów dla nieistniejących tabel
+            const tablesToClear = [
+                'yearly_stats',
+                'daily_stats', 
+                'country_stats',
+                'artist_stats',  // To musi być usunięte PRZED usunięciem artists
+                'video_plays'
+            ]
 
-            await sequelize.query(`
-                DELETE FROM "country_stats" WHERE "profileId" = :profileId
-            `, {
-                replacements: { profileId },
-                transaction
-            })
-
-            await sequelize.query(`
-                DELETE FROM "artist_stats" WHERE "profileId" = :profileId
-            `, {
-                replacements: { profileId },
-                transaction
-            })
+            for (const table of tablesToClear) {
+                try {
+                    await sequelize.query(`
+                        DELETE FROM ${table} WHERE "profileId" = :profileId
+                    `, {
+                        replacements: { profileId },
+                        transaction
+                    })
+                    console.log(`✅ Cleared ${table} for profile ${profileId}`)
+                } catch (error) {
+                    console.warn(`⚠️ Could not clear ${table} (table may not exist):`, error)
+                    // Kontynuuj, jeśli tabela nie istnieje
+                }
+            }
 
             // Usuń wszystkie plays dla tego profilu
-            await sequelize.query(`
-                DELETE FROM plays WHERE "profileId" = :profileId
-            `, {
-                replacements: { profileId },
-                transaction
-            })
+            try {
+                await sequelize.query(`
+                    DELETE FROM plays WHERE "profileId" = :profileId
+                `, {
+                    replacements: { profileId },
+                    transaction
+                })
+                console.log(`✅ Cleared plays for profile ${profileId}`)
+            } catch (error) {
+                console.error('Error clearing plays:', error)
+                throw error // Plays są wymagane, więc rzuć błąd
+            }
 
-            // Usuń tracks, albums, artists które nie są używane przez inne profile
-            // Najpierw tracks
-            await sequelize.query(`
-                DELETE FROM tracks WHERE id NOT IN (
-                    SELECT DISTINCT "trackId" FROM plays WHERE "trackId" IS NOT NULL
-                )
-            `, { transaction })
+            // Teraz możemy bezpiecznie czyścić nieużywane dane
+            // Usuń tracks które nie są używane przez żadne profile
+            try {
+                await sequelize.query(`
+                    DELETE FROM tracks WHERE id NOT IN (
+                        SELECT DISTINCT "trackId" FROM plays WHERE "trackId" IS NOT NULL
+                    )
+                `, { transaction })
+                console.log(`✅ Cleaned up unused tracks`)
+            } catch (error) {
+                console.warn('Could not clean up tracks:', error)
+            }
 
-            // Następnie albums
-            await sequelize.query(`
-                DELETE FROM albums WHERE id NOT IN (
-                    SELECT DISTINCT "albumId" FROM tracks WHERE "albumId" IS NOT NULL
-                )
-            `, { transaction })
+            // Usuń albums które nie są używane przez żadne tracks
+            try {
+                await sequelize.query(`
+                    DELETE FROM albums WHERE id NOT IN (
+                        SELECT DISTINCT "albumId" FROM tracks WHERE "albumId" IS NOT NULL
+                    )
+                `, { transaction })
+                console.log(`✅ Cleaned up unused albums`)
+            } catch (error) {
+                console.warn('Could not clean up albums:', error)
+            }
 
-            // Na końcu artists
-            await sequelize.query(`
-                DELETE FROM artists WHERE id NOT IN (
-                    SELECT DISTINCT "artistId" FROM albums WHERE "artistId" IS NOT NULL
-                )
-            `, { transaction })
+            // Na końcu usuń artists - ale sprawdź czy nie są używane w artist_stats lub albums
+            try {
+                await sequelize.query(`
+                    DELETE FROM artists WHERE id NOT IN (
+                        SELECT DISTINCT "artistId" FROM albums WHERE "artistId" IS NOT NULL
+                        UNION
+                        SELECT DISTINCT "artistId" FROM artist_stats WHERE "artistId" IS NOT NULL
+                    )
+                `, { transaction })
+                console.log(`✅ Cleaned up unused artists`)
+            } catch (error) {
+                console.warn('Could not clean up artists:', error)
+                // Nie przerywaj, jeśli nie można usunąć artistów
+            }
 
-            // Usuń profil
+            // Usuń profil na samym końcu
             await profile.destroy({ transaction })
+            console.log(`✅ Deleted profile ${profileId}`)
 
             await transaction.commit()
 

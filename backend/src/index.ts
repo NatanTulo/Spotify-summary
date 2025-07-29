@@ -13,6 +13,7 @@ import statsRouter from './routes/stats.js'
 import artistsRouter from './routes/artists.js'
 import albumsRouter from './routes/albums.js'
 import importRouter from './routes/import.js'
+import videoRouter from './routes/video.js'
 
 dotenv.config()
 
@@ -73,6 +74,7 @@ function setupRoutes() {
     app.use('/api/artists', artistsRouter)
     app.use('/api/albums', albumsRouter)
     app.use('/api/import', importRouter)
+    app.use('/api/video', videoRouter)
 
     // Serve static files from frontend dist
     const __filename = fileURLToPath(import.meta.url)

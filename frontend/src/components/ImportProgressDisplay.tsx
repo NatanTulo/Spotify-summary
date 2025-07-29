@@ -28,6 +28,9 @@ interface ImportProgress {
         albumsCreated: number
         tracksCreated: number
         playsCreated: number
+        showsCreated?: number
+        episodesCreated?: number
+        videoPlaysCreated?: number
         skippedRecords: number
     }
 }
@@ -197,7 +200,7 @@ export const ImportProgressDisplay = ({ profileName, onClose, className }: Impor
                 )}
 
                 {/* Statistics */}
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className={`grid gap-4 text-sm ${(progress.stats.showsCreated ?? 0) > 0 || (progress.stats.episodesCreated ?? 0) > 0 ? 'grid-cols-3' : 'grid-cols-2'}`}>
                     <div>
                         <div className="text-muted-foreground">{t('filesLabel')}</div>
                         <div className="font-medium">{progress.completedFiles}/{progress.totalFiles}</div>
@@ -214,6 +217,18 @@ export const ImportProgressDisplay = ({ profileName, onClose, className }: Impor
                         <div className="text-muted-foreground">{t('tracksLabel')}</div>
                         <div className="font-medium">{progress.stats.tracksCreated.toLocaleString()}</div>
                     </div>
+                    {((progress.stats.showsCreated ?? 0) > 0 || (progress.stats.episodesCreated ?? 0) > 0) && (
+                        <>
+                            <div>
+                                <div className="text-muted-foreground">{t('showsStats')}</div>
+                                <div className="font-medium">{(progress.stats.showsCreated ?? 0).toLocaleString()}</div>
+                            </div>
+                            <div>
+                                <div className="text-muted-foreground">{t('episodesStats')}</div>
+                                <div className="font-medium">{(progress.stats.episodesCreated ?? 0).toLocaleString()}</div>
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 {/* Actions */}

@@ -32,6 +32,45 @@ export interface SpotifyPlay {
     incognitoMode?: boolean
 }
 
+// Video/Podcast interfaces
+export interface SpotifyShow {
+    id: string
+    name: string
+    description?: string
+}
+
+export interface SpotifyEpisode {
+    id: string
+    name: string
+    showId: string
+    spotifyUri?: string
+    description?: string
+    show?: SpotifyShow
+}
+
+export interface SpotifyVideoPlay {
+    id: string
+    episodeId: string
+    timestamp: Date
+    msPlayed: number
+    platform?: string
+    country?: string
+    reasonStart?: string
+    reasonEnd?: string
+    shuffle?: boolean
+    skipped?: boolean
+    offline?: boolean
+    incognitoMode?: boolean
+    episode?: SpotifyEpisode
+}
+
+export interface VideoStats {
+    totalVideoPlays: number
+    totalVideoMinutes: number
+    uniqueShows: number
+    uniqueEpisodes: number
+}
+
 export interface TrackStats {
     trackId: string
     trackName: string

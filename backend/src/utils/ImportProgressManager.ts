@@ -21,6 +21,9 @@ interface ImportProgress {
         albumsCreated: number
         tracksCreated: number
         playsCreated: number
+        showsCreated?: number
+        episodesCreated?: number
+        videoPlaysCreated?: number
         skippedRecords: number
         currentStats?: {
             totalPlays: number
@@ -28,6 +31,9 @@ interface ImportProgress {
             uniqueTracks: number
             uniqueArtists: number
             uniqueAlbums: number
+            totalVideoPlays?: number
+            uniqueShows?: number
+            uniqueEpisodes?: number
         }
     }
 }
@@ -65,6 +71,9 @@ class ImportProgressManager {
                 albumsCreated: 0,
                 tracksCreated: 0,
                 playsCreated: 0,
+                showsCreated: 0,
+                episodesCreated: 0,
+                videoPlaysCreated: 0,
                 skippedRecords: 0
             }
         })

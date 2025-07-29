@@ -21,6 +21,9 @@ interface Profile {
     uniqueTracks: number;
     uniqueArtists: number;
     uniqueAlbums: number;
+    totalVideoPlays?: number;
+    uniqueShows?: number;
+    uniqueEpisodes?: number;
   };
   createdAt: string;
 }
@@ -48,6 +51,9 @@ interface ImportProgress {
     albumsCreated: number;
     tracksCreated: number;
     playsCreated: number;
+    showsCreated?: number;
+    episodesCreated?: number;
+    videoPlaysCreated?: number;
     skippedRecords: number;
     currentStats?: {
       totalPlays: number;
@@ -55,6 +61,9 @@ interface ImportProgress {
       uniqueTracks: number;
       uniqueArtists: number;
       uniqueAlbums: number;
+      totalVideoPlays?: number;
+      uniqueShows?: number;
+      uniqueEpisodes?: number;
     };
   };
 }
@@ -79,7 +88,13 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
   const { t, formatDate: localizedFormatDate } = useLanguage();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [availableProfiles, setAvailableProfiles] = useState<
-    Array<{ name: string; files: any[] }>
+    Array<{ 
+      name: string; 
+      files: any[]; 
+      audioFiles?: number; 
+      videoFiles?: number; 
+      fileCount: number;
+    }>
   >([]);
   const [isLoadingProfiles, setIsLoadingProfiles] = useState(false);
   const [importingProfile, setImportingProfile] = useState<string | null>(null);
@@ -396,7 +411,21 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                       </button>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {profile.files.length} {t("jsonFiles")}
+                      {(profile.audioFiles ?? 0) > 0 && (
+                        <span className="mr-3">
+                          {profile.audioFiles} {t("audioFiles")}
+                        </span>
+                      )}
+                      {(profile.videoFiles ?? 0) > 0 && (
+                        <span className="mr-3">
+                          {profile.videoFiles} {t("videoFiles")}
+                        </span>
+                      )}
+                      {!(profile.audioFiles ?? 0) && !(profile.videoFiles ?? 0) && (
+                        <span>
+                          {profile.files.length} {t("jsonFiles")}
+                        </span>
+                      )}
                     </p>
 
                     {/* Progress Bar */}
@@ -440,7 +469,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                             <div className="font-medium text-gray-700 dark:text-gray-300">
                               {t("currentStats")}
                             </div>
-                            <div className="grid grid-cols-2 gap-1 text-gray-600 dark:text-gray-400">
+                            <div className={`grid gap-1 text-gray-600 dark:text-gray-400 ${(progress.stats.currentStats.totalVideoPlays ?? 0) > 0 ? 'grid-cols-3' : 'grid-cols-2'}`}>
                               <div>
                                 {t("playsIcon")}{" "}
                                 {progress.stats.currentStats.totalPlays.toLocaleString()}{" "}
@@ -461,6 +490,20 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                                 {progress.stats.currentStats.uniqueAlbums.toLocaleString()}{" "}
                                 {t("albumsStats")}
                               </div>
+                              {((progress.stats.currentStats.totalVideoPlays ?? 0) > 0) && (
+                                <>
+                                  <div>
+                                    {t("videoplaysIcon")}{" "}
+                                    {(progress.stats.currentStats.totalVideoPlays ?? 0).toLocaleString()}{" "}
+                                    {t("videoplaysStats")}
+                                  </div>
+                                  <div>
+                                    {t("showsIcon")}{" "}
+                                    {(progress.stats.currentStats.uniqueShows ?? 0).toLocaleString()}{" "}
+                                    {t("showsStats")}
+                                  </div>
+                                </>
+                              )}
                             </div>
                           </div>
                         )}
@@ -512,7 +555,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className={`grid gap-2 text-sm ${(profile.statistics?.totalVideoPlays ?? 0) > 0 ? 'grid-cols-3' : 'grid-cols-2'}`}>
                     <div className="flex items-center gap-1">
                       <Play className="h-3 w-3" />
                       {(
@@ -538,6 +581,24 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                       ).toLocaleString()}{" "}
                       {t("artistsStats")}
                     </div>
+                    {((profile.statistics?.totalVideoPlays ?? 0) > 0) && (
+                      <>
+                        <div className="flex items-center gap-1">
+                          <span className="h-3 w-3 text-center">📺</span>
+                          {(
+                            profile.statistics?.totalVideoPlays || 0
+                          ).toLocaleString()}{" "}
+                          {t("videoplaysStats")}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="h-3 w-3 text-center">🎬</span>
+                          {(
+                            profile.statistics?.uniqueShows || 0
+                          ).toLocaleString()}{" "}
+                          {t("showsStats")}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               ))}
