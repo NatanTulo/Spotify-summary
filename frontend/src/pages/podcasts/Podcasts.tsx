@@ -199,11 +199,17 @@ const Podcasts: React.FC = () => {
 
     const fetchShows = async () => {
         try {
-            const response = await fetch(`/api/podcasts/shows?profileId=${selectedProfile}&limit=100`)
-            const result: ApiResponse<SpotifyShow[]> = await response.json()
+            console.log('🔍 Fetching shows...')
+            const response = await fetch(`/api/podcasts/shows?limit=100`)
+            console.log('🔍 Shows response status:', response.status)
+            const result: ApiResponse<{shows: SpotifyShow[], total: number, limit: number, offset: number}> = await response.json()
+            console.log('🔍 Shows result:', result)
             
-            if (result.success && Array.isArray(result.data)) {
-                setShows(result.data)
+            if (result.success && result.data.shows && Array.isArray(result.data.shows)) {
+                console.log('🔍 Setting shows:', result.data.shows.length, 'items')
+                setShows(result.data.shows)
+            } else {
+                console.log('🔍 Shows result not successful or invalid data:', result)
             }
         } catch (error) {
             console.error('Error fetching shows:', error)
@@ -212,11 +218,32 @@ const Podcasts: React.FC = () => {
 
     const fetchShowEpisodes = async (showId: string) => {
         try {
-            const response = await fetch(`/api/podcasts/shows/${showId}/episodes?profileId=${selectedProfile}&limit=50`)
-            const result: ApiResponse<PodcastPlay[]> = await response.json()
+            console.log('🔍 Fetching episodes for show:', showId)
+            const response = await fetch(`/api/podcasts/shows/${showId}/episodes?limit=50`)
+            console.log('🔍 Episodes response status:', response.status)
+            const result: ApiResponse<{episodes: any[], total: number, limit: number, offset: number}> = await response.json()
+            console.log('🔍 Episodes result:', result)
             
-            if (result.success && Array.isArray(result.data)) {
-                setShowEpisodes(result.data)
+            if (result.success && result.data.episodes && Array.isArray(result.data.episodes)) {
+                console.log('🔍 Processing episodes:', result.data.episodes.length, 'items')
+                // Przekształć episode na format oczekiwany przez frontend
+                const transformedEpisodes = result.data.episodes.map(episode => ({
+                    id: episode.id.toString(),
+                    episodeId: episode.id,
+                    episodeName: episode.name || 'Unknown Episode',
+                    showName: episode.show?.name || 'Unknown Show',
+                    ts: episode.createdAt || new Date().toISOString(),
+                    msPlayed: 0, // Placeholder - nie mamy tej informacji w samych odcinkach
+                    platform: 'spotify', // Placeholder
+                    reasonStart: 'unknown',
+                    reasonEnd: 'unknown',
+                    episodeUri: episode.spotifyUri || '',
+                    episodeShowUri: ''
+                }))
+                console.log('🔍 Transformed episodes:', transformedEpisodes)
+                setShowEpisodes(transformedEpisodes)
+            } else {
+                console.log('🔍 Episodes result not successful or invalid data:', result)
             }
         } catch (error) {
             console.error('Error fetching show episodes:', error)
@@ -224,6 +251,7 @@ const Podcasts: React.FC = () => {
     }
 
     const handleShowSelect = (show: SpotifyShow) => {
+        console.log('🔍 Show selected:', show)
         setSelectedShow(show)
         fetchShowEpisodes(show.id)
     }
@@ -334,13 +362,31 @@ const Podcasts: React.FC = () => {
             )}
 
             <Tabs defaultValue="overview" className="space-y-4">
-                <TabsList className="grid w-full grid-cols-6">
-                    <TabsTrigger value="overview">{t('overview') || 'Overview'}</TabsTrigger>
-                    <TabsTrigger value="top-shows">{t('topShows') || 'Top Shows'}</TabsTrigger>
-                    <TabsTrigger value="episodes">{t('episodes') || 'Episodes'}</TabsTrigger>
-                    <TabsTrigger value="recent">{t('recent') || 'Recent'}</TabsTrigger>
-                    <TabsTrigger value="charts">{t('charts') || 'Charts'}</TabsTrigger>
-                    <TabsTrigger value="platforms">{t('platforms') || 'Platforms'}</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6">
+                    <TabsTrigger value="overview">
+                        <span className="hidden sm:inline">{t('overview') || 'Overview'}</span>
+                        <span className="sm:hidden">{t('overviewShort') || 'Overview'}</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="top-shows">
+                        <span className="hidden sm:inline">{t('topShows') || 'Top Shows'}</span>
+                        <span className="sm:hidden">{t('topShowsShort') || 'Shows'}</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="episodes">
+                        <span className="hidden sm:inline">{t('episodes') || 'Episodes'}</span>
+                        <span className="sm:hidden">{t('episodesShort') || 'Episodes'}</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="recent">
+                        <span className="hidden sm:inline">{t('recent') || 'Recent'}</span>
+                        <span className="sm:hidden">{t('recentShort') || 'Recent'}</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="charts">
+                        <span className="hidden sm:inline">{t('charts') || 'Charts'}</span>
+                        <span className="sm:hidden">{t('chartsShort') || 'Charts'}</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="platforms">
+                        <span className="hidden sm:inline">{t('platforms') || 'Platforms'}</span>
+                        <span className="sm:hidden">{t('platformsShort') || 'Platform'}</span>
+                    </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-4">
@@ -353,14 +399,14 @@ const Podcasts: React.FC = () => {
                             <CardContent>
                                 <div className="space-y-2">
                                     {topShows.slice(0, 5).map((show, index) => (
-                                        <div key={show.id} className="flex items-center justify-between">
-                                            <div className="flex items-center space-x-2">
-                                                <span className="text-sm font-medium text-muted-foreground">
+                                        <div key={show.id} className="flex items-center justify-between gap-2">
+                                            <div className="flex items-center space-x-2 min-w-0 flex-1">
+                                                <span className="text-sm font-medium text-muted-foreground flex-shrink-0">
                                                     #{index + 1}
                                                 </span>
-                                                <span className="text-sm truncate">{show.name}</span>
+                                                <span className="text-sm truncate" title={show.name}>{show.name}</span>
                                             </div>
-                                            <span className="text-sm text-muted-foreground">
+                                            <span className="text-sm text-muted-foreground flex-shrink-0">
                                                 {show.playCount} plays
                                             </span>
                                         </div>
@@ -377,17 +423,17 @@ const Podcasts: React.FC = () => {
                             <CardContent>
                                 <div className="space-y-2">
                                     {topEpisodes.slice(0, 5).map((episode, index) => (
-                                        <div key={episode.id} className="flex items-center justify-between">
-                                            <div className="flex items-center space-x-2">
-                                                <span className="text-sm font-medium text-muted-foreground">
+                                        <div key={episode.id} className="flex items-center justify-between gap-2">
+                                            <div className="flex items-center space-x-2 min-w-0 flex-1">
+                                                <span className="text-sm font-medium text-muted-foreground flex-shrink-0">
                                                     #{index + 1}
                                                 </span>
-                                                <div className="flex flex-col">
-                                                    <span className="text-sm truncate">{episode.name}</span>
-                                                    <span className="text-xs text-muted-foreground">{episode.showName}</span>
+                                                <div className="flex flex-col min-w-0 flex-1">
+                                                    <span className="text-sm truncate" title={episode.name}>{episode.name}</span>
+                                                    <span className="text-xs text-muted-foreground truncate" title={episode.showName}>{episode.showName}</span>
                                                 </div>
                                             </div>
-                                            <span className="text-sm text-muted-foreground">
+                                            <span className="text-sm text-muted-foreground flex-shrink-0">
                                                 {episode.playCount} plays
                                             </span>
                                         </div>
@@ -409,19 +455,19 @@ const Podcasts: React.FC = () => {
                         <CardContent>
                             <div className="space-y-4">
                                 {topShows.map((show, index) => (
-                                    <div key={show.id} className="flex items-center justify-between p-4 border rounded-lg">
-                                        <div className="flex items-center space-x-4">
-                                            <div className="text-2xl font-bold text-primary">
+                                    <div key={show.id} className="flex items-center justify-between p-4 border rounded-lg gap-4">
+                                        <div className="flex items-center space-x-4 min-w-0 flex-1">
+                                            <div className="text-2xl font-bold text-primary flex-shrink-0">
                                                 #{index + 1}
                                             </div>
-                                            <div>
-                                                <h3 className="font-medium">{show.name}</h3>
+                                            <div className="min-w-0 flex-1">
+                                                <h3 className="font-medium truncate" title={show.name}>{show.name}</h3>
                                                 {show.publisher && (
-                                                    <p className="text-sm text-muted-foreground">{show.publisher}</p>
+                                                    <p className="text-sm text-muted-foreground truncate" title={show.publisher}>{show.publisher}</p>
                                                 )}
                                             </div>
                                         </div>
-                                        <div className="text-right">
+                                        <div className="text-right flex-shrink-0">
                                             <div className="font-medium">{show.playCount} plays</div>
                                             <div className="text-sm text-muted-foreground">
                                                 {formatDuration(show.totalTime)}
@@ -457,14 +503,14 @@ const Podcasts: React.FC = () => {
                                             onClick={() => handleShowSelect(show)}
                                         >
                                             <div className="flex items-center justify-between">
-                                                <div>
-                                                    <h4 className="font-medium">{show.name}</h4>
+                                                <div className="min-w-0 flex-1 mr-2">
+                                                    <h4 className="font-medium truncate" title={show.name}>{show.name}</h4>
                                                     {show.publisher && (
-                                                        <p className="text-sm text-muted-foreground">{show.publisher}</p>
+                                                        <p className="text-sm text-muted-foreground truncate" title={show.publisher}>{show.publisher}</p>
                                                     )}
                                                 </div>
                                                 {show.totalPlays && (
-                                                    <span className="text-sm text-muted-foreground">
+                                                    <span className="text-sm text-muted-foreground flex-shrink-0">
                                                         {show.totalPlays} plays
                                                     </span>
                                                 )}
@@ -478,7 +524,7 @@ const Podcasts: React.FC = () => {
                         {/* Episodes List */}
                         <Card>
                             <CardHeader>
-                                <CardTitle>
+                                <CardTitle className="truncate" title={selectedShow ? `${t('episodesFor') || 'Episodes for'} ${selectedShow.name}` : undefined}>
                                     {selectedShow 
                                         ? `${t('episodesFor') || 'Episodes for'} ${selectedShow.name}`
                                         : t('selectShowForEpisodes') || 'Select a show to view episodes'
@@ -490,15 +536,15 @@ const Podcasts: React.FC = () => {
                                     <div className="space-y-3 max-h-96 overflow-y-auto">
                                         {showEpisodes.map((episode) => (
                                             <div key={episode.id} className="p-3 border rounded-lg">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex-1">
-                                                        <h4 className="font-medium text-sm">{episode.episodeName}</h4>
-                                                        <div className="flex items-center space-x-2 text-xs text-muted-foreground mt-1">
-                                                            <span>{formatTime(episode.ts)}</span>
-                                                            <span>•</span>
-                                                            <span>{formatDuration(episode.msPlayed)}</span>
-                                                            <span>•</span>
-                                                            <span>{episode.platform}</span>
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <div className="flex-1 min-w-0">
+                                                        <h4 className="font-medium text-sm truncate" title={episode.episodeName}>{episode.episodeName}</h4>
+                                                        <div className="flex items-center space-x-2 text-xs text-muted-foreground mt-1 flex-wrap">
+                                                            <span className="flex-shrink-0">{formatTime(episode.ts)}</span>
+                                                            <span className="flex-shrink-0">•</span>
+                                                            <span className="flex-shrink-0">{formatDuration(episode.msPlayed)}</span>
+                                                            <span className="flex-shrink-0">•</span>
+                                                            <span className="flex-shrink-0">{episode.platform}</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -531,19 +577,19 @@ const Podcasts: React.FC = () => {
                         <CardContent>
                             <div className="space-y-3">
                                 {recentPlays.map((play) => (
-                                    <div key={play.id} className="flex items-center justify-between p-3 border rounded-lg">
-                                        <div className="flex-1">
-                                            <h4 className="font-medium">{play.episodeName}</h4>
-                                            <p className="text-sm text-muted-foreground">{play.showName}</p>
-                                            <div className="flex items-center space-x-2 text-xs text-muted-foreground mt-1">
-                                                <span>{formatTime(play.ts)}</span>
-                                                <span>•</span>
-                                                <span>{play.platform}</span>
-                                                <span>•</span>
-                                                <span>{play.reasonStart} → {play.reasonEnd}</span>
+                                    <div key={play.id} className="flex items-center justify-between p-3 border rounded-lg gap-4">
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="font-medium truncate" title={play.episodeName}>{play.episodeName}</h4>
+                                            <p className="text-sm text-muted-foreground truncate" title={play.showName}>{play.showName}</p>
+                                            <div className="flex items-center space-x-2 text-xs text-muted-foreground mt-1 flex-wrap">
+                                                <span className="flex-shrink-0">{formatTime(play.ts)}</span>
+                                                <span className="flex-shrink-0">•</span>
+                                                <span className="flex-shrink-0">{play.platform}</span>
+                                                <span className="flex-shrink-0">•</span>
+                                                <span className="truncate">{play.reasonStart} → {play.reasonEnd}</span>
                                             </div>
                                         </div>
-                                        <div className="text-right">
+                                        <div className="text-right flex-shrink-0">
                                             <div className="text-sm font-medium">
                                                 {formatDuration(play.msPlayed)}
                                             </div>

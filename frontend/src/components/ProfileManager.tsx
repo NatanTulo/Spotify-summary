@@ -203,8 +203,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
   useEffect(() => {
     if (activeImports.size > 0) {
       const interval = setInterval(() => {
-        fetchProfiles();
-        checkActiveImports();
+        fetchProfiles(); // fetchProfiles already calls checkActiveImports internally
       }, 3000); // Refresh every 3 seconds only when imports are active
 
       return () => clearInterval(interval);
@@ -241,12 +240,25 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
         const profilesData = await profilesRes.json();
         const newProfiles = profilesData.data || [];
         
-        // Only update profiles if they actually changed
-        if (JSON.stringify(newProfiles) !== JSON.stringify(profiles)) {
+        // More stable comparison that handles undefined/null values and object property order
+        const profilesEqual = profiles.length === newProfiles.length && 
+          profiles.every((existingProfile, index) => {
+            const newProfile = newProfiles[index];
+            return existingProfile && newProfile &&
+              existingProfile._id === newProfile._id &&
+              existingProfile.name === newProfile.name &&
+              existingProfile.lastImport === newProfile.lastImport &&
+              JSON.stringify(existingProfile.statistics) === JSON.stringify(newProfile.statistics);
+          });
+        
+        if (!profilesEqual) {
+          console.log('📊 Profiles data changed, updating state');
           setProfiles(newProfiles);
           profilesChanged = true;
           // Powiadom parent component o zmianie profili
           onProfilesChanged?.();
+        } else {
+          console.log('📊 Profiles data unchanged, skipping update');
         }
       }
 
@@ -555,7 +567,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                     </div>
                   )}
 
-                  <div className={`grid gap-2 text-sm ${(profile.statistics?.totalPodcastPlays ?? 0) > 0 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                  <div className={`grid gap-2 text-sm ${(profile.statistics?.totalPodcastPlays ?? 0) > 0 ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5' : 'grid-cols-2'}`}>
                     <div className="flex items-center gap-1">
                       <Play className="h-3 w-3" />
                       {(
@@ -596,6 +608,13 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                             profile.statistics?.uniqueShows || 0
                           ).toLocaleString()}{" "}
                           {t("showsStats")}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="h-3 w-3 text-center">📻</span>
+                          {(
+                            profile.statistics?.uniqueEpisodes || 0
+                          ).toLocaleString()}{" "}
+                          {t("episodesStats")}
                         </div>
                       </>
                     )}

@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express'
-import { Op } from 'sequelize'
+import { Op, QueryTypes } from 'sequelize'
 import { Show, Episode, PodcastPlay, Profile } from '../../models/index.js'
 
 const router = Router()
@@ -20,64 +20,66 @@ router.get('/shows', async (req: Request, res: Response) => {
             where: whereClause,
             limit: parseInt(limit as string),
             offset: parseInt(offset as string),
-            order: [['name', 'ASC']],
-            distinct: true
-        })
-
-        res.json({
-            success: true,
-            data: shows.rows,
-            total: shows.count,
-            limit: parseInt(limit as string),
-            offset: parseInt(offset as string)
-        })
-    } catch (error) {
-        console.error('Error fetching shows:', error)
-        res.status(500).json({
-            success: false,
-            message: 'Błąd podczas pobierania programów'
-        })
-    }
-})
-
-/**
- * Pobierz listę odcinków dla programu
- */
-router.get('/shows/:showId/episodes', async (req: Request, res: Response) => {
-    try {
-        const { showId } = req.params
-        const { limit = 50, offset = 0, search } = req.query
-
-        const whereClause: any = { showId }
-        if (search) {
-            whereClause.name = { [Op.iLike]: `%${search}%` }
-        }
-
-        const episodes = await Episode.findAndCountAll({
-            where: whereClause,
-            limit: parseInt(limit as string),
-            offset: parseInt(offset as string),
             order: [['name', 'ASC']]
         })
 
         res.json({
             success: true,
-            data: episodes.rows,
-            total: episodes.count,
-            limit: parseInt(limit as string),
-            offset: parseInt(offset as string)
+            data: {
+                shows: shows.rows,
+                total: shows.count,
+                limit: parseInt(limit as string),
+                offset: parseInt(offset as string)
+            }
         })
     } catch (error) {
-        console.error('Error fetching episodes:', error)
+        console.error('Error fetching shows:', error)
         res.status(500).json({
             success: false,
-            message: 'Błąd podczas pobierania odcinków'
+            message: 'Failed to fetch shows'
         })
     }
 })
 
 /**
- * Pobierz statystyki podcastów
+ * Pobierz odcinki dla konkretnego programu
+ */
+router.get('/shows/:showId/episodes', async (req: Request, res: Response) => {
+    try {
+        const { showId } = req.params
+        const { limit = 50, offset = 0 } = req.query
+
+        const episodes = await Episode.findAndCountAll({
+            where: { showId: parseInt(showId) },
+            limit: parseInt(limit as string),
+            offset: parseInt(offset as string),
+            order: [['name', 'ASC']],
+            include: [{
+                model: Show,
+                attributes: ['name']
+            }]
+        })
+
+        res.json({
+            success: true,
+            data: {
+                episodes: episodes.rows,
+                total: episodes.count,
+                limit: parseInt(limit as string),
+                offset: parseInt(offset as string)
+            }
+        })
+    } catch (error) {
+        console.error('Error fetching episodes:', error)
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch episodes'
+        })
+    }
+})
+
+/**
+ * Pobierz statystyki podcastów dla profilu
  */
 router.get('/stats', async (req: Request, res: Response) => {
     try {
@@ -91,7 +93,7 @@ router.get('/stats', async (req: Request, res: Response) => {
         }
 
         // Sprawdź czy profil istnieje
-        const profile = await Profile.findByPk(profileId as string)
+        const profile = await Profile.findByPk(parseInt(profileId as string))
         if (!profile) {
             return res.status(404).json({
                 success: false,
@@ -99,10 +101,23 @@ router.get('/stats', async (req: Request, res: Response) => {
             })
         }
 
+        // Debug: sprawdź wszystkie podcast_plays
+        const allPodcastPlays = await PodcastPlay.findAll({
+            limit: 5
+        })
+        console.log('🔍 All podcast plays (first 5):', allPodcastPlays.map(p => ({
+            id: p.id,
+            profileId: p.profileId,
+            episodeId: p.episodeId,
+            msPlayed: p.msPlayed
+        })))
+
         // Podstawowe statystyki podcastów
         const totalPodcastPlays = await PodcastPlay.count({
             where: { profileId }
         }) || 0
+
+        console.log('🔍 Total podcast plays for profile', profileId, ':', totalPodcastPlays)
 
         const totalPodcastTimeResult = await PodcastPlay.sum('msPlayed', {
             where: { profileId }
@@ -115,18 +130,25 @@ router.get('/stats', async (req: Request, res: Response) => {
             where: { profileId }
         }) || 0
 
-        const uniqueShows = await PodcastPlay.count({
-            distinct: true,
-            col: 'episodeShowUri',
-            where: { profileId }
-        }) || 0
+        // Policzyć unikalne shows poprzez proste zapytanie SQL
+        const uniqueShows = await PodcastPlay.sequelize!.query(`
+            SELECT COUNT(DISTINCT e."showId") as count
+            FROM podcast_plays p
+            INNER JOIN episodes e ON p."episodeId" = e.id
+            WHERE p."profileId" = :profileId
+        `, {
+            replacements: { profileId },
+            type: QueryTypes.SELECT
+        }) as any[]
+        
+        const uniqueShowsCount = uniqueShows[0]?.count || 0
 
         res.json({
             success: true,
             data: {
                 totalPodcastPlays,
                 totalPodcastMinutes,
-                uniqueShows,
+                uniqueShows: uniqueShowsCount,
                 uniqueEpisodes
             }
         })
@@ -159,24 +181,32 @@ router.get('/top-shows', async (req: Request, res: Response) => {
         }
 
         // Zapytanie SQL do pobrania top podcastów
-        const topShows = await PodcastPlay.findAll({
-            attributes: [
-                'showName',
-                [PodcastPlay.sequelize!.fn('COUNT', '*'), 'playCount'],
-                [PodcastPlay.sequelize!.fn('SUM', PodcastPlay.sequelize!.col('msPlayed')), 'totalTime']
-            ],
-            where: { profileId },
-            group: ['showName'],
-            order: [[PodcastPlay.sequelize!.literal('COUNT(*)'), 'DESC']],
-            limit: parseInt(limit as string),
-            raw: true
-        })
+        const topShows = await PodcastPlay.sequelize!.query(`
+            SELECT 
+                s.id as "showId",
+                s.name as "showName",
+                COUNT(*) as "playCount",
+                SUM(p."msPlayed") as "totalTime"
+            FROM podcast_plays p
+            INNER JOIN episodes e ON p."episodeId" = e.id
+            INNER JOIN shows s ON e."showId" = s.id
+            WHERE p."profileId" = :profileId
+            GROUP BY s.id, s.name
+            ORDER BY COUNT(*) DESC
+            LIMIT :limit
+        `, {
+            replacements: { 
+                profileId: profileId,
+                limit: parseInt(limit as string)
+            },
+            type: QueryTypes.SELECT
+        }) as any[]
 
-        const formattedShows = topShows.map((show: any, index: number) => ({
-            id: `show-${index}`,
-            name: show.showName,
-            playCount: parseInt(show.playCount),
-            totalTime: parseInt(show.totalTime) || 0,
+        const formattedShows = topShows.map((result: any) => ({
+            id: `show-${result.showId}`,
+            name: result.showName || 'Unknown Show',
+            playCount: parseInt(result.playCount) || 0,
+            totalTime: parseInt(result.totalTime) || 0,
             publisher: null
         }))
 
@@ -207,26 +237,34 @@ router.get('/top-episodes', async (req: Request, res: Response) => {
             })
         }
 
-        const topEpisodes = await PodcastPlay.findAll({
-            attributes: [
-                'episodeName',
-                'showName',
-                [PodcastPlay.sequelize!.fn('COUNT', '*'), 'playCount'],
-                [PodcastPlay.sequelize!.fn('SUM', PodcastPlay.sequelize!.col('msPlayed')), 'totalTime']
-            ],
-            where: { profileId },
-            group: ['episodeName', 'showName'],
-            order: [[PodcastPlay.sequelize!.literal('COUNT(*)'), 'DESC']],
-            limit: parseInt(limit as string),
-            raw: true
-        })
+        const topEpisodes = await PodcastPlay.sequelize!.query(`
+            SELECT 
+                e.id as "episodeId",
+                e.name as "episodeName",
+                s.name as "showName",
+                COUNT(*) as "playCount",
+                SUM(p."msPlayed") as "totalTime"
+            FROM podcast_plays p
+            INNER JOIN episodes e ON p."episodeId" = e.id
+            INNER JOIN shows s ON e."showId" = s.id
+            WHERE p."profileId" = :profileId
+            GROUP BY e.id, e.name, s.name
+            ORDER BY COUNT(*) DESC
+            LIMIT :limit
+        `, {
+            replacements: { 
+                profileId: profileId,
+                limit: parseInt(limit as string)
+            },
+            type: QueryTypes.SELECT
+        }) as any[]
 
-        const formattedEpisodes = topEpisodes.map((episode: any, index: number) => ({
-            id: `episode-${index}`,
-            name: episode.episodeName,
-            showName: episode.showName,
-            playCount: parseInt(episode.playCount),
-            totalTime: parseInt(episode.totalTime) || 0
+        const formattedEpisodes = topEpisodes.map((result: any) => ({
+            id: `episode-${result.episodeId}`,
+            name: result.episodeName || 'Unknown Episode',
+            showName: result.showName || 'Unknown Show',
+            playCount: parseInt(result.playCount) || 0,
+            totalTime: parseInt(result.totalTime) || 0
         }))
 
         res.json({
@@ -243,7 +281,7 @@ router.get('/top-episodes', async (req: Request, res: Response) => {
 })
 
 /**
- * Pobierz ostatnie odtwariane odcinki
+ * Pobierz ostatnio odtwarzane podcasty
  */
 router.get('/recent-plays', async (req: Request, res: Response) => {
     try {
@@ -257,8 +295,16 @@ router.get('/recent-plays', async (req: Request, res: Response) => {
         }
 
         const recentPlays = await PodcastPlay.findAll({
+            include: [{
+                model: Episode,
+                attributes: ['name'],
+                include: [{
+                    model: Show,
+                    attributes: ['name']
+                }]
+            }],
             where: { profileId },
-            order: [['ts', 'DESC']],
+            order: [['timestamp', 'DESC']],
             limit: parseInt(limit as string)
         })
 
@@ -294,18 +340,18 @@ router.get('/daily-stats', async (req: Request, res: Response) => {
 
         const dailyStats = await PodcastPlay.findAll({
             attributes: [
-                [PodcastPlay.sequelize!.fn('DATE', PodcastPlay.sequelize!.col('ts')), 'date'],
+                [PodcastPlay.sequelize!.fn('DATE', PodcastPlay.sequelize!.col('timestamp')), 'date'],
                 [PodcastPlay.sequelize!.fn('COUNT', '*'), 'plays'],
                 [PodcastPlay.sequelize!.fn('SUM', PodcastPlay.sequelize!.col('msPlayed')), 'totalMs']
             ],
             where: {
                 profileId,
-                ts: {
+                timestamp: {
                     [Op.gte]: startDate
                 }
             },
-            group: [PodcastPlay.sequelize!.fn('DATE', PodcastPlay.sequelize!.col('ts'))],
-            order: [[PodcastPlay.sequelize!.fn('DATE', PodcastPlay.sequelize!.col('ts')), 'ASC']],
+            group: [PodcastPlay.sequelize!.fn('DATE', PodcastPlay.sequelize!.col('timestamp'))],
+            order: [[PodcastPlay.sequelize!.fn('DATE', PodcastPlay.sequelize!.col('timestamp')), 'ASC']],
             raw: true
         })
 
@@ -356,9 +402,9 @@ router.get('/platform-stats', async (req: Request, res: Response) => {
         const totalPlays = platformStats.reduce((sum: number, stat: any) => sum + parseInt(stat.plays), 0)
 
         const formattedStats = platformStats.map((stat: any) => ({
-            platform: stat.platform,
+            platform: stat.platform || 'Unknown',
             plays: parseInt(stat.plays),
-            percentage: totalPlays > 0 ? (parseInt(stat.plays) / totalPlays) * 100 : 0
+            percentage: Math.round((parseInt(stat.plays) / totalPlays) * 100)
         }))
 
         res.json({
