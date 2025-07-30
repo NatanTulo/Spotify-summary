@@ -1,11 +1,11 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
 import Layout from './components/Layout'
 import { LanguageProvider } from './context/LanguageContext'
 
 // Lazy load głównych stron dla code-splitting
 const Dashboard = lazy(() => import('./pages/Dashboard'))
-const Analytics = lazy(() => import('./pages/Analytics'))
+const MusicAnalytics = lazy(() => import('./pages/music/Analytics'))
 const Podcasts = lazy(() => import('./pages/podcasts/Podcasts'))
 const Audiobooks = lazy(() => import('./pages/audiobooks/Audiobooks'))
 
@@ -24,7 +24,8 @@ function App() {
                     <Routes>
                         <Route path="/" element={<Dashboard />} />
                         <Route path="/dashboard" element={<Dashboard />} />
-                        <Route path="/analytics" element={<Analytics />} />
+                        <Route path="/music" element={<MusicAnalytics />} />
+                        <Route path="/analytics" element={<MusicAnalytics />} />
                         <Route path="/podcasts" element={<Podcasts />} />
                         <Route path="/audiobooks" element={<Audiobooks />} />
                     </Routes>

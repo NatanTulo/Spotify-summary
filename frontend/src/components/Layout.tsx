@@ -61,16 +61,16 @@ const Layout = ({ children }: LayoutProps) => {
                                     {t('dashboard')}
                                 </Link>
                                 <Link
-                                    to="/analytics"
+                                    to="/music"
                                     className="px-4 py-2 text-muted-foreground hover:text-foreground transition-colors"
                                 >
-                                    {t('analytics')}
+                                    {t('music')}
                                 </Link>
                                 <Link
-                                    to="/video"
+                                    to="/podcasts"
                                     className="px-4 py-2 text-muted-foreground hover:text-foreground transition-colors"
                                 >
-                                    {t('videoPodcastsTitle')}
+                                    {t('podcastsTitle')}
                                 </Link>
                             </nav>
                         </div>

@@ -21,7 +21,7 @@ interface Profile {
     uniqueTracks: number;
     uniqueArtists: number;
     uniqueAlbums: number;
-    totalVideoPlays?: number;
+    totalPodcastPlays?: number;
     uniqueShows?: number;
     uniqueEpisodes?: number;
   };
@@ -53,7 +53,7 @@ interface ImportProgress {
     playsCreated: number;
     showsCreated?: number;
     episodesCreated?: number;
-    videoPlaysCreated?: number;
+    podcastPlaysCreated?: number;
     skippedRecords: number;
     currentStats?: {
       totalPlays: number;
@@ -61,7 +61,7 @@ interface ImportProgress {
       uniqueTracks: number;
       uniqueArtists: number;
       uniqueAlbums: number;
-      totalVideoPlays?: number;
+      totalPodcastPlays?: number;
       uniqueShows?: number;
       uniqueEpisodes?: number;
     };
@@ -92,7 +92,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
       name: string; 
       files: any[]; 
       audioFiles?: number; 
-      videoFiles?: number; 
+      podcastFiles?: number; 
       fileCount: number;
     }>
   >([]);
@@ -416,12 +416,12 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                           {profile.audioFiles} {t("audioFiles")}
                         </span>
                       )}
-                      {(profile.videoFiles ?? 0) > 0 && (
+                      {(profile.podcastFiles ?? 0) > 0 && (
                         <span className="mr-3">
-                          {profile.videoFiles} {t("videoFiles")}
+                          {profile.podcastFiles} {t("podcastFiles")}
                         </span>
                       )}
-                      {!(profile.audioFiles ?? 0) && !(profile.videoFiles ?? 0) && (
+                      {!(profile.audioFiles ?? 0) && !(profile.podcastFiles ?? 0) && (
                         <span>
                           {profile.files.length} {t("jsonFiles")}
                         </span>
@@ -469,7 +469,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                             <div className="font-medium text-gray-700 dark:text-gray-300">
                               {t("currentStats")}
                             </div>
-                            <div className={`grid gap-1 text-gray-600 dark:text-gray-400 ${(progress.stats.currentStats.totalVideoPlays ?? 0) > 0 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                            <div className={`grid gap-1 text-gray-600 dark:text-gray-400 ${(progress.stats.currentStats.totalPodcastPlays ?? 0) > 0 ? 'grid-cols-3' : 'grid-cols-2'}`}>
                               <div>
                                 {t("playsIcon")}{" "}
                                 {progress.stats.currentStats.totalPlays.toLocaleString()}{" "}
@@ -490,11 +490,11 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                                 {progress.stats.currentStats.uniqueAlbums.toLocaleString()}{" "}
                                 {t("albumsStats")}
                               </div>
-                              {((progress.stats.currentStats.totalVideoPlays ?? 0) > 0) && (
+                              {((progress.stats.currentStats.totalPodcastPlays ?? 0) > 0) && (
                                 <>
                                   <div>
                                     {t("podcastplaysIcon")}{" "}
-                                    {(progress.stats.currentStats.totalVideoPlays ?? 0).toLocaleString()}{" "}
+                                    {(progress.stats.currentStats.totalPodcastPlays ?? 0).toLocaleString()}{" "}
                                     {t("podcastplaysStats")}
                                   </div>
                                   <div>
@@ -555,7 +555,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                     </div>
                   )}
 
-                  <div className={`grid gap-2 text-sm ${(profile.statistics?.totalVideoPlays ?? 0) > 0 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                  <div className={`grid gap-2 text-sm ${(profile.statistics?.totalPodcastPlays ?? 0) > 0 ? 'grid-cols-3' : 'grid-cols-2'}`}>
                     <div className="flex items-center gap-1">
                       <Play className="h-3 w-3" />
                       {(
@@ -581,12 +581,12 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                       ).toLocaleString()}{" "}
                       {t("artistsStats")}
                     </div>
-                    {((profile.statistics?.totalVideoPlays ?? 0) > 0) && (
+                    {((profile.statistics?.totalPodcastPlays ?? 0) > 0) && (
                       <>
                         <div className="flex items-center gap-1">
-                          <span className="h-3 w-3 text-center">📺</span>
+                          <span className="h-3 w-3 text-center">🎧</span>
                           {(
-                            profile.statistics?.totalVideoPlays || 0
+                            profile.statistics?.totalPodcastPlays || 0
                           ).toLocaleString()}{" "}
                           {t("podcastplaysStats")}
                         </div>

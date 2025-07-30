@@ -13,7 +13,10 @@ const translations = {
   pl: {
     // Navigation
     tracks: "Lista utworów",
-    analytics: "Analityka",
+    analytics: "Analityka",  
+    music: "Muzyka",
+    podcasts: "Podcasty",
+    audiobooks: "Audiobooki",
     dashboard: "Panel główny",
     video: "Wideo",
 
@@ -324,6 +327,7 @@ const translations = {
       "Profile wykryte w folderze data, które można zaimportować",
     jsonFiles: "plików JSON",
     audioFiles: "plików audio",
+    podcastFiles: "plików podcastów",
     videoFiles: "plików video",
     audioFilesStat: "Audio",
     videoFilesStat: "Video",
@@ -423,11 +427,25 @@ const translations = {
     videoTotalTime: "Łączny czas podcastów",
     episodesFor: "Odcinki dla:",
     selectShowForEpisodes: "Wybierz program, aby wyświetlić odcinki",
+
+    // Direct Podcasts page keys
+    podcastsTitle: "Podcasty",
+    podcastsDescription: "Analiza Twoich podcastów ze Spotify",
+    uniqueShows: "Różnych programów",
+    uniqueEpisodes: "Różnych odcinków",
+    topShows: "Top Programy",
+    topEpisodes: "Top Odcinki",
+    episodes: "Odcinki",
+    recent: "Ostatnie",
+    topShowsDescription: "Twoje najczęściej słuchane programy podcastowe",
   },
   en: {
     // Navigation
     tracks: "Tracks List",
     analytics: "Analytics",
+    music: "Music",
+    podcasts: "Podcasts", 
+    audiobooks: "Audiobooks",
     dashboard: "Dashboard",
     video: "Video",
 
@@ -724,6 +742,7 @@ const translations = {
       "Profiles detected in data folder that can be imported",
     jsonFiles: "JSON files",
     audioFiles: "audio files",
+    podcastFiles: "podcast files",
     videoFiles: "video files",
     audioFilesStat: "Audio",
     videoFilesStat: "Video",
@@ -828,6 +847,17 @@ const translations = {
     videoTotalTime: "Total podcast time",
     episodesFor: "Episodes for:",
     selectShowForEpisodes: "Select a show to display episodes",
+
+    // Direct Podcasts page keys
+    podcastsTitle: "Podcasts",
+    podcastsDescription: "Analysis of your podcast data from Spotify",
+    uniqueShows: "Unique shows",
+    uniqueEpisodes: "Unique episodes",
+    topShows: "Top Shows",
+    topEpisodes: "Top Episodes",
+    episodes: "Episodes",
+    recent: "Recent",
+    topShowsDescription: "Your most listened podcast shows",
 
     // Debug messages (development only)
     debugYes: "YES",

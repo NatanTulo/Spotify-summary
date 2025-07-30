@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { BarChart3, PieChart, TrendingUp, Calendar, Music } from 'lucide-react'
 import { AdvancedFilters } from '@/components/filters/AdvancedFilters'
-import { useProfile } from '../context/ProfileContext'
-import { useLanguage } from '../context/LanguageContext'
+import { useProfile } from '../../context/ProfileContext'
+import { useLanguage } from '../../context/LanguageContext'
 
 // Lazy load dużych komponentów
 const TracksList = lazy(() => import('@/components/TracksList').then(module => ({ default: module.TracksList })))
