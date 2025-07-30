@@ -1,15 +1,16 @@
 import { Table, Column, Model, DataType, CreatedAt, UpdatedAt, PrimaryKey, AutoIncrement, ForeignKey, BelongsTo } from 'sequelize-typescript'
-import { Profile } from './Profile.js'
+import { Audiobook } from './Audiobook.js'
+import { Profile } from '../common/Profile.js'
 
 @Table({
-    tableName: 'podcast_plays',
+    tableName: 'audiobook_plays',
     timestamps: true,
     indexes: [
-        { fields: ['episodeId', 'timestamp'] },
+        { fields: ['audiobookId', 'timestamp'] },
         { fields: ['timestamp', 'country'] },
         { fields: ['timestamp', 'platform'] },
         { fields: ['profileId', 'timestamp'] },
-        { fields: ['profileId', 'episodeId'] },
+        { fields: ['profileId', 'audiobookId'] },
         { fields: ['timestamp'] },
         { fields: ['msPlayed'] },
         { fields: ['platform'] },
@@ -18,21 +19,23 @@ import { Profile } from './Profile.js'
         { fields: ['skipped'] },
         { fields: ['offline'] },
         { fields: ['incognitoMode'] },
+        { fields: ['chapterTitle'] },
         { fields: ['username'] },
         { fields: ['offlineTimestamp'] }
     ]
 })
-export class PodcastPlay extends Model {
+export class AudiobookPlay extends Model {
     @PrimaryKey
     @AutoIncrement
     @Column(DataType.INTEGER)
     id!: number
 
+    @ForeignKey(() => Audiobook)
     @Column({
         type: DataType.INTEGER,
         allowNull: false
     })
-    episodeId!: number
+    audiobookId!: number
 
     @ForeignKey(() => Profile)
     @Column({
@@ -48,7 +51,7 @@ export class PodcastPlay extends Model {
     timestamp!: Date
 
     @Column({
-        type: DataType.BIGINT,
+        type: DataType.INTEGER,
         allowNull: false
     })
     msPlayed!: number
@@ -63,13 +66,25 @@ export class PodcastPlay extends Model {
         type: DataType.STRING,
         allowNull: true
     })
-    platform?: string
+    chapterTitle?: string
 
     @Column({
-        type: DataType.STRING(2),
+        type: DataType.STRING,
+        allowNull: true
+    })
+    chapterUri?: string
+
+    @Column({
+        type: DataType.STRING,
         allowNull: true
     })
     country?: string
+
+    @Column({
+        type: DataType.STRING,
+        allowNull: true
+    })
+    platform?: string
 
     @Column({
         type: DataType.STRING,
@@ -97,24 +112,24 @@ export class PodcastPlay extends Model {
 
     @Column({
         type: DataType.BOOLEAN,
-        allowNull: true,
+        allowNull: false,
         defaultValue: false
     })
-    shuffle?: boolean
+    shuffle!: boolean
 
     @Column({
         type: DataType.BOOLEAN,
-        allowNull: true,
+        allowNull: false,
         defaultValue: false
     })
-    skipped?: boolean
+    skipped!: boolean
 
     @Column({
         type: DataType.BOOLEAN,
-        allowNull: true,
+        allowNull: false,
         defaultValue: false
     })
-    offline?: boolean
+    offline!: boolean
 
     @Column({
         type: DataType.DATE,
@@ -124,18 +139,22 @@ export class PodcastPlay extends Model {
 
     @Column({
         type: DataType.BOOLEAN,
-        allowNull: true,
+        allowNull: false,
         defaultValue: false
     })
-    incognitoMode?: boolean
+    incognitoMode!: boolean
 
     @CreatedAt
+    @Column(DataType.DATE)
     createdAt!: Date
 
     @UpdatedAt
+    @Column(DataType.DATE)
     updatedAt!: Date
 
-    // Relations
+    @BelongsTo(() => Audiobook)
+    audiobook!: Audiobook
+
     @BelongsTo(() => Profile)
     profile!: Profile
 }

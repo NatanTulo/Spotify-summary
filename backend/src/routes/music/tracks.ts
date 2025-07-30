@@ -1,11 +1,11 @@
 import express from 'express'
 import { fn, col, literal, QueryTypes } from 'sequelize'
-import { sequelize } from '../config/database.js'
-import { Track } from '../models/Track.js'
-import { Album } from '../models/Album.js'
-import { Artist } from '../models/Artist.js'
-import { Play } from '../models/Play.js'
-import { Profile } from '../models/Profile.js'
+import { sequelize } from '../../config/database.js'
+import { Track } from '../../models/music/Track.js'
+import { Album } from '../../models/music/Album.js'
+import { Artist } from '../../models/music/Artist.js'
+import { Play } from '../../models/music/Play.js'
+import { Profile } from '../../models/common/Profile.js'
 
 const router = express.Router()
 

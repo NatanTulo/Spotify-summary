@@ -8,12 +8,13 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import 'reflect-metadata'
 import { connectDB } from './config/database.js'
-import tracksRouter from './routes/tracks.js'
+import tracksRouter from './routes/music/tracks.js'
 import statsRouter from './routes/stats.js'
-import artistsRouter from './routes/artists.js'
-import albumsRouter from './routes/albums.js'
+import artistsRouter from './routes/music/artists.js'
+import albumsRouter from './routes/music/albums.js'
 import importRouter from './routes/import.js'
-import videoRouter from './routes/video.js'
+import podcastsRouter from './routes/podcasts/podcasts.js'
+import audiobooksRouter from './routes/audiobooks/audiobooks.js'
 
 dotenv.config()
 
@@ -74,7 +75,8 @@ function setupRoutes() {
     app.use('/api/artists', artistsRouter)
     app.use('/api/albums', albumsRouter)
     app.use('/api/import', importRouter)
-    app.use('/api/video', videoRouter)
+    app.use('/api/podcasts', podcastsRouter)
+    app.use('/api/audiobooks', audiobooksRouter)
 
     // Serve static files from frontend dist
     const __filename = fileURLToPath(import.meta.url)

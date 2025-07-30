@@ -1,7 +1,7 @@
 import express from 'express'
 import fs from 'fs'
 import path from 'path'
-import { Profile } from '../models/Profile.js'
+import { Profile } from '../models/common/Profile.js'
 import ImportProgressManager from '../utils/ImportProgressManager.js'
 import { sequelize } from '../config/database.js'
 import { QueryTypes } from 'sequelize'

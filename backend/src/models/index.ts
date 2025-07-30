@@ -1,14 +1,23 @@
-export { Artist } from './Artist.js'
-export { Album } from './Album.js'
-export { Track } from './Track.js'
-export { Play } from './Play.js'
-export { Profile } from './Profile.js'
-export { DailyStats } from './DailyStats.js'
-export { YearlyStats } from './YearlyStats.js'
-export { CountryStats } from './CountryStats.js'
-export { ArtistStats } from './ArtistStats.js'
-export { Show } from './Show.js'
-export { Episode } from './Episode.js'
-export { PodcastPlay } from './PodcastPlay.js'
-export { Audiobook } from './Audiobook.js'
-export { AudiobookPlay } from './AudiobookPlay.js'
+// Music models
+export { Artist } from './music/Artist.js'
+export { Album } from './music/Album.js'
+export { Track } from './music/Track.js'
+export { Play } from './music/Play.js'
+
+// Podcast models
+export { Show } from './podcasts/Show.js'
+export { Episode } from './podcasts/Episode.js'
+export { PodcastPlay } from './podcasts/PodcastPlay.js'
+
+// Audiobook models
+export { Audiobook } from './audiobooks/Audiobook.js'
+export { AudiobookPlay } from './audiobooks/AudiobookPlay.js'
+
+// Common models
+export { Profile } from './common/Profile.js'
+
+// Statistics models
+export { ArtistStats } from './stats/ArtistStats.js'
+export { CountryStats } from './stats/CountryStats.js'
+export { DailyStats } from './stats/DailyStats.js'
+export { YearlyStats } from './stats/YearlyStats.js'

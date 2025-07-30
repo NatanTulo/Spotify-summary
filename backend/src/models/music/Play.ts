@@ -1,16 +1,16 @@
 import { Table, Column, Model, DataType, CreatedAt, UpdatedAt, PrimaryKey, AutoIncrement, ForeignKey, BelongsTo } from 'sequelize-typescript'
-import { Episode } from './Episode.js'
-import { Profile } from './Profile.js'
+import { Track } from './Track.js'
+import { Profile } from '../common/Profile.js'
 
 @Table({
-    tableName: 'video_plays',
+    tableName: 'plays',
     timestamps: true,
     indexes: [
-        { fields: ['episodeId', 'timestamp'] },
+        { fields: ['trackId', 'timestamp'] },
         { fields: ['timestamp', 'country'] },
         { fields: ['timestamp', 'platform'] },
         { fields: ['profileId', 'timestamp'] },
-        { fields: ['profileId', 'episodeId'] },
+        { fields: ['profileId', 'trackId'] },
         { fields: ['timestamp'] },
         { fields: ['msPlayed'] },
         { fields: ['platform'] },
@@ -21,18 +21,18 @@ import { Profile } from './Profile.js'
         { fields: ['incognitoMode'] }
     ]
 })
-export class VideoPlay extends Model {
+export class Play extends Model {
     @PrimaryKey
     @AutoIncrement
     @Column(DataType.INTEGER)
     id!: number
 
-    @ForeignKey(() => Episode)
+    @ForeignKey(() => Track)
     @Column({
         type: DataType.INTEGER,
         allowNull: false
     })
-    episodeId!: number
+    trackId!: number
 
     @ForeignKey(() => Profile)
     @Column({
@@ -128,8 +128,8 @@ export class VideoPlay extends Model {
     })
     incognitoMode?: boolean
 
-    @BelongsTo(() => Episode)
-    episode!: Episode
+    @BelongsTo(() => Track)
+    track!: Track
 
     @BelongsTo(() => Profile)
     profile!: Profile

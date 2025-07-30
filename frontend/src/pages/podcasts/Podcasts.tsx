@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import { Card } from '../components/ui/card.tsx'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs.tsx'
-import { useProfile } from '../context/ProfileContext.tsx'
-import { useLanguage } from '../context/LanguageContext.tsx'
+import { Card } from '../../components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs'
+import { useProfile } from '../../context/ProfileContext'
+import { useLanguage } from '../../context/LanguageContext'
 
 interface SpotifyShow {
     id: string

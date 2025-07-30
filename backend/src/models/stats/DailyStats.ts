@@ -1,5 +1,5 @@
 import { Column, Model, Table, DataType, ForeignKey, BelongsTo, Index } from 'sequelize-typescript'
-import { Profile } from './Profile.js'
+import { Profile } from '../common/Profile.js'
 
 interface TopArtist {
     name: string

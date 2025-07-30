@@ -1,8 +1,8 @@
 import express from 'express'
 import { Op, fn, col, QueryTypes } from 'sequelize'
 import { sequelize } from '../config/database.js'
-import { Play } from '../models/Play.js'
-import { PodcastPlay } from '../models/PodcastPlay.js'
+import { Play } from '../models/music/Play.js'
+import { PodcastPlay } from '../models/podcasts/PodcastPlay.js'
 
 console.log('Stats router loaded')
 const router = express.Router()
@@ -253,8 +253,8 @@ router.get('/video', async (req, res) => {
         const filter = { profileId }
 
         const [
-            totalVideoPlays,
-            totalVideoMinutes,
+            totalPodcastPlays,
+            totalPodcastMinutes,
             uniqueShows,
             uniqueEpisodes
         ] = await Promise.all([
@@ -280,8 +280,8 @@ router.get('/video', async (req, res) => {
         res.json({
             success: true,
             data: {
-                totalVideoPlays: totalVideoPlays || 0,
-                totalVideoMinutes: Math.round((totalVideoMinutes || 0) / 60000),
+                totalPodcastPlays: totalPodcastPlays || 0,
+                totalPodcastMinutes: Math.round((totalPodcastMinutes || 0) / 60000),
                 uniqueShows: uniqueShows || 0,
                 uniqueEpisodes: uniqueEpisodes || 0
             }

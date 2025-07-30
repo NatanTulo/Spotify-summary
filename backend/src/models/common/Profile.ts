@@ -39,9 +39,11 @@ export class Profile extends Model {
             uniqueTracks: 0,
             uniqueArtists: 0,
             uniqueAlbums: 0,
-            totalVideoPlays: 0,
+            totalPodcastPlays: 0,
+            totalAudiobookPlays: 0,
             uniqueShows: 0,
-            uniqueEpisodes: 0
+            uniqueEpisodes: 0,
+            uniqueAudiobooks: 0
         }
     })
     statistics!: {
@@ -50,9 +52,11 @@ export class Profile extends Model {
         uniqueTracks: number
         uniqueArtists: number
         uniqueAlbums: number
-        totalVideoPlays?: number
+        totalPodcastPlays?: number
+        totalAudiobookPlays?: number
         uniqueShows?: number
         uniqueEpisodes?: number
+        uniqueAudiobooks?: number
     }
 
     @CreatedAt

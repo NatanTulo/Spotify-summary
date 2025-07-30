@@ -23,7 +23,9 @@ interface ImportProgress {
         playsCreated: number
         showsCreated?: number
         episodesCreated?: number
-        videoPlaysCreated?: number
+        podcastPlaysCreated?: number
+        audiobooksCreated?: number
+        audiobookPlaysCreated?: number
         skippedRecords: number
         currentStats?: {
             totalPlays: number
@@ -31,9 +33,11 @@ interface ImportProgress {
             uniqueTracks: number
             uniqueArtists: number
             uniqueAlbums: number
-            totalVideoPlays?: number
+            totalPodcastPlays?: number
+            totalAudiobookPlays?: number
             uniqueShows?: number
             uniqueEpisodes?: number
+            uniqueAudiobooks?: number
         }
     }
 }
@@ -73,7 +77,9 @@ class ImportProgressManager {
                 playsCreated: 0,
                 showsCreated: 0,
                 episodesCreated: 0,
-                videoPlaysCreated: 0,
+                podcastPlaysCreated: 0,
+                audiobooksCreated: 0,
+                audiobookPlaysCreated: 0,
                 skippedRecords: 0
             }
         })

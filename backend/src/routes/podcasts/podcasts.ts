@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express'
 import { Op } from 'sequelize'
-import { Show, Episode, PodcastPlay, Profile } from '../models/index.js'
+import { Show, Episode, PodcastPlay, Profile } from '../../models/index.js'
 
 const router = Router()
 

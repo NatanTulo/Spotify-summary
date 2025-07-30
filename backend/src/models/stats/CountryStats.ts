@@ -1,17 +1,16 @@
 import { Table, Column, Model, DataType, CreatedAt, UpdatedAt, PrimaryKey, AutoIncrement, ForeignKey, BelongsTo } from 'sequelize-typescript'
-import { Artist } from './Artist.js'
-import { Profile } from './Profile.js'
+import { Profile } from '../common/Profile.js'
 
 @Table({
-    tableName: 'artist_stats',
+    tableName: 'country_stats',
     timestamps: true,
     indexes: [
-        { fields: ['profileId', 'artistId'], unique: true },
+        { fields: ['profileId', 'country'], unique: true },
         { fields: ['profileId', 'totalPlays'] },
-        { fields: ['profileId', 'totalMinutes'] }
+        { fields: ['totalPlays'] }
     ]
 })
-export class ArtistStats extends Model {
+export class CountryStats extends Model {
     @PrimaryKey
     @AutoIncrement
     @Column(DataType.INTEGER)
@@ -24,18 +23,11 @@ export class ArtistStats extends Model {
     })
     profileId!: number
 
-    @ForeignKey(() => Artist)
     @Column({
-        type: DataType.INTEGER,
+        type: DataType.STRING(2),
         allowNull: false
     })
-    artistId!: number
-
-    @Column({
-        type: DataType.STRING(500),
-        allowNull: false
-    })
-    artistName!: string
+    country!: string
 
     @Column({
         type: DataType.INTEGER,
@@ -52,6 +44,13 @@ export class ArtistStats extends Model {
     totalMinutes!: number
 
     @Column({
+        type: DataType.DECIMAL(5, 2),
+        allowNull: false,
+        defaultValue: 0
+    })
+    percentage!: number
+
+    @Column({
         type: DataType.INTEGER,
         allowNull: false,
         defaultValue: 0
@@ -63,32 +62,16 @@ export class ArtistStats extends Model {
         allowNull: false,
         defaultValue: 0
     })
-    uniqueAlbums!: number
-
-    @Column({
-        type: DataType.DATE,
-        allowNull: true
-    })
-    firstPlayDate?: Date
-
-    @Column({
-        type: DataType.DATE,
-        allowNull: true
-    })
-    lastPlayDate?: Date
+    uniqueArtists!: number
 
     @Column({
         type: DataType.JSONB,
         allowNull: true
     })
-    topTrack?: {
+    topArtist?: {
         name: string
         plays: number
-        minutes: number
     }
-
-    @BelongsTo(() => Artist)
-    artist!: Artist
 
     @BelongsTo(() => Profile)
     profile!: Profile

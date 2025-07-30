@@ -32,7 +32,7 @@ export interface SpotifyPlay {
     incognitoMode?: boolean
 }
 
-// Video/Podcast interfaces
+// Podcast interfaces
 export interface SpotifyShow {
     id: string
     name: string
@@ -48,7 +48,7 @@ export interface SpotifyEpisode {
     show?: SpotifyShow
 }
 
-export interface SpotifyVideoPlay {
+export interface SpotifyPodcastPlay {
     id: string
     episodeId: string
     timestamp: Date
@@ -64,11 +64,42 @@ export interface SpotifyVideoPlay {
     episode?: SpotifyEpisode
 }
 
-export interface VideoStats {
-    totalVideoPlays: number
-    totalVideoMinutes: number
+export interface PodcastStats {
+    totalPodcastPlays: number
+    totalPodcastMinutes: number
     uniqueShows: number
     uniqueEpisodes: number
+}
+
+// Audiobook interfaces
+export interface SpotifyAudiobook {
+    id: string
+    name: string
+    author?: string
+    spotifyUri?: string
+    description?: string
+}
+
+export interface SpotifyAudiobookPlay {
+    id: string
+    audiobookId: string
+    timestamp: Date
+    msPlayed: number
+    platform?: string
+    country?: string
+    reasonStart?: string
+    reasonEnd?: string
+    shuffle?: boolean
+    skipped?: boolean
+    offline?: boolean
+    incognitoMode?: boolean
+    audiobook?: SpotifyAudiobook
+}
+
+export interface AudiobookStats {
+    totalAudiobookPlays: number
+    totalAudiobookMinutes: number
+    uniqueAudiobooks: number
 }
 
 export interface TrackStats {

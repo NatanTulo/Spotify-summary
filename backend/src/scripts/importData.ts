@@ -3,16 +3,16 @@ import path from 'path'
 import dotenv from 'dotenv'
 import { connectDB, sequelize } from '../config/database.js'
 import { QueryTypes } from 'sequelize'
-import { Artist } from '../models/Artist.js'
-import { Album } from '../models/Album.js'
-import { Track } from '../models/Track.js'
-import { Play } from '../models/Play.js'
-import { Profile } from '../models/Profile.js'
-import { Show } from '../models/Show.js'
-import { Episode } from '../models/Episode.js'
-import { PodcastPlay } from '../models/PodcastPlay.js'
-import { Audiobook } from '../models/Audiobook.js'
-import { AudiobookPlay } from '../models/AudiobookPlay.js'
+import { Artist } from '../models/music/Artist.js'
+import { Album } from '../models/music/Album.js'
+import { Track } from '../models/music/Track.js'
+import { Play } from '../models/music/Play.js'
+import { Profile } from '../models/common/Profile.js'
+import { Show } from '../models/podcasts/Show.js'
+import { Episode } from '../models/podcasts/Episode.js'
+import { PodcastPlay } from '../models/podcasts/PodcastPlay.js'
+import { Audiobook } from '../models/audiobooks/Audiobook.js'
+import { AudiobookPlay } from '../models/audiobooks/AudiobookPlay.js'
 import ImportProgressManager from '../utils/ImportProgressManager.js'
 import { StatsAggregator } from '../utils/StatsAggregator.js'
 
@@ -60,7 +60,6 @@ class SpotifyDataImporter {
         playsCreated: 0,
         showsCreated: 0,
         episodesCreated: 0,
-        videoPlaysCreated: 0,
         podcastPlaysCreated: 0,
         audiobooksCreated: 0,
         audiobookPlaysCreated: 0,
@@ -810,15 +809,15 @@ class SpotifyDataImporter {
                     replacements: { profileId: this.profileId },
                     type: QueryTypes.SELECT
                 }).then(result => parseInt((result[0] as any).count)),
-                // Statystyki video
+                // Statystyki podcastów
                 PodcastPlay.count({ where: { profileId: this.profileId } }),
                 // Unikalne programy
                 sequelize.query(`
                     SELECT COUNT(DISTINCT shows.id) as count 
-                    FROM video_plays 
-                    JOIN episodes ON video_plays."episodeId" = episodes.id
+                    FROM podcast_plays 
+                    JOIN episodes ON podcast_plays."episodeId" = episodes.id
                     JOIN shows ON episodes."showId" = shows.id  
-                    WHERE video_plays."profileId" = :profileId
+                    WHERE podcast_plays."profileId" = :profileId
                 `, {
                     replacements: { profileId: this.profileId },
                     type: QueryTypes.SELECT
@@ -839,11 +838,13 @@ class SpotifyDataImporter {
                     uniqueTracks: uniqueTracks || 0,
                     uniqueArtists: uniqueArtists || 0,
                     uniqueAlbums: uniqueAlbums || 0,
-                    totalVideoPlays: totalVideoPlays || 0,
+                    totalPodcastPlays: totalVideoPlays || 0,
+                    totalAudiobookPlays: 0, // To będzie dodane później
                     uniqueShows: uniqueShows || 0,
-                    uniqueEpisodes: uniqueEpisodes || 0
+                    uniqueEpisodes: uniqueEpisodes || 0,
+                    uniqueAudiobooks: 0 // To będzie dodane później
                 },
-                updatedAt: new Date()
+                lastImport: new Date()
             }, {
                 where: { id: this.profileId }
             })
@@ -857,7 +858,7 @@ class SpotifyDataImporter {
                     uniqueTracks: uniqueTracks || 0,
                     uniqueArtists: uniqueArtists || 0,
                     uniqueAlbums: uniqueAlbums || 0,
-                    totalVideoPlays: totalVideoPlays || 0,
+                    totalPodcastPlays: totalVideoPlays || 0,
                     uniqueShows: uniqueShows || 0,
                     uniqueEpisodes: uniqueEpisodes || 0
                 }
