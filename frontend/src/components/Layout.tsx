@@ -127,7 +127,7 @@ const Layout = ({ children }: LayoutProps) => {
 
             {/* Profile Manager Modal */}
             {showProfileManager && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                <div className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
                     <div className="glass max-w-4xl w-full max-h-[82vh] overflow-auto">
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-6">

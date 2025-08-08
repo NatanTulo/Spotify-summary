@@ -710,7 +710,11 @@ class SpotifyDataImporter {
             totalMsPlayed,
             uniqueTracks,
             uniqueArtists,
-            uniqueAlbums
+            uniqueAlbums,
+            // Podcast stats
+            totalPodcastPlays,
+            uniqueShows,
+            uniqueEpisodes
         ] = await Promise.all([
             Play.count({ where: { profileId: this.profileId } }),
             Play.sum('msPlayed', { where: { profileId: this.profileId } }),
@@ -741,7 +745,26 @@ class SpotifyDataImporter {
             `, {
                 replacements: { profileId: this.profileId },
                 type: QueryTypes.SELECT
-            }).then(result => parseInt((result[0] as any).count))
+            }).then(result => parseInt((result[0] as any).count)),
+            // Podcast plays count
+            PodcastPlay.count({ where: { profileId: this.profileId } }),
+            // Unique shows (via join)
+            sequelize.query(`
+                SELECT COUNT(DISTINCT shows.id) as count 
+                FROM podcast_plays 
+                JOIN episodes ON podcast_plays."episodeId" = episodes.id
+                JOIN shows ON episodes."showId" = shows.id  
+                WHERE podcast_plays."profileId" = :profileId
+            `, {
+                replacements: { profileId: this.profileId },
+                type: QueryTypes.SELECT
+            }).then(result => parseInt((result[0] as any).count)),
+            // Unique episodes listened
+            PodcastPlay.count({
+                where: { profileId: this.profileId },
+                distinct: true,
+                col: 'episodeId'
+            })
         ])
 
         // Aktualizuj pole statistics w profilu
@@ -751,7 +774,10 @@ class SpotifyDataImporter {
                 totalMinutes: Math.round((totalMsPlayed || 0) / 60000),
                 uniqueTracks: uniqueTracks || 0,
                 uniqueArtists: uniqueArtists || 0,
-                uniqueAlbums: uniqueAlbums || 0
+                uniqueAlbums: uniqueAlbums || 0,
+                totalPodcastPlays: totalPodcastPlays || 0,
+                uniqueShows: uniqueShows || 0,
+                uniqueEpisodes: uniqueEpisodes || 0
             },
             lastImport: new Date()
         }, {

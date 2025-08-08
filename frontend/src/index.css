@@ -102,7 +102,10 @@
 
 @layer components {
   .glass {
-    @apply bg-card/60 backdrop-blur-xl border border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.18)] rounded-2xl;
+    /* Jaśniejsze tło w trybie jasnym, zachowanie szklanego efektu w ciemnym */
+    @apply backdrop-blur-xl rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.18)];
+    background-color: hsl(var(--card) / 0.85);
+    border: 1px solid hsl(var(--border));
   }
 
   .page-section {

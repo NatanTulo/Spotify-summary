@@ -7,9 +7,10 @@ import {
   CardTitle,
 } from "./ui/card";
 import { Progress } from "./ui/progress";
-import { Calendar, User, Play, Clock, Music, Users } from "lucide-react";
+import { Calendar, User, Users } from "lucide-react";
 import { Button } from './ui/button'
 import { useLanguage } from "../context/LanguageContext";
+import StatsRow from "./StatsRow";
 
 interface Profile {
   _id: string;
@@ -229,7 +230,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
     }
     
     try {
-      const [profilesRes, availableRes] = await Promise.all([
+  const [profilesRes, availableRes] = await Promise.all([
         fetch("/api/import/profiles"),
         fetch("/api/import/available"),
       ]);
@@ -258,6 +259,28 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
           profilesChanged = true;
           // Powiadom parent component o zmianie profili
           onProfilesChanged?.();
+
+          // Auto-recompute stats for profiles missing podcast fields (one-time per fetch cycle)
+          try {
+            const missingPodcastStats = newProfiles.filter((p: Profile) =>
+              !p.statistics || p.statistics.totalPodcastPlays === undefined || p.statistics.uniqueShows === undefined || p.statistics.uniqueEpisodes === undefined
+            );
+            if (missingPodcastStats.length > 0) {
+              console.log(`🛠️ Recomputing statistics for ${missingPodcastStats.length} profile(s) missing podcast stats...`);
+              await Promise.all(
+                missingPodcastStats.map((p: Profile) =>
+                  fetch(`/api/import/profile/${encodeURIComponent(p.name)}/update-stats`, { method: 'POST' })
+                    .catch(err => console.error('Failed to recompute stats for', p.name, err))
+                )
+              );
+              // Refresh after recompute
+              await new Promise(res => setTimeout(res, 300));
+              await fetchProfiles(true);
+              return; // avoid continuing with outdated state after recursive refresh
+            }
+          } catch (e) {
+            console.error('Auto-recompute stats failed:', e);
+          }
         } else {
           console.log('📊 Profiles data unchanged, skipping update');
         }
@@ -265,7 +288,9 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
 
       if (availableRes.ok) {
         const availableData = await availableRes.json();
-        const newAvailableProfiles = availableData.data || [];
+        const rawAvailableProfiles = availableData.data || [];
+        // Zachowaj dane, ale UI będzie wyświetlał tylko łączną liczbę plików
+        const newAvailableProfiles = rawAvailableProfiles;
         
         // Only update available profiles if they actually changed
         if (JSON.stringify(newAvailableProfiles) !== JSON.stringify(availableProfiles)) {
@@ -419,21 +444,9 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                       </Button>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {(profile.audioFiles ?? 0) > 0 && (
-                        <span className="mr-3">
-                          {profile.audioFiles} {t("audioFiles")}
-                        </span>
-                      )}
-                      {(profile.podcastFiles ?? 0) > 0 && (
-                        <span className="mr-3">
-                          {profile.podcastFiles} {t("podcastFiles")}
-                        </span>
-                      )}
-                      {!(profile.audioFiles ?? 0) && !(profile.podcastFiles ?? 0) && (
-                        <span>
-                          {profile.files.length} {t("jsonFiles")}
-                        </span>
-                      )}
+                      <span>
+                        {profile.files.length} {t("jsonFiles")}
+                      </span>
                     </p>
 
                     {/* Progress Bar */}
@@ -473,46 +486,16 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
 
                         {/* Real-time Statistics */}
                         {progress.stats.currentStats && (
-                          <div className="bg-gray-50 dark:bg-gray-800 rounded p-2 text-xs space-y-1">
-                            <div className="font-medium text-gray-700 dark:text-gray-300">
+                          <div className="bg-gray-50 dark:bg-gray-800 rounded p-2 space-y-2">
+                            <div className="font-medium text-gray-700 dark:text-gray-300 text-xs">
                               {t("currentStats")}
                             </div>
-                            <div className={`grid gap-1 text-gray-600 dark:text-gray-400 ${(progress.stats.currentStats.totalPodcastPlays ?? 0) > 0 ? 'grid-cols-3' : 'grid-cols-2'}`}>
-                              <div>
-                                {t("playsIcon")}{" "}
-                                {progress.stats.currentStats.totalPlays.toLocaleString()}{" "}
-                                {t("playsStats")}
-                              </div>
-                              <div>
-                                {t("songsIcon")}{" "}
-                                {progress.stats.currentStats.uniqueTracks.toLocaleString()}{" "}
-                                {t("songsStats")}
-                              </div>
-                              <div>
-                                {t("artistsIcon")}{" "}
-                                {progress.stats.currentStats.uniqueArtists.toLocaleString()}{" "}
-                                {t("artistsStats")}
-                              </div>
-                              <div>
-                                {t("albumsIcon")}{" "}
-                                {progress.stats.currentStats.uniqueAlbums.toLocaleString()}{" "}
-                                {t("albumsStats")}
-                              </div>
-                              {((progress.stats.currentStats.totalPodcastPlays ?? 0) > 0) && (
-                                <>
-                                  <div>
-                                    {t("podcastplaysIcon")}{" "}
-                                    {(progress.stats.currentStats.totalPodcastPlays ?? 0).toLocaleString()}{" "}
-                                    {t("podcastplaysStats")}
-                                  </div>
-                                  <div>
-                                    {t("showsIcon")}{" "}
-                                    {(progress.stats.currentStats.uniqueShows ?? 0).toLocaleString()}{" "}
-                                    {t("showsStats")}
-                                  </div>
-                                </>
-                              )}
-                            </div>
+                            <StatsRow
+                              stats={progress.stats.currentStats}
+                              formatDuration={formatDuration}
+                              className="text-gray-600 dark:text-gray-400"
+                              compact
+                            />
                           </div>
                         )}
                       </div>
@@ -564,58 +547,10 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                     </div>
                   )}
 
-                  <div className={`grid gap-2 text-sm ${(profile.statistics?.totalPodcastPlays ?? 0) > 0 ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5' : 'grid-cols-2'}`}>
-                    <div className="flex items-center gap-1">
-                      <Play className="h-3 w-3" />
-                      {(
-                        profile.statistics?.totalPlays || 0
-                      ).toLocaleString()}{" "}
-                      {t("playsStats")}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {formatDuration(profile.statistics?.totalMinutes || 0)}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Music className="h-3 w-3" />
-                      {(
-                        profile.statistics?.uniqueTracks || 0
-                      ).toLocaleString()}{" "}
-                      {t("songsStats")}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <User className="h-3 w-3" />
-                      {(
-                        profile.statistics?.uniqueArtists || 0
-                      ).toLocaleString()}{" "}
-                      {t("artistsStats")}
-                    </div>
-                    {((profile.statistics?.totalPodcastPlays ?? 0) > 0) && (
-                      <>
-                        <div className="flex items-center gap-1">
-                          <span className="h-3 w-3 text-center">🎧</span>
-                          {(
-                            profile.statistics?.totalPodcastPlays || 0
-                          ).toLocaleString()}{" "}
-                          {t("podcastplaysStats")}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="h-3 w-3 text-center">🎬</span>
-                          {(
-                            profile.statistics?.uniqueShows || 0
-                          ).toLocaleString()}{" "}
-                          {t("showsStats")}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="h-3 w-3 text-center">📻</span>
-                          {(
-                            profile.statistics?.uniqueEpisodes || 0
-                          ).toLocaleString()}{" "}
-                          {t("episodesStats")}
-                        </div>
-                      </>
-                    )}
-                  </div>
+                  <StatsRow
+                    stats={profile.statistics}
+                    formatDuration={formatDuration}
+                  />
                 </div>
               ))}
             </div>

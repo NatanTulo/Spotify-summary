@@ -267,8 +267,12 @@ const Podcasts: React.FC = () => {
     }
 
     const formatTime = (dateString: string): string => {
-        return new Date(dateString).toLocaleString()
+        const d = new Date(dateString)
+        if (isNaN(d.getTime())) return '-'
+        return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
     }
+
+    const toMinutes = (ms: number): number => Math.round((ms || 0) / 60000)
 
     if (!selectedProfile) {
         return (
@@ -577,21 +581,22 @@ const Podcasts: React.FC = () => {
                         <CardContent>
                             <div className="space-y-3">
                                 {recentPlays.map((play) => (
-                                    <div key={play.id} className="flex items-center justify-between p-3 border rounded-lg gap-4">
+                                    <div key={play.id} className="flex items-start justify-between p-3 border rounded-lg gap-4">
                                         <div className="flex-1 min-w-0">
                                             <h4 className="font-medium truncate" title={play.episodeName}>{play.episodeName}</h4>
                                             <p className="text-sm text-muted-foreground truncate" title={play.showName}>{play.showName}</p>
-                                            <div className="flex items-center space-x-2 text-xs text-muted-foreground mt-1 flex-wrap">
-                                                <span className="flex-shrink-0">{formatTime(play.ts)}</span>
-                                                <span className="flex-shrink-0">•</span>
-                                                <span className="flex-shrink-0">{play.platform}</span>
-                                                <span className="flex-shrink-0">•</span>
-                                                <span className="truncate">{play.reasonStart} → {play.reasonEnd}</span>
+                                            <div className="mt-1 grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                                <div className="truncate">{formatTime(play.ts)}</div>
+                                                <div className="truncate capitalize">{play.platform || '-'}</div>
+                                                <div className="truncate col-span-2 sm:col-span-1">{play.reasonStart || '-'} → {play.reasonEnd || '-'}</div>
                                             </div>
                                         </div>
                                         <div className="text-right flex-shrink-0">
-                                            <div className="text-sm font-medium">
+                                            <div className="text-sm font-medium whitespace-nowrap">
                                                 {formatDuration(play.msPlayed)}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground mt-0.5">
+                                                {toMinutes(play.msPlayed)}m
                                             </div>
                                         </div>
                                     </div>

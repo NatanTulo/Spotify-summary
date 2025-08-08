@@ -251,7 +251,8 @@ router.post('/profile/:profileName', async (req, res) => {
         // Policz pliki JSON
         const files = fs.readdirSync(profilePath)
         const jsonFiles = files.filter(file =>
-            file.startsWith('Streaming_History_Audio_') && file.endsWith('.json')
+            (file.startsWith('Streaming_History_Audio_') || file.startsWith('Streaming_History_Video_'))
+            && file.endsWith('.json')
         )
 
         if (jsonFiles.length === 0) {
@@ -324,7 +325,10 @@ router.post('/profile/:profileName/update-stats', async (req, res) => {
             totalMsPlayed,
             uniqueTracks,
             uniqueArtists,
-            uniqueAlbums
+            uniqueAlbums,
+            totalPodcastPlays,
+            uniqueShows,
+            uniqueEpisodes
         ] = await Promise.all([
             sequelize.query(`SELECT COUNT(*) as count FROM plays WHERE "profileId" = :profileId`, {
                 replacements: { profileId: profile.id },
@@ -358,17 +362,39 @@ router.post('/profile/:profileName/update-stats', async (req, res) => {
             `, {
                 replacements: { profileId: profile.id },
                 type: QueryTypes.SELECT
+            }).then(result => parseInt((result[0] as any).count)),
+            // Podcast stats
+            sequelize.query(`SELECT COUNT(*) as count FROM podcast_plays WHERE "profileId" = :profileId`, {
+                replacements: { profileId: profile.id },
+                type: QueryTypes.SELECT
+            }).then(result => parseInt((result[0] as any).count)),
+            sequelize.query(`
+                SELECT COUNT(DISTINCT shows.id) as count 
+                FROM podcast_plays 
+                JOIN episodes ON podcast_plays."episodeId" = episodes.id
+                JOIN shows ON episodes."showId" = shows.id  
+                WHERE podcast_plays."profileId" = :profileId
+            `, {
+                replacements: { profileId: profile.id },
+                type: QueryTypes.SELECT
+            }).then(result => parseInt((result[0] as any).count)),
+            sequelize.query(`SELECT COUNT(DISTINCT "episodeId") as count FROM podcast_plays WHERE "profileId" = :profileId`, {
+                replacements: { profileId: profile.id },
+                type: QueryTypes.SELECT
             }).then(result => parseInt((result[0] as any).count))
         ])
 
         // Aktualizuj statystyki profilu
-        await Profile.update({
+    await Profile.update({
             statistics: {
                 totalPlays: totalPlays || 0,
                 totalMinutes: Math.round((totalMsPlayed || 0) / 60000),
                 uniqueTracks: uniqueTracks || 0,
                 uniqueArtists: uniqueArtists || 0,
-                uniqueAlbums: uniqueAlbums || 0
+        uniqueAlbums: uniqueAlbums || 0,
+        totalPodcastPlays: totalPodcastPlays || 0,
+        uniqueShows: uniqueShows || 0,
+        uniqueEpisodes: uniqueEpisodes || 0
             },
             lastImport: new Date()
         }, {
