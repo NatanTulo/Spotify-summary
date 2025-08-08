@@ -4,7 +4,7 @@
     "description": "Modern Spotify analytics web application",
     "type": "module",
     "scripts": {
-        "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev": "npm-run-all -p dev:server dev:client",
         "dev:client": "cd frontend && npm run dev",
         "dev:server": "cd backend && npm run dev",
         "build": "npm run build:client && npm run build:server",
@@ -25,6 +25,6 @@
     "author": "Natan Tułodziecki",
     "license": "MIT",
     "devDependencies": {
-    "concurrently": "^8.2.2"
+        "npm-run-all": "^4.1.5"
     }
 }

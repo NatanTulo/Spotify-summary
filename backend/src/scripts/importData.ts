@@ -63,7 +63,15 @@ class SpotifyDataImporter {
         podcastPlaysCreated: 0,
         audiobooksCreated: 0,
         audiobookPlaysCreated: 0,
-        skippedRecords: 0
+        skippedRecords: 0,
+        skippedReasons: {
+            underThreshold: 0,
+            missingFieldsMusic: 0,
+            missingFieldsPodcast: 0,
+            missingFieldsAudiobook: 0,
+            unknownType: 0,
+            errors: 0
+        } as Record<string, number>
     }
 
     private artists = new Map<string, number>() // name -> id
@@ -211,7 +219,11 @@ class SpotifyDataImporter {
         if (!this.profileId) return
 
         console.log('🗑️ Clearing existing data for profile...')
-        await Play.destroy({ where: { profileId: this.profileId } })
+        await Promise.all([
+            Play.destroy({ where: { profileId: this.profileId } }),
+            PodcastPlay.destroy({ where: { profileId: this.profileId } }),
+            AudiobookPlay.destroy({ where: { profileId: this.profileId } })
+        ])
         console.log('✅ Existing data cleared')
     }
 
@@ -306,6 +318,7 @@ class SpotifyDataImporter {
             } catch (error) {
                 console.error('Error processing record:', error)
                 this.stats.skippedRecords++
+                this.incrementSkip('errors')
             }
         }
     }
@@ -331,6 +344,7 @@ class SpotifyDataImporter {
                     audiobook: record.audiobook_title
                 })
                 this.stats.skippedRecords++
+                this.incrementSkip('unknownType')
         }
     }
 
@@ -338,21 +352,31 @@ class SpotifyDataImporter {
      * Kategoryzuj typ treści na podstawie dostępnych pól JSON
      */
     private categorizeContent(record: SpotifyPlayData): 'music' | 'podcast' | 'audiobook' | 'unknown' {
-        // Muzyka - ma master_metadata_track_name różne od null
-        if (record.master_metadata_track_name && record.master_metadata_track_name !== null) {
-            return 'music'
-        }
-        
-        // Epizody/Podcasty - mają episode_name różne od null
-        if (record.episode_name && record.episode_name !== null) {
+        // Podcast/video: obecność pól podcastowych LUB URI odcinka
+        if (
+            (record.episode_name && record.episode_name !== null) ||
+            (record.episode_show_name && record.episode_show_name !== null) ||
+            (record.spotify_episode_uri && record.spotify_episode_uri !== null)
+        ) {
             return 'podcast'
         }
-        
-        // Audiobooki - mają audiobook_title różne od null
-        if (record.audiobook_title && record.audiobook_title !== null) {
+
+        // Muzyka: nazwa utworu LUB obecność spotify_track_uri
+        if (
+            (record.master_metadata_track_name && record.master_metadata_track_name !== null) ||
+            (record.spotify_track_uri && record.spotify_track_uri !== null)
+        ) {
+            return 'music'
+        }
+
+        // Audiobook: tytuł lub URI
+        if (
+            (record.audiobook_title && record.audiobook_title !== null) ||
+            (record.audiobook_uri && record.audiobook_uri !== null)
+        ) {
             return 'audiobook'
         }
-        
+
         return 'unknown'
     }
 
@@ -360,34 +384,31 @@ class SpotifyDataImporter {
      * Przetwórz rekord muzyczny
      */
     private async processMusicRecord(record: SpotifyPlayData): Promise<void> {
-        // Sprawdź podstawowe dane - jeśli brak, zgłoś błąd
-        if (!record.master_metadata_track_name ||
-            !record.master_metadata_album_artist_name ||
-            !record.master_metadata_album_album_name ||
-            !record.ts) {
-            console.warn('Missing essential music data:', {
-                track: record.master_metadata_track_name,
-                artist: record.master_metadata_album_artist_name,
-                album: record.master_metadata_album_album_name,
-                timestamp: record.ts
-            })
+        // Konfigurowalny próg czasu odtwarzania
+        const minMs = Number(process.env.MIN_MS_PLAYED || '5000')
+        if (record.ms_played < minMs) {
             this.stats.skippedRecords++
+            this.incrementSkip('underThreshold')
             return
         }
 
-        // Pomiń odtwarzania krótsze niż 5 sekund (5000ms)
-        if (record.ms_played < 5000) {
+        if (!record.ts) {
             this.stats.skippedRecords++
+            this.incrementSkip('missingFieldsMusic')
             return
         }
 
-        const artistId = await this.getOrCreateArtist(record.master_metadata_album_artist_name)
-        const albumId = await this.getOrCreateAlbum(
-            record.master_metadata_album_album_name,
-            artistId
-        )
+        // Fallbacky dla brakujących metadanych (częste w Extended History)
+        const artistName = record.master_metadata_album_artist_name || 'Unknown Artist'
+        const albumName = record.master_metadata_album_album_name || 'Unknown Album'
+        // Jeśli brak nazwy utworu, użyj URI jako nazwy (stabilny unikalny klucz),
+        // a gdy brak URI, zapisz jako Unknown Track (rzadkie przypadki)
+        const trackName = record.master_metadata_track_name || record.spotify_track_uri || 'Unknown Track'
+
+        const artistId = await this.getOrCreateArtist(artistName)
+        const albumId = await this.getOrCreateAlbum(albumName, artistId)
         const trackId = await this.getOrCreateTrack(
-            record.master_metadata_track_name,
+            trackName,
             albumId,
             record.spotify_track_uri || undefined
         )
@@ -399,26 +420,25 @@ class SpotifyDataImporter {
      * Przetwórz rekord podcastu
      */
     private async processPodcastRecord(record: SpotifyPlayData): Promise<void> {
-        // Sprawdź podstawowe dane - jeśli brak, zgłoś błąd
-        if (!record.episode_name || !record.episode_show_name || !record.ts) {
-            console.warn('Missing essential podcast data:', {
-                episode: record.episode_name,
-                show: record.episode_show_name,
-                timestamp: record.ts
-            })
+        const minMs = Number(process.env.MIN_MS_PLAYED || '5000')
+        if (record.ms_played < minMs) {
             this.stats.skippedRecords++
+            this.incrementSkip('underThreshold')
             return
         }
 
-        // Pomiń odtwarzania krótsze niż 5 sekund (5000ms)
-        if (record.ms_played < 5000) {
+        if (!record.ts) {
             this.stats.skippedRecords++
+            this.incrementSkip('missingFieldsPodcast')
             return
         }
 
-        const showId = await this.getOrCreateShow(record.episode_show_name)
+        const showName = record.episode_show_name || 'Unknown Show'
+        const episodeName = record.episode_name || record.spotify_episode_uri || 'Unknown Episode'
+
+        const showId = await this.getOrCreateShow(showName)
         const episodeId = await this.getOrCreateEpisode(
-            record.episode_name,
+            episodeName,
             showId,
             record.spotify_episode_uri || undefined
         )
@@ -430,24 +450,23 @@ class SpotifyDataImporter {
      * Przetwórz rekord audiobooka
      */
     private async processAudiobookRecord(record: SpotifyPlayData): Promise<void> {
-        // Sprawdź podstawowe dane - jeśli brak, zgłoś błąd
-        if (!record.audiobook_title || !record.ts) {
-            console.warn('Missing essential audiobook data:', {
-                title: record.audiobook_title,
-                timestamp: record.ts
-            })
+        const minMs = Number(process.env.MIN_MS_PLAYED || '5000')
+        if (record.ms_played < minMs) {
             this.stats.skippedRecords++
+            this.incrementSkip('underThreshold')
             return
         }
 
-        // Pomiń odtwarzania krótsze niż 5 sekund (5000ms)
-        if (record.ms_played < 5000) {
+        if (!record.ts) {
             this.stats.skippedRecords++
+            this.incrementSkip('missingFieldsAudiobook')
             return
         }
+
+        const title = record.audiobook_title || record.audiobook_uri || 'Unknown Audiobook'
 
         const audiobookId = await this.getOrCreateAudiobook(
-            record.audiobook_title,
+            title,
             record.audiobook_uri || undefined
         )
 
@@ -511,7 +530,17 @@ class SpotifyDataImporter {
             return this.tracks.get(key)!
         }
 
-        let track = await Track.findOne({ where: { name, albumId } })
+        let track: Track | null = null
+
+        // Najpierw szukaj po URI (jeśli dostępne)
+        if (spotifyUri) {
+            track = await Track.findOne({ where: { uri: spotifyUri } })
+        }
+
+        // Jeśli nie znaleziono po URI, szukaj po (name, albumId)
+        if (!track) {
+            track = await Track.findOne({ where: { name, albumId } })
+        }
 
         if (!track) {
             track = await Track.create({
@@ -523,7 +552,7 @@ class SpotifyDataImporter {
             })
             this.stats.tracksCreated++
         } else if (spotifyUri && !track.uri) {
-            // Update existing track with URI if it doesn't have one
+            // Uzupełnij brakujące URI
             track.uri = spotifyUri
             await track.save()
         }
@@ -593,12 +622,16 @@ class SpotifyDataImporter {
             return this.episodes.get(cacheKey)!
         }
 
-        let episode = await Episode.findOne({ 
-            where: { 
-                name, 
-                showId 
-            }
-        })
+        let episode: Episode | null = null
+
+        // Preferuj dopasowanie po spotifyUri jeśli dostępne
+        if (spotifyUri) {
+            episode = await Episode.findOne({ where: { spotifyUri } })
+        }
+
+        if (!episode) {
+            episode = await Episode.findOne({ where: { name, showId } })
+        }
 
         if (!episode) {
             episode = await Episode.create({
@@ -623,7 +656,15 @@ class SpotifyDataImporter {
             return this.audiobooks.get(name)!
         }
 
-        let audiobook = await Audiobook.findOne({ where: { name } })
+        let audiobook: Audiobook | null = null
+
+        if (spotifyUri) {
+            audiobook = await Audiobook.findOne({ where: { spotifyUri } })
+        }
+
+        if (!audiobook) {
+            audiobook = await Audiobook.findOne({ where: { name } })
+        }
 
         if (!audiobook) {
             audiobook = await Audiobook.create({
@@ -919,6 +960,24 @@ class SpotifyDataImporter {
         console.log(`   📖 Audiobooks created: ${this.stats.audiobooksCreated}`)
         console.log(`   📚 Audiobook plays created: ${this.stats.audiobookPlaysCreated}`)
         console.log(`   ⏭️ Records skipped: ${this.stats.skippedRecords}`)
+        if (this.stats.skippedRecords > 0) {
+            const r = this.stats.skippedReasons || {}
+            console.log('      ↳ Breakdown:')
+            console.log(`         • Under threshold (MIN_MS_PLAYED=${process.env.MIN_MS_PLAYED || 5000}): ${r.underThreshold || 0}`)
+            console.log(`         • Missing fields (music): ${r.missingFieldsMusic || 0}`)
+            console.log(`         • Missing fields (podcast): ${r.missingFieldsPodcast || 0}`)
+            console.log(`         • Missing fields (audiobook): ${r.missingFieldsAudiobook || 0}`)
+            console.log(`         • Unknown type: ${r.unknownType || 0}`)
+            console.log(`         • Errors: ${r.errors || 0}`)
+        }
+    }
+
+    /**
+     * Pomocniczo: inkrementuj licznik powodu pominięcia
+     */
+    private incrementSkip(reason: string) {
+        if (!this.stats.skippedReasons) this.stats.skippedReasons = {}
+        this.stats.skippedReasons[reason] = (this.stats.skippedReasons[reason] || 0) + 1
     }
 
     /**
