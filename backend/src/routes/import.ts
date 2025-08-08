@@ -463,23 +463,31 @@ router.delete('/clear', async (req, res) => {
                 'daily_stats', 
                 'country_stats',
                 'artist_stats',  // To musi być usunięte PRZED usunięciem artists
-                'video_plays',
                 'podcast_plays'
             ]
 
+            // Bezpieczne kasowanie: najpierw sprawdź czy tabela istnieje, aby nie przerwać transakcji
             for (const table of tablesToClear) {
-                try {
-                    await sequelize.query(`
-                        DELETE FROM ${table} WHERE "profileId" = :profileId
-                    `, {
-                        replacements: { profileId },
+                const exists = await sequelize.query(
+                    `SELECT to_regclass(:tbl) as oid`,
+                    {
+                        replacements: { tbl: table },
+                        type: QueryTypes.SELECT,
                         transaction
-                    })
-                    console.log(`✅ Cleared ${table} for profile ${profileId}`)
-                } catch (error) {
-                    console.warn(`⚠️ Could not clear ${table} (table may not exist):`, error)
-                    // Kontynuuj, jeśli tabela nie istnieje
+                    }
+                ).then((res: any) => res[0]?.oid !== null)
+                  .catch(() => false)
+
+                if (!exists) {
+                    console.warn(`⚠️ Table ${table} does not exist, skipping`)
+                    continue
                 }
+
+                await sequelize.query(
+                    `DELETE FROM ${table} WHERE "profileId" = :profileId`,
+                    { replacements: { profileId }, transaction }
+                )
+                console.log(`✅ Cleared ${table} for profile ${profileId}`)
             }
 
             // Usuń wszystkie plays dla tego profilu
@@ -534,6 +542,31 @@ router.delete('/clear', async (req, res) => {
             } catch (error) {
                 console.warn('Could not clean up artists:', error)
                 // Nie przerywaj, jeśli nie można usunąć artistów
+            }
+
+            // Dodatkowe sprzątanie dla podcastów: odcinki i programy nieużywane
+            try {
+                // Usuń odcinki bez powiązanych odsłuchań
+                await sequelize.query(`
+                    DELETE FROM episodes WHERE id NOT IN (
+                        SELECT DISTINCT "episodeId" FROM podcast_plays WHERE "episodeId" IS NOT NULL
+                    )
+                `, { transaction })
+                console.log(`✅ Cleaned up unused episodes`)
+            } catch (error) {
+                console.warn('Could not clean up episodes:', error)
+            }
+
+            try {
+                // Usuń programy bez odcinków
+                await sequelize.query(`
+                    DELETE FROM shows WHERE id NOT IN (
+                        SELECT DISTINCT "showId" FROM episodes WHERE "showId" IS NOT NULL
+                    )
+                `, { transaction })
+                console.log(`✅ Cleaned up unused shows`)
+            } catch (error) {
+                console.warn('Could not clean up shows:', error)
             }
 
             // Usuń profil na samym końcu
