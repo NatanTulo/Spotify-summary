@@ -485,26 +485,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                           </p>
                         )}
 
-                        {/* Real-time Statistics */}
-                        {progress.stats.currentStats && (
-                          <div className="bg-gray-50 dark:bg-gray-800 rounded p-2 space-y-2">
-                            <div className="font-medium text-gray-700 dark:text-gray-300 text-xs">
-                              {t("currentStats")}
-                            </div>
-                            <PlaysSummaryRow
-                              musicPlays={progress.stats.currentStats.totalPlays}
-                              podcastPlays={progress.stats.currentStats.totalPodcastPlays ?? 0}
-                            />
-                            <StatsRow
-                              stats={progress.stats.currentStats}
-                              formatDuration={formatDuration}
-                              className="text-gray-600 dark:text-gray-400"
-                              compact
-                              showPlays={false}
-                              showPodcastPlays={false}
-                            />
-                          </div>
-                        )}
+                        {/* Real-time Statistics removed per UX: keep UI minimal during import */}
                       </div>
                     )}
                   </div>

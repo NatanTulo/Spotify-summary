@@ -3,7 +3,7 @@ import { useProfile } from '../../context/ProfileContext'
 import { useLanguage } from '../../context/LanguageContext'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs'
-import { PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, LineChart, Line } from 'recharts'
+import { ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, LineChart, Line } from 'recharts'
 
 interface ApiResponse<T> {
     success: boolean
@@ -41,11 +41,7 @@ interface DailyStats {
     minutes: number
 }
 
-interface PlatformStats {
-    platform: string
-    plays: number
-    percentage: number
-}
+// Removed platform distribution to reduce duplication across pages
 
 interface PodcastPlay {
     id: string
@@ -80,14 +76,14 @@ const Podcasts: React.FC = () => {
     const [topEpisodes, setTopEpisodes] = useState<TopEpisode[]>([])
     const [recentPlays, setRecentPlays] = useState<PodcastPlay[]>([])
     const [dailyStats, setDailyStats] = useState<DailyStats[]>([])
-    const [platformStats, setPlatformStats] = useState<PlatformStats[]>([])
+    // const [platformStats, setPlatformStats] = useState<PlatformStats[]>([])
     const [shows, setShows] = useState<SpotifyShow[]>([])
     const [selectedShow, setSelectedShow] = useState<SpotifyShow | null>(null)
     const [showEpisodes, setShowEpisodes] = useState<PodcastPlay[]>([])
     const [error, setError] = useState<string | null>(null)
 
     // Colors for charts
-    const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D']
+    // const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D']
 
     useEffect(() => {
         if (selectedProfile) {
@@ -108,7 +104,6 @@ const Podcasts: React.FC = () => {
                 fetchTopEpisodes(),
                 fetchRecentPlays(),
                 fetchDailyStats(),
-                fetchPlatformStats(),
                 fetchShows()
             ])
         } catch (err) {
@@ -184,18 +179,7 @@ const Podcasts: React.FC = () => {
         }
     }
 
-    const fetchPlatformStats = async () => {
-        try {
-            const response = await fetch(`/api/podcasts/platform-stats?profileId=${selectedProfile}`)
-            const result: ApiResponse<PlatformStats[]> = await response.json()
-            
-            if (result.success) {
-                setPlatformStats(result.data)
-            }
-        } catch (error) {
-            console.error('Error fetching platform stats:', error)
-        }
-    }
+    // Removed platform stats fetch
 
     const fetchShows = async () => {
         try {
@@ -387,9 +371,9 @@ const Podcasts: React.FC = () => {
                         <span className="hidden sm:inline">{t('charts') || 'Charts'}</span>
                         <span className="sm:hidden">{t('chartsShort') || 'Charts'}</span>
                     </TabsTrigger>
-                    <TabsTrigger value="platforms">
-                        <span className="hidden sm:inline">{t('platforms') || 'Platforms'}</span>
-                        <span className="sm:hidden">{t('platformsShort') || 'Platform'}</span>
+                    <TabsTrigger value="insights">
+                        <span className="hidden sm:inline">{t('insights') || 'Insights'}</span>
+                        <span className="sm:hidden">{t('insightsShort') || 'Insights'}</span>
                     </TabsTrigger>
                 </TabsList>
 
@@ -607,99 +591,104 @@ const Podcasts: React.FC = () => {
                 </TabsContent>
 
                 <TabsContent value="charts" className="space-y-4">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        {/* Daily Listening Chart */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>{t('dailyListening') || 'Daily Listening (Last 30 Days)'}</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="h-64">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <LineChart data={dailyStats}>
-                                            <CartesianGrid strokeDasharray="3 3" />
-                                            <XAxis 
-                                                dataKey="date" 
-                                                tick={{ fontSize: 12 }}
-                                                tickFormatter={(value) => new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                            />
-                                            <YAxis tick={{ fontSize: 12 }} />
-                                            <Tooltip 
-                                                labelFormatter={(value) => new Date(value).toLocaleDateString()}
-                                                formatter={(value: any, name: string) => [
-                                                    name === 'plays' ? `${value} plays` : `${value} minutes`,
-                                                    name === 'plays' ? 'Plays' : 'Minutes'
-                                                ]}
-                                            />
-                                            <Line type="monotone" dataKey="plays" stroke="#8884d8" strokeWidth={2} />
-                                            <Line type="monotone" dataKey="minutes" stroke="#82ca9d" strokeWidth={2} />
-                                        </LineChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Platform Distribution */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>{t('platformDistribution') || 'Platform Distribution'}</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="h-64">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <PieChart>
-                                            <Pie
-                                                data={platformStats}
-                                                cx="50%"
-                                                cy="50%"
-                                                labelLine={false}
-                                                label={(entry) => `${entry.platform} (${entry.percentage.toFixed(1)}%)`}
-                                                outerRadius={80}
-                                                fill="#8884d8"
-                                                dataKey="plays"
-                                            >
-                                                {platformStats.map((_, index) => (
-                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                                ))}
-                                            </Pie>
-                                            <Tooltip formatter={(value: any) => [`${value} plays`, 'Plays']} />
-                                        </PieChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="platforms" className="space-y-4">
+                    {/* Daily Listening Chart only (removed platform duplication) */}
                     <Card>
                         <CardHeader>
-                            <CardTitle>{t('platforms') || 'Platforms'}</CardTitle>
-                            <CardDescription>
-                                {t('platformsDescription') || 'Breakdown of your podcast listening by platform'}
-                            </CardDescription>
+                            <CardTitle>{t('dailyListening') || 'Daily Listening (Last 30 Days)'}</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="space-y-4">
-                                {platformStats.map((platform, index) => (
-                                    <div key={platform.platform} className="flex items-center justify-between p-4 border rounded-lg">
-                                        <div className="flex items-center space-x-4">
-                                            <div 
-                                                className="w-4 h-4 rounded-full"
-                                                style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                                            />
-                                            <div>
-                                                <h3 className="font-medium">{platform.platform}</h3>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {platform.percentage.toFixed(1)}% of total plays
-                                                </p>
+                            <div className="h-64">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={dailyStats}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis 
+                                            dataKey="date" 
+                                            tick={{ fontSize: 12 }}
+                                            tickFormatter={(value) => new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                        />
+                                        <YAxis tick={{ fontSize: 12 }} />
+                                        <Tooltip 
+                                            labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                                            formatter={(value: any, name: string) => [
+                                                name === 'plays' ? `${value} plays` : `${value} minutes`,
+                                                name === 'plays' ? 'Plays' : 'Minutes'
+                                            ]}
+                                        />
+                                        <Line type="monotone" dataKey="plays" stroke="#8884d8" strokeWidth={2} />
+                                        <Line type="monotone" dataKey="minutes" stroke="#82ca9d" strokeWidth={2} />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                <TabsContent value="insights" className="space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>{t('quickInsights') || 'Quick insights'}</CardTitle>
+                            <CardDescription>{t('podcastInsightsDescription') || 'Key takeaways from your podcast listening'}</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                {(() => {
+                                    const days = dailyStats || []
+                                    const totalDays = days.length
+                                    let longest = 0
+                                    let current = 0
+                                    let maxPlays = 0
+                                    let maxPlaysDate = '-'
+                                    let activeDays = 0
+                                    let maxMinutes = 0
+                                    for (const d of days) {
+                                        const hasPlays = (Number((d as any).plays) || 0) > 0
+                                        if (hasPlays) {
+                                            current += 1
+                                            activeDays += 1
+                                        } else {
+                                            longest = Math.max(longest, current)
+                                            current = 0
+                                        }
+                                        const p = Number((d as any).plays) || 0
+                                        const m = Number((d as any).minutes) || 0
+                                        if (p > maxPlays) {
+                                            maxPlays = p
+                                            maxPlaysDate = (d as any).date
+                                        }
+                                        if (m > maxMinutes) maxMinutes = m
+                                    }
+                                    longest = Math.max(longest, current)
+                                    const activePct = totalDays ? Math.round((activeDays / totalDays) * 100) : 0
+                                    const avgPlaysActive = activeDays ? Math.round(days.filter((d: any) => (d.plays || 0) > 0).reduce((a: number, d: any) => a + (Number(d.plays) || 0), 0) / activeDays) : 0
+                                    const avgMinutesActive = activeDays ? Math.round(days.filter((d: any) => (d.minutes || 0) > 0).reduce((a: number, d: any) => a + (Number(d.minutes) || 0), 0) / activeDays) : 0
+                                    return (
+                                        <>
+                                            <div className="space-y-1">
+                                                <div className="text-2xl font-bold text-primary">{longest}</div>
+                                                <div className="text-sm text-muted-foreground">{t('longestStreak') || 'Longest streak (days)'}</div>
                                             </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="font-medium">{platform.plays.toLocaleString()} plays</div>
-                                        </div>
-                                    </div>
-                                ))}
+                                            <div className="space-y-1">
+                                                <div className="text-2xl font-bold text-primary">{current}</div>
+                                                <div className="text-sm text-muted-foreground">{t('currentStreak') || 'Current streak (days)'}</div>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <div className="text-2xl font-bold text-primary">{activePct}%</div>
+                                                <div className="text-sm text-muted-foreground">{t('activeDaysRatio') || 'Active days (last period)'}</div>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <div className="text-2xl font-bold text-primary">{maxPlays}</div>
+                                                <div className="text-sm text-muted-foreground">{t('peakDayPlays') || `Peak day plays (${maxPlaysDate})`}</div>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <div className="text-2xl font-bold text-primary">{avgPlaysActive}</div>
+                                                <div className="text-sm text-muted-foreground">{t('avgPlaysActiveDay') || 'Avg plays per active day'}</div>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <div className="text-2xl font-bold text-primary">{avgMinutesActive}</div>
+                                                <div className="text-sm text-muted-foreground">{t('avgMinutesActiveDay') || 'Avg minutes per active day'}</div>
+                                            </div>
+                                        </>
+                                    )
+                                })()}
                             </div>
                         </CardContent>
                     </Card>

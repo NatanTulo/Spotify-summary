@@ -2,7 +2,7 @@ import { useState, useEffect, lazy, Suspense } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { BarChart3, PieChart, TrendingUp, Calendar, Music } from 'lucide-react'
+import { BarChart3, PieChart, TrendingUp, Music, Percent } from 'lucide-react'
 import { AdvancedFilters } from '@/components/filters/AdvancedFilters'
 import { useProfile } from '../../context/ProfileContext'
 import { useLanguage } from '../../context/LanguageContext'
@@ -30,6 +30,12 @@ interface Track {
     totalMinutes: number
     avgPlayDuration: number
     skipPercentage: number
+}
+
+interface TopArtist {
+    name: string
+    plays: number
+    minutes: number
 }
 
 interface FilterState {
@@ -72,7 +78,7 @@ export default function Analytics() {
     // Stats data
     const [yearlyStats, setYearlyStats] = useState([])
     const [countryStats, setCountryStats] = useState([])
-    const [topArtists, setTopArtists] = useState([])
+    const [topArtists, setTopArtists] = useState<TopArtist[]>([])
     const [statsLoading, setStatsLoading] = useState(false)
     const [timelineData, setTimelineData] = useState<Array<{
         date: string
@@ -143,7 +149,12 @@ export default function Analytics() {
 
             if (artistsRes.ok) {
                 const artistsData = await artistsRes.json()
-                setTopArtists(artistsData.data || [])
+                const mappedTopArtists: TopArtist[] = (artistsData.data || []).map((a: any) => ({
+                    name: a.artistName || a.name || 'Unknown',
+                    plays: Number(a.totalPlays ?? a.plays ?? 0),
+                    minutes: Number(a.totalMinutes ?? a.minutes ?? 0)
+                }))
+                setTopArtists(mappedTopArtists)
             }
 
             if (timelineRes.ok) {
@@ -251,7 +262,7 @@ export default function Analytics() {
 
             {/* Tabs */}
             <Tabs defaultValue="overview" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-3 sm:grid-cols-4">
                     <TabsTrigger value="overview" className="flex items-center space-x-2">
                         <BarChart3 className="h-4 w-4" />
                         <span>{t('overview')}</span>
@@ -264,20 +275,17 @@ export default function Analytics() {
                         <Music className="h-4 w-4" />
                         <span>{t('tracksList')}</span>
                     </TabsTrigger>
-                    <TabsTrigger value="timeline" className="flex items-center space-x-2">
-                        <Calendar className="h-4 w-4" />
-                        <span>{t('timeline')}</span>
+                    <TabsTrigger value="insights" className="flex items-center space-x-2">
+                        <Percent className="h-4 w-4" />
+                        <span>{t('insights')}</span>
                     </TabsTrigger>
                 </TabsList>
 
                 {/* Overview Tab */}
                 <TabsContent value="overview">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 gap-6">
                         <Suspense fallback={<ChartLoader />}>
                             <YearlyStatsChart data={yearlyStats} />
-                        </Suspense>
-                        <Suspense fallback={<ChartLoader />}>
-                            <PlaysByCountryChart data={countryStats} loading={statsLoading} />
                         </Suspense>
                     </div>
                 </TabsContent>
@@ -294,7 +302,7 @@ export default function Analytics() {
                             </Suspense>
                         </div>
                         <Suspense fallback={<ChartLoader />}>
-                            <YearlyStatsChart data={yearlyStats} />
+                            <ListeningTimelineChart data={timelineData} />
                         </Suspense>
                     </div>
                 </TabsContent>
@@ -342,51 +350,127 @@ export default function Analytics() {
                     </div>
                 </TabsContent>
 
-                {/* Timeline Tab */}
-                <TabsContent value="timeline">
-                    <div className="space-y-6">
-                        <Suspense fallback={<ChartLoader />}>
-                            <ListeningTimelineChart data={timelineData} />
-                        </Suspense>
+                {/* Insights Tab */}
+                <TabsContent value="insights">
+                    <div className="grid grid-cols-1 gap-6">
                         <Card>
                             <CardHeader>
-                                <CardTitle>{t('listeningPatternsAnalysis')}</CardTitle>
-                                <CardDescription>
-                                    {t('listeningTrendsDescription')}
-                                </CardDescription>
+                                <CardTitle>{t('quickInsights') || 'Quick insights'}</CardTitle>
+                                <CardDescription>{t('quickInsightsDescription') || 'Highlights based on your recent listening'}</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div className="text-center">
-                                        <div className="text-2xl font-bold text-spotify-green">
-                                            {timelineData.length > 0 ? 
-                                                (() => {
-                                                    const activeDays = timelineData.filter((day: any) => day.plays > 0)
-                                                    const totalPlays = activeDays.reduce((acc: number, day: any) => acc + day.plays, 0)
-                                                    return activeDays.length > 0 ? Math.round(totalPlays / activeDays.length) : 0
-                                                })() 
-                                                : 0}
-                                        </div>
-                                        <div className="text-sm text-muted-foreground">{t('avgPlaysPerActiveDay')}</div>
-                                    </div>
-                                    <div className="text-center">
-                                        <div className="text-2xl font-bold text-spotify-green">
-                                            {timelineData.length > 0 ? 
-                                                (() => {
-                                                    const activeDays = timelineData.filter((day: any) => day.minutes > 0)
-                                                    const totalMinutes = activeDays.reduce((acc: number, day: any) => acc + day.minutes, 0)
-                                                    return activeDays.length > 0 ? Math.round(totalMinutes / activeDays.length) : 0
-                                                })() 
-                                                : 0}
-                                        </div>
-                                        <div className="text-sm text-muted-foreground">{t('avgMinutesPerActiveDay')}</div>
-                                    </div>
-                                    <div className="text-center">
-                                        <div className="text-2xl font-bold text-spotify-green">
-                                            {timelineData.length > 0 ? Math.max(...timelineData.map((day: any) => Number(day.minutes) || 0)) : 0}
-                                        </div>
-                                        <div className="text-sm text-muted-foreground">{t('longestSession')}</div>
-                                    </div>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                    {(() => {
+                                        const days = timelineData || []
+                                        const totalDays = days.length
+                                        let longest = 0
+                                        let current = 0
+                                        let maxPlays = 0
+                                        let maxPlaysDate = '-'
+                                        let maxMinutes = 0
+                                        let activeDays = 0
+                                        for (const d of days) {
+                                            const hasPlays = (Number((d as any).plays) || 0) > 0
+                                            if (hasPlays) {
+                                                current += 1
+                                                activeDays += 1
+                                            } else {
+                                                longest = Math.max(longest, current)
+                                                current = 0
+                                            }
+                                            const p = Number((d as any).plays) || 0
+                                            const m = Number((d as any).minutes) || 0
+                                            if (p > maxPlays) {
+                                                maxPlays = p
+                                                maxPlaysDate = (d as any).date
+                                            }
+                                            if (m > maxMinutes) {
+                                                maxMinutes = m
+                                            }
+                                        }
+                                        longest = Math.max(longest, current)
+                                        const activePct = totalDays ? Math.round((activeDays / totalDays) * 100) : 0
+                                        const avgPlaysActive = activeDays ? Math.round(days.filter((d: any) => (d.plays || 0) > 0).reduce((a: number, d: any) => a + (Number(d.plays) || 0), 0) / activeDays) : 0
+                                        const avgMinutesActive = activeDays ? Math.round(days.filter((d: any) => (d.minutes || 0) > 0).reduce((a: number, d: any) => a + (Number(d.minutes) || 0), 0) / activeDays) : 0
+                                        return (
+                                            <>
+                                                <div className="space-y-1">
+                                                    <div className="text-2xl font-bold text-primary">{longest}</div>
+                                                    <div className="text-sm text-muted-foreground">{t('longestStreak') || 'Longest streak (days)'}</div>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <div className="text-2xl font-bold text-primary">{current}</div>
+                                                    <div className="text-sm text-muted-foreground">{t('currentStreak') || 'Current streak (days)'}</div>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <div className="text-2xl font-bold text-primary">{activePct}%</div>
+                                                    <div className="text-sm text-muted-foreground">{t('activeDaysRatio') || 'Active days (last period)'}</div>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <div className="text-2xl font-bold text-primary">{maxPlays}</div>
+                                                    <div className="text-sm text-muted-foreground">{t('peakDayPlays') || `Peak day plays (${maxPlaysDate})`}</div>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <div className="text-2xl font-bold text-primary">{avgPlaysActive}</div>
+                                                    <div className="text-sm text-muted-foreground">{t('avgPlaysActiveDay') || 'Avg plays per active day'}</div>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <div className="text-2xl font-bold text-primary">{avgMinutesActive}</div>
+                                                    <div className="text-sm text-muted-foreground">{t('avgMinutesActiveDay') || 'Avg minutes per active day'}</div>
+                                                </div>
+                                            </>
+                                        )
+                                    })()}
+                                </div>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>{t('listeningBehavior') || 'Listening Behavior'}</CardTitle>
+                                <CardDescription>{t('musicInsightsMore') || 'Concentration and distribution of your listening'}</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    {(() => {
+                                        const totalPlays = (topArtists || []).reduce((a: number, x: TopArtist) => a + (Number(x.plays) || 0), 0)
+                                        const top1 = topArtists && topArtists[0] ? Math.round(((Number(topArtists[0].plays) || 0) / (totalPlays || 1)) * 100) : 0
+                                        const top3sum = (topArtists || []).slice(0,3).reduce((a: number, x: TopArtist) => a + (Number(x.plays) || 0), 0)
+                                        const top3 = Math.round(((top3sum) / (totalPlays || 1)) * 100)
+                                        // YoY change using last two years if available
+                                        let yoy = 0
+                                        if ((yearlyStats as any[])?.length >= 2) {
+                                            const sorted = [...(yearlyStats as any[])].sort((a,b) => Number(a.year) - Number(b.year))
+                                            const last = sorted[sorted.length - 1]
+                                            const prev = sorted[sorted.length - 2]
+                                            const lastMinutes = Number((last as any).minutes) || 0
+                                            const prevMinutes = Number((prev as any).minutes) || 0
+                                            yoy = prevMinutes ? Math.round(((lastMinutes - prevMinutes) / prevMinutes) * 100) : 0
+                                        }
+                                        // Dominant country share
+                                        const totalCountryPlays = (countryStats || []).reduce((a: number, x: any) => a + (Number(x.plays) || 0), 0)
+                                        const maxCountry = (countryStats || []).reduce((max: number, x: any) => Math.max(max, Number(x.plays) || 0), 0)
+                                        const domCountry = Math.round(((maxCountry) / (totalCountryPlays || 1)) * 100)
+                                        return (
+                                            <>
+                                                <div className="space-y-1">
+                                                    <div className="text-2xl font-bold text-primary">{top1}%</div>
+                                                    <div className="text-sm text-muted-foreground">{t('topArtistShare') || 'Top artist share'}</div>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <div className="text-2xl font-bold text-primary">{top3}%</div>
+                                                    <div className="text-sm text-muted-foreground">{t('top3Share') || 'Top 3 artists share'}</div>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <div className={`text-2xl font-bold ${yoy >= 0 ? 'text-spotify-green' : 'text-destructive'}`}>{yoy}%</div>
+                                                    <div className="text-sm text-muted-foreground">{t('yoyChange') || 'YoY change (minutes)'}</div>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <div className="text-2xl font-bold text-primary">{domCountry}%</div>
+                                                    <div className="text-sm text-muted-foreground">{t('dominantCountryShare') || 'Dominant country share'}</div>
+                                                </div>
+                                            </>
+                                        )
+                                    })()}
                                 </div>
                             </CardContent>
                         </Card>
