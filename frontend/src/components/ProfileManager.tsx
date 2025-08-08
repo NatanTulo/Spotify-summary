@@ -11,6 +11,7 @@ import { Calendar, User, Users } from "lucide-react";
 import { Button } from './ui/button'
 import { useLanguage } from "../context/LanguageContext";
 import StatsRow from "./StatsRow";
+import PlaysSummaryRow from "./PlaysSummaryRow";
 
 interface Profile {
   _id: string;
@@ -490,11 +491,17 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                             <div className="font-medium text-gray-700 dark:text-gray-300 text-xs">
                               {t("currentStats")}
                             </div>
+                            <PlaysSummaryRow
+                              musicPlays={progress.stats.currentStats.totalPlays}
+                              podcastPlays={progress.stats.currentStats.totalPodcastPlays ?? 0}
+                            />
                             <StatsRow
                               stats={progress.stats.currentStats}
                               formatDuration={formatDuration}
                               className="text-gray-600 dark:text-gray-400"
                               compact
+                              showPlays={false}
+                              showPodcastPlays={false}
                             />
                           </div>
                         )}
@@ -547,10 +554,18 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                     </div>
                   )}
 
-                  <StatsRow
-                    stats={profile.statistics}
-                    formatDuration={formatDuration}
-                  />
+                  <div className="space-y-2">
+                    <PlaysSummaryRow
+                      musicPlays={profile.statistics?.totalPlays || 0}
+                      podcastPlays={profile.statistics?.totalPodcastPlays || 0}
+                    />
+                    <StatsRow
+                      stats={profile.statistics}
+                      formatDuration={formatDuration}
+                      showPlays={false}
+                      showPodcastPlays={false}
+                    />
+                  </div>
                 </div>
               ))}
             </div>

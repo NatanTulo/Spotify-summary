@@ -20,6 +20,8 @@ interface StatsRowProps {
   compact?: boolean;
   showAlbums?: boolean;
   showMinutes?: boolean;
+  showPlays?: boolean;
+  showPodcastPlays?: boolean;
 }
 
 export const StatsRow: React.FC<StatsRowProps> = ({
@@ -29,6 +31,8 @@ export const StatsRow: React.FC<StatsRowProps> = ({
   compact = false,
   showAlbums = true,
   showMinutes = true,
+  showPlays = true,
+  showPodcastPlays = true,
 }) => {
   const { t } = useLanguage();
   const textSize = compact ? "text-xs" : "text-sm";
@@ -36,12 +40,14 @@ export const StatsRow: React.FC<StatsRowProps> = ({
 
   const items: Array<React.ReactNode> = [];
 
-  items.push(
-    <div key="plays" className={`flex items-center gap-1 whitespace-nowrap truncate ${textSize}`}>
-      <Play className={`${iconSize}`} />
-      {(stats.totalPlays ?? 0).toLocaleString()} {t("playsStats")}
-    </div>
-  );
+  if (showPlays) {
+    items.push(
+      <div key="plays" className={`flex items-center gap-1 whitespace-nowrap truncate ${textSize}`}>
+        <Play className={`${iconSize}`} />
+        {(stats.totalPlays ?? 0).toLocaleString()} {t("playsStats")}
+      </div>
+    );
+  }
 
   if (showMinutes) {
     items.push(
@@ -75,19 +81,23 @@ export const StatsRow: React.FC<StatsRowProps> = ({
     );
   }
 
-  if ((stats.totalPodcastPlays ?? 0) > 0) {
+  if ((stats.totalPodcastPlays ?? 0) > 0 && showPodcastPlays) {
     items.push(
       <div key="podcastplays" className={`flex items-center gap-1.5 whitespace-nowrap truncate ${textSize}`}>
         <Podcast className={`${iconSize} relative top-px`} />
         {(stats.totalPodcastPlays ?? 0).toLocaleString()} {t("podcastplaysStats")}
       </div>
     );
+  }
+  if ((stats.uniqueShows ?? 0) > 0) {
     items.push(
       <div key="shows" className={`flex items-center gap-1.5 whitespace-nowrap truncate ${textSize}`}>
         <Tv className={`${iconSize} relative top-px`} />
         {(stats.uniqueShows ?? 0).toLocaleString()} {t("showsStats")}
       </div>
     );
+  }
+  if ((stats.uniqueEpisodes ?? 0) > 0) {
     items.push(
       <div key="episodes" className={`flex items-center gap-1.5 whitespace-nowrap truncate ${textSize}`}>
         <List className={`${iconSize} relative top-px`} />
