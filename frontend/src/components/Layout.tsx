@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import { Music } from 'lucide-react'
 import { useProfile } from '../context/ProfileContext'
 import { useLanguage } from '../context/LanguageContext'
@@ -43,39 +43,66 @@ const Layout = ({ children }: LayoutProps) => {
     return (
         <div className="min-h-screen bg-background">
             {/* Header */}
-            <header className="border-b bg-card">
-                <div className="container mx-auto px-4 py-4">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                            <div className="flex items-center space-x-2">
-                                <Music className="h-8 w-8 text-spotify-green" />
-                                <h1 className="text-2xl font-bold text-foreground">
+            <header className="sticky top-0 z-40 border-b bg-card/60 backdrop-blur-xl supports-[backdrop-filter]:bg-card/60">
+                <div className="container mx-auto px-4 py-3">
+                    <div className="relative flex items-center justify-between">
+                        <div className="absolute inset-0 -z-10 overflow-hidden">
+                            <div className="blob w-40 h-40 -left-10 -top-10 bg-primary/30 animate-blob" />
+                            <div className="blob w-56 h-56 left-1/3 -top-16 bg-spotify-green/20 animate-blob [animation-delay:2s]" />
+                            <div className="blob w-48 h-48 -right-16 -bottom-24 bg-chart-4/20 animate-blob [animation-delay:4s]" />
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2">
+                                <div className="relative">
+                                    <div className="absolute -inset-2 rounded-full bg-gradient-to-tr from-spotify-green/30 to-primary/30 blur-lg" aria-hidden />
+                                    <Music className="relative h-8 w-8 text-spotify-green drop-shadow" />
+                                </div>
+                                <h1 className="text-xl md:text-2xl font-semibold md:font-bold tracking-tight text-foreground">
                                     {t('appTitle')}
                                 </h1>
                             </div>
-                            <nav className="flex space-x-4">
-                                <Link
+                            <nav className="hidden md:flex items-center gap-1 rounded-xl p-1 bg-muted/40 border border-border/60">
+                                <NavLink
                                     to="/"
-                                    className="px-4 py-2 text-muted-foreground hover:text-foreground transition-colors"
+                                    className={({ isActive }) =>
+                                        `px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                                            isActive
+                                                ? 'text-foreground bg-background/70 shadow-sm'
+                                                : 'text-muted-foreground hover:text-foreground'
+                                        }`
+                                    }
+                                    end
                                 >
                                     {t('dashboard')}
-                                </Link>
-                                <Link
+                                </NavLink>
+                                <NavLink
                                     to="/music"
-                                    className="px-4 py-2 text-muted-foreground hover:text-foreground transition-colors"
+                                    className={({ isActive }) =>
+                                        `px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                                            isActive
+                                                ? 'text-foreground bg-background/70 shadow-sm'
+                                                : 'text-muted-foreground hover:text-foreground'
+                                        }`
+                                    }
                                 >
                                     {t('music')}
-                                </Link>
-                                <Link
+                                </NavLink>
+                                <NavLink
                                     to="/podcasts"
-                                    className="px-4 py-2 text-muted-foreground hover:text-foreground transition-colors"
+                                    className={({ isActive }) =>
+                                        `px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                                            isActive
+                                                ? 'text-foreground bg-background/70 shadow-sm'
+                                                : 'text-muted-foreground hover:text-foreground'
+                                        }`
+                                    }
                                 >
                                     {t('podcastsTitle')}
-                                </Link>
+                                </NavLink>
                             </nav>
                         </div>
 
-                        <div className="flex items-center space-x-4">
+                        <div className="flex items-center gap-2 md:gap-4">
                             {/* Wybór języka */}
                             <Button
                                 onClick={() => setLanguage(language === 'pl' ? 'en' : 'pl')}
@@ -100,14 +127,14 @@ const Layout = ({ children }: LayoutProps) => {
 
             {/* Profile Manager Modal */}
             {showProfileManager && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                    <div className="bg-background rounded-lg shadow-lg max-w-4xl w-full max-h-[80vh] overflow-auto">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="glass max-w-4xl w-full max-h-[82vh] overflow-auto">
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-2xl font-bold">{t('dataManagement')}</h2>
+                                <h2 className="text-2xl font-semibold tracking-tight">{t('dataManagement')}</h2>
                                 <button
                                     onClick={() => setShowProfileManager(false)}
-                                    className="p-2 hover:bg-muted rounded-md"
+                                    className="p-2 hover:bg-muted rounded-md transition-colors"
                                 >
                                     ✕
                                 </button>
@@ -127,14 +154,19 @@ const Layout = ({ children }: LayoutProps) => {
             {/* Main Content */}
             <main className="container mx-auto px-4 py-8">
                 <div className="profile-context" data-profile={selectedProfile}>
-                    {children}
+                    <div className="page-section elevated">
+                        <div className="absolute -z-10 inset-0 overflow-hidden">
+                            <div className="hero-gradient absolute inset-0 opacity-40" />
+                        </div>
+                        {children}
+                    </div>
                 </div>
             </main>
 
             {/* Footer */}
-            <footer className="border-t bg-card mt-auto">
+            <footer className="border-t bg-card/60 backdrop-blur mt-auto">
                 <div className="container mx-auto px-4 py-6">
-                    <div className="text-center text-sm text-muted-foreground">
+                    <div className="text-center text-xs md:text-sm text-muted-foreground">
                         <p>{t('appDescription')}</p>
                         <p className="mt-1">
                             {t('footerCredit')}

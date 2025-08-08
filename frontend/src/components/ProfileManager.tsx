@@ -8,6 +8,7 @@ import {
 } from "./ui/card";
 import { Progress } from "./ui/progress";
 import { Calendar, User, Play, Clock, Music, Users } from "lucide-react";
+import { Button } from './ui/button'
 import { useLanguage } from "../context/LanguageContext";
 
 interface Profile {
@@ -361,32 +362,26 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
           <CardDescription>{t("profileSelectionDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-2">
-            <button
-              className={`px-4 py-2 rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${
-                selectedProfile === null
-                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                  : "border border-input bg-background hover:bg-accent hover:text-accent-foreground"
-              }`}
+          <div className="segmented">
+            <Button
+              className={`segmented-btn ${selectedProfile === null ? 'segmented-btn-active' : ''}`}
+              variant={selectedProfile === null ? 'default' : 'outline'}
               onClick={() => onProfileSelect(null)}
               disabled={isLoading}
             >
               {t("allProfiles")}
-            </button>
+            </Button>
             {profiles.map((profile) => (
-              <button
+              <Button
                 key={profile._id}
-                className={`px-4 py-2 rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 flex items-center gap-2 ${
-                  selectedProfile === profile._id
-                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                    : "border border-input bg-background hover:bg-accent hover:text-accent-foreground"
-                }`}
+                className={`segmented-btn flex items-center gap-2 ${selectedProfile === profile._id ? 'segmented-btn-active' : ''}`}
+                variant={selectedProfile === profile._id ? 'default' : 'outline'}
                 onClick={() => onProfileSelect(profile._id)}
                 disabled={isLoading}
               >
                 <User className="h-4 w-4" />
                 {profile.name}
-              </button>
+              </Button>
             ))}
           </div>
         </CardContent>
@@ -414,13 +409,14 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                   >
                     <div className="flex items-center justify-between">
                       <h4 className="font-medium">{profile.name}</h4>
-                      <button
-                        className="h-9 rounded-md px-3 text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => handleImportProfile(profile.name)}
                         disabled={isImporting}
                       >
                         {isImporting ? t("importingStatus") : t("importAction")}
-                      </button>
+                      </Button>
                     </div>
                     <p className="text-sm text-muted-foreground">
                       {(profile.audioFiles ?? 0) > 0 && (
@@ -552,12 +548,13 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                       <User className="h-4 w-4" />
                       {profile.name}
                     </h4>
-                    <button
-                      className="h-9 rounded-md px-3 text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    <Button
+                      variant="destructive"
+                      size="sm"
                       onClick={() => handleClearProfile(profile._id)}
                     >
                       {t("removeAction")}
-                    </button>
+                    </Button>
                   </div>
 
                   {profile.lastImport && (

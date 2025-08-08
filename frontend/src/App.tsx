@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
 import Layout from './components/Layout'
 import { LanguageProvider } from './context/LanguageContext'
@@ -12,7 +12,10 @@ const Audiobooks = lazy(() => import('./pages/audiobooks/Audiobooks'))
 // Loading component
 const LoadingSpinner = () => (
     <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="relative h-10 w-10">
+            <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-primary/60 via-spotify-green/60 to-chart-4/60 animate-pulse blur-[2px]" />
+            <div className="absolute inset-[2px] rounded-full bg-background border border-border" />
+        </div>
     </div>
 )
 

@@ -1,4 +1,13 @@
 {
+    "terminal.integrated.defaultProfile.linux": "bash",
+    "terminal.integrated.profiles.linux": {
+        "bash": {
+            "path": "/bin/bash",
+            "args": ["-l", "-i"]
+        }
+    },
+    "terminal.integrated.inheritEnv": true,
+
     "typescript.preferences.includePackageJsonAutoImports": "on",
     "typescript.suggest.autoImports": true,
     "editor.formatOnSave": true,

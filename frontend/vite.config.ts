@@ -37,7 +37,12 @@ export default defineConfig({
                     // Komponenty aplikacji - największe strony
                     'components-charts': ['./src/components/charts/StatsCharts.tsx'],
                     'components-tracks': ['./src/components/TracksList.tsx', './src/components/TracksListNew.tsx'],
-                    'pages': ['./src/pages/Dashboard.tsx', './src/pages/Analytics.tsx'],
+                    'pages': [
+                        './src/pages/Dashboard.tsx',
+                        './src/pages/music/Analytics.tsx',
+                        './src/pages/podcasts/Podcasts.tsx',
+                        './src/pages/audiobooks/Audiobooks.tsx'
+                    ],
                 }
             }
         }

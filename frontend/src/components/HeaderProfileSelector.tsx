@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { User, Download } from 'lucide-react'
 import { useLanguage } from '../context/LanguageContext'
+import { Button } from './ui/button'
 
 interface Profile {
     _id: string
@@ -81,43 +82,43 @@ export const HeaderProfileSelector = ({
             {hasMultipleProfiles && (
                 <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-muted-foreground" />
-                    <div className="flex gap-1">
-                        <button
+                    <div className="segmented">
+                        <Button
                             onClick={() => onProfileSelect(null)}
                             disabled={isLoading}
-                            className={`h-9 rounded-md px-3 text-sm border transition-colors ${selectedProfile === null
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'border-input bg-background hover:bg-accent hover:text-accent-foreground'
-                                } disabled:pointer-events-none disabled:opacity-50`}
+                            variant={selectedProfile === null ? 'default' : 'outline'}
+                            size="sm"
+                            className={`segmented-btn ${selectedProfile === null ? 'segmented-btn-active' : ''}`}
                         >
                             {t('allProfiles')}
-                        </button>
+                        </Button>
                         {profiles.map((profile) => (
-                            <button
+                            <Button
                                 key={profile._id}
                                 onClick={() => onProfileSelect(profile._id)}
                                 disabled={isLoading}
-                                className={`h-9 rounded-md px-3 text-sm border transition-colors ${selectedProfile === profile._id
-                                        ? 'bg-primary text-primary-foreground'
-                                        : 'border-input bg-background hover:bg-accent hover:text-accent-foreground'
-                                    } disabled:pointer-events-none disabled:opacity-50`}
+                                variant={selectedProfile === profile._id ? 'default' : 'outline'}
+                                size="sm"
+                                className={`segmented-btn ${selectedProfile === profile._id ? 'segmented-btn-active' : ''}`}
                             >
                                 {profile.name}
-                            </button>
+                            </Button>
                         ))}
                     </div>
                 </div>
             )}
 
             {/* Import Button - zawsze widoczny */}
-            <button
+            <Button
                 onClick={onImportRequested}
                 disabled={isLoading}
-                className="inline-flex items-center gap-2 h-9 rounded-md px-3 text-sm font-medium bg-spotify-green text-white hover:bg-spotify-green/90 disabled:pointer-events-none disabled:opacity-50"
+                variant="spotify"
+                size="sm"
+                className="inline-flex items-center gap-2"
             >
                 <Download className="h-4 w-4" />
                 {hasDataToImport ? t('importData') : t('dataManagement')}
-            </button>
+            </Button>
         </div>
     )
 }
