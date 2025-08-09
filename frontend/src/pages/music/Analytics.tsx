@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { BarChart3, PieChart, TrendingUp, Music, Percent } from 'lucide-react'
+import { ResponsiveContainer, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, Legend } from 'recharts'
 import { AdvancedFilters } from '@/components/filters/AdvancedFilters'
 import { useProfile } from '../../context/ProfileContext'
 import { useLanguage } from '../../context/LanguageContext'
@@ -78,6 +79,8 @@ export default function Analytics() {
     // Stats data
     const [yearlyStats, setYearlyStats] = useState([])
     const [countryStats, setCountryStats] = useState([])
+    const [timeOfDayStats, setTimeOfDayStats] = useState<Array<{ hour: number; plays: number; totalMinutes: number }>>([])
+    const [dayOfWeekStats, setDayOfWeekStats] = useState<Array<{ dow: number; plays: number; totalMinutes: number }>>([])
     const [topArtists, setTopArtists] = useState<TopArtist[]>([])
     const [statsLoading, setStatsLoading] = useState(false)
     const [timelineData, setTimelineData] = useState<Array<{
@@ -125,11 +128,13 @@ export default function Analytics() {
         try {
             const profileParam = selectedProfile ? `?profileId=${selectedProfile}` : ''
 
-            const [yearlyRes, countryRes, artistsRes, timelineRes] = await Promise.all([
+            const [yearlyRes, countryRes, artistsRes, timelineRes, timeOfDayRes, dayOfWeekRes] = await Promise.all([
                 fetch(`/api/stats/yearly${profileParam}`),
                 fetch(`/api/stats/countries${profileParam}`),
                 fetch(`/api/artists/top?limit=10${selectedProfile ? `&profileId=${selectedProfile}` : ''}`),
-                fetch(`/api/stats/timeline${profileParam}${profileParam ? '&' : '?'}period=day`)
+                fetch(`/api/stats/timeline${profileParam}${profileParam ? '&' : '?'}period=day`),
+                fetch(`/api/stats/time-of-day${profileParam}`),
+                fetch(`/api/stats/day-of-week${profileParam}`)
             ])
 
             if (yearlyRes.ok) {
@@ -170,6 +175,24 @@ export default function Analytics() {
                 // Fallback na mock data jeśli endpoint nie działa
                 const timeline = generateTimelineData()
                 setTimelineData(timeline)
+            }
+
+            if (timeOfDayRes.ok) {
+                const todData = await timeOfDayRes.json()
+                setTimeOfDayStats((todData.data || []).map((d: any) => ({
+                    hour: d.hour,
+                    plays: Number(d.plays) || 0,
+                    totalMinutes: Number(d.totalMinutes) || 0
+                })))
+            }
+
+            if (dayOfWeekRes.ok) {
+                const dowData = await dayOfWeekRes.json()
+                setDayOfWeekStats((dowData.data || []).map((d: any) => ({
+                    dow: d.dow,
+                    plays: Number(d.plays) || 0,
+                    totalMinutes: Number(d.totalMinutes) || 0
+                })))
             }
 
         } catch (error) {
@@ -301,6 +324,58 @@ export default function Analytics() {
                                 <PlaysByCountryChart data={countryStats} loading={statsLoading} />
                             </Suspense>
                         </div>
+                        {/* Listening by Hour & Weekday stacked full width */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>{t('listeningByHour') || 'Listening by Hour'}</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="h-64">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={timeOfDayStats.map(d => ({
+                                            hour: d.hour,
+                                            plays: d.plays,
+                                            minutes: d.totalMinutes
+                                        }))}>
+                                            <CartesianGrid strokeDasharray="3 3" />
+                                            <XAxis dataKey="hour" tickFormatter={(v)=> `${v}:00`} />
+                                            <YAxis yAxisId="plays" orientation="left" />
+                                            <YAxis yAxisId="minutes" orientation="right" />
+                                            <Tooltip formatter={(value:any, name:string)=> [value, name==='plays' ? (t('plays')||'Plays') : (t('minutes')||'Minutes')]} />
+                                            <Legend />
+                                            <Bar yAxisId="plays" dataKey="plays" name={t('totalPlays')||'Plays'} fill="#8884d8" />
+                                            <Bar yAxisId="minutes" dataKey="minutes" name={t('totalMinutes')||'Minutes'} fill="#82ca9d" />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>{t('listeningByWeekday') || 'Listening by Weekday'}</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="h-64">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={dayOfWeekStats.map(d => ({
+                                            dow: d.dow,
+                                            label: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.dow],
+                                            plays: d.plays,
+                                            minutes: d.totalMinutes
+                                        }))}>
+                                            <CartesianGrid strokeDasharray="3 3" />
+                                            <XAxis dataKey="label" />
+                                            <YAxis yAxisId="plays" orientation="left" />
+                                            <YAxis yAxisId="minutes" orientation="right" />
+                                            <Tooltip formatter={(value:any, name:string)=> [value, name==='plays' ? (t('plays')||'Plays') : (t('minutes')||'Minutes')]} />
+                                            <Legend />
+                                            <Bar yAxisId="plays" dataKey="plays" name={t('totalPlays')||'Plays'} fill="#8884d8" />
+                                            <Bar yAxisId="minutes" dataKey="minutes" name={t('totalMinutes')||'Minutes'} fill="#82ca9d" />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </CardContent>
+                        </Card>
                         <Suspense fallback={<ChartLoader />}>
                             <ListeningTimelineChart data={timelineData} />
                         </Suspense>

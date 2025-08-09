@@ -3,6 +3,7 @@ import { Op, fn, col, QueryTypes } from 'sequelize'
 import { sequelize } from '../config/database.js'
 import { Play } from '../models/music/Play.js'
 import { PodcastPlay } from '../models/podcasts/PodcastPlay.js'
+import { literal } from 'sequelize'
 
 console.log('Stats router loaded')
 const router = express.Router()
@@ -235,6 +236,62 @@ router.get('/timeline', async (req, res) => {
             success: false,
             error: 'Failed to fetch timeline statistics'
         })
+    }
+})
+
+// GET /api/stats/time-of-day - rozkład słuchania muzyki wg godzin
+router.get('/time-of-day', async (req, res) => {
+    try {
+        const { profileId } = req.query
+        const filter: any = {}
+        if (profileId && profileId !== 'all') filter.profileId = parseInt(profileId as string)
+        const rows = await Play.findAll({
+            where: filter,
+            attributes: [
+                [literal('EXTRACT(HOUR FROM "timestamp")::int'), 'hour'],
+                [fn('COUNT', col('id')), 'plays'],
+                [fn('SUM', col('msPlayed')), 'totalMs']
+            ],
+            group: [literal('EXTRACT(HOUR FROM "timestamp")::int') as any],
+            raw: true
+        }) as any[]
+        const data = rows.map(r => ({
+            hour: Number(r.hour) || 0,
+            plays: Number(r.plays) || 0,
+            totalMinutes: Math.round(((Number(r.totalMs) || 0) / 60000))
+        })).sort((a, b) => a.hour - b.hour)
+        res.json({ success: true, data })
+    } catch (error) {
+        console.error('Error fetching music time-of-day stats:', error)
+        res.status(500).json({ success: false, error: 'Failed to fetch time-of-day stats' })
+    }
+})
+
+// GET /api/stats/day-of-week - rozkład słuchania muzyki wg dnia tygodnia
+router.get('/day-of-week', async (req, res) => {
+    try {
+        const { profileId } = req.query
+        const filter: any = {}
+        if (profileId && profileId !== 'all') filter.profileId = parseInt(profileId as string)
+        const rows = await Play.findAll({
+            where: filter,
+            attributes: [
+                [literal('EXTRACT(DOW FROM "timestamp")::int'), 'dow'],
+                [fn('COUNT', col('id')), 'plays'],
+                [fn('SUM', col('msPlayed')), 'totalMs']
+            ],
+            group: [literal('EXTRACT(DOW FROM "timestamp")::int') as any],
+            raw: true
+        }) as any[]
+        const data = rows.map(r => ({
+            dow: Number(r.dow) || 0,
+            plays: Number(r.plays) || 0,
+            totalMinutes: Math.round(((Number(r.totalMs) || 0) / 60000))
+        })).sort((a, b) => a.dow - b.dow)
+        res.json({ success: true, data })
+    } catch (error) {
+        console.error('Error fetching music day-of-week stats:', error)
+        res.status(500).json({ success: false, error: 'Failed to fetch day-of-week stats' })
     }
 })
 

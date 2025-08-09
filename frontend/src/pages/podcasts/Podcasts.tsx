@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs'
 import PodcastsShowsList from '../../components/podcasts/PodcastsShowsList'
 import { ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Legend } from 'recharts'
+import { ListeningTimelineChart } from '../../components/charts/StatsCharts'
 
 interface ApiResponse<T> {
     success: boolean
@@ -60,6 +61,8 @@ const Podcasts: React.FC = () => {
     const [topShows, setTopShows] = useState<TopShow[]>([])
     const [topEpisodes, setTopEpisodes] = useState<TopEpisode[]>([])
     const [dailyStats, setDailyStats] = useState<DailyStats[]>([])
+    // Pełna oś czasu (np. 365 dni) do wykresu timeline – niezależna od adaptacyjnego okna dla insightów
+    const [timelineStats, setTimelineStats] = useState<DailyStats[]>([])
     const [timeOfDayStats, setTimeOfDayStats] = useState<TimeOfDayStat[]>([])
     const [dayOfWeekStats, setDayOfWeekStats] = useState<DayOfWeekStat[]>([])
     // const [platformStats, setPlatformStats] = useState<PlatformStats[]>([])
@@ -86,6 +89,7 @@ const Podcasts: React.FC = () => {
                 fetchTopShows(),
                 fetchTopEpisodes(),
                 fetchDailyStats(),
+                fetchTimelineStats(),
                 fetchTimeOfDay(),
                 fetchDayOfWeek()
             ])
@@ -158,6 +162,22 @@ const Podcasts: React.FC = () => {
                     setDailyStats([])
                 }
             }
+        }
+    }
+
+    // Pełny zestaw (np. 365 dni) do timeline – zawsze szeroki zakres
+    const fetchTimelineStats = async () => {
+        if (!selectedProfile) return
+        try {
+            const response = await fetch(`/api/podcasts/daily-stats-all?profileId=${selectedProfile}`)
+            const result: ApiResponse<DailyStats[]> = await response.json()
+            if (result.success) {
+                // Posortuj dla pewności
+                const sorted = [...(result.data || [])].sort((a,b) => a.date.localeCompare(b.date))
+                setTimelineStats(sorted)
+            }
+        } catch (e) {
+            console.error('Error fetching timeline stats:', e)
         }
     }
 
@@ -356,6 +376,16 @@ const Podcasts: React.FC = () => {
                 </TabsContent>
 
                 <TabsContent value="charts" className="space-y-4">
+                    {/* Timeline (daily activity) */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>{t('listeningTimeline') || 'Listening Timeline'}</CardTitle>
+                            <CardDescription>{t('dailyPodcastActivity') || t('dailyActivity') || 'Daily podcast activity'}</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <ListeningTimelineChart data={(timelineStats.length ? timelineStats : dailyStats)} />
+                        </CardContent>
+                    </Card>
                     {/* Time of Day */}
                     <Card>
                         <CardHeader>

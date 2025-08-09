@@ -257,6 +257,36 @@ router.get('/daily-stats', async (req: Request, res: Response) => {
   }
 })
 
+// GET /podcasts/daily-stats-all  (pełny zakres bez parametru days)
+router.get('/daily-stats-all', async (req: Request, res: Response) => {
+  try {
+    const { profileId } = req.query as any
+    if (!profileId) return res.status(400).json({ success: false, message: 'Profile ID is required' })
+    const pid = toInt(profileId, 0)
+    const rows = await PodcastPlay.findAll({
+      attributes: [
+        [fn('DATE', col('timestamp')), 'date'],
+        [fn('COUNT', col('id')), 'plays'],
+        [fn('SUM', col('msPlayed')), 'totalMs']
+      ],
+      where: { profileId: pid },
+      group: [fn('DATE', col('timestamp')) as any],
+      order: [[fn('DATE', col('timestamp')), 'ASC']],
+      raw: true
+    }) as any[]
+    const data = rows.map(r => ({
+      date: r.date,
+      plays: Number(r.plays) || 0,
+      totalMs: Number(r.totalMs) || 0,
+      minutes: (Number(r.totalMs) || 0) / 60000
+    }))
+    res.json({ success: true, data })
+  } catch (e) {
+    console.error('Error fetching daily stats all:', e)
+    res.json({ success: true, data: [] })
+  }
+})
+
 // GET /podcasts/platform-stats
 router.get('/platform-stats', async (req: Request, res: Response) => {
   try {
