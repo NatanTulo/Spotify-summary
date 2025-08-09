@@ -420,8 +420,9 @@ class SpotifyDataImporter {
      * Przetwórz rekord podcastu
      */
     private async processPodcastRecord(record: SpotifyPlayData): Promise<void> {
-        const minMs = Number(process.env.MIN_MS_PLAYED || '5000')
-        if (record.ms_played < minMs) {
+    // Osobny (wyższy) próg dla podcastów: domyślnie 3 minuty (180000 ms)
+    const podcastMinMs = Number(process.env.PODCAST_MIN_MS_PLAYED || '180000')
+    if (record.ms_played < podcastMinMs) {
             this.stats.skippedRecords++
             this.incrementSkip('underThreshold')
             return
@@ -963,7 +964,7 @@ class SpotifyDataImporter {
         if (this.stats.skippedRecords > 0) {
             const r = this.stats.skippedReasons || {}
             console.log('      ↳ Breakdown:')
-            console.log(`         • Under threshold (MIN_MS_PLAYED=${process.env.MIN_MS_PLAYED || 5000}): ${r.underThreshold || 0}`)
+            console.log(`         • Under threshold (music < ${process.env.MIN_MS_PLAYED || 5000} ms OR podcast < ${process.env.PODCAST_MIN_MS_PLAYED || 180000} ms): ${r.underThreshold || 0}`)
             console.log(`         • Missing fields (music): ${r.missingFieldsMusic || 0}`)
             console.log(`         • Missing fields (podcast): ${r.missingFieldsPodcast || 0}`)
             console.log(`         • Missing fields (audiobook): ${r.missingFieldsAudiobook || 0}`)

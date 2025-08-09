@@ -8,6 +8,14 @@ import { useLanguage } from '../../context/LanguageContext'
 type SortKey = 'name' | 'plays' | 'time' | 'lastPlayed'
 type SortOrder = 'asc' | 'desc'
 
+// Domyślne kierunki (pierwsze kliknięcie) – wymaganie: zawsze malejąco
+const DEFAULT_ORDER: Record<SortKey, SortOrder> = {
+  plays: 'desc',
+  time: 'desc',
+  lastPlayed: 'desc',
+  name: 'desc'
+}
+
 interface ShowRow {
   id: number
   name: string
@@ -84,6 +92,12 @@ export const PodcastsShowsList: React.FC = () => {
     const json: ApiResponse<{ episodes: EpisodeRow[] }> = await res.json()
     if (json.success) {
       setEpisodesByShow(prev => ({ ...prev, [showId]: json.data.episodes }))
+      // Jeżeli pierwszy raz ładujemy epizody i nie ma jeszcze ustawionego sortowania dla tego show
+      // zainicjalizuj je, aby pierwsze kliknięcie kolumny "plays" spowodowało realną zmianę (toggle na asc)
+      setEpisodesSort(prev => {
+        if (prev[showId]) return prev
+        return { ...prev, [showId]: { sortBy: 'plays', order: 'desc' } }
+      })
     }
   }
 
@@ -99,17 +113,40 @@ export const PodcastsShowsList: React.FC = () => {
   const sortEpisodes = async (showId: number, column: 'plays' | 'time' | 'lastPlayed') => {
     setEpisodesByShow(prev => ({ ...prev, [showId]: [] })) // pokaż loader
     setEpisodesSort(prev => {
-      const current = prev[showId] || { sortBy: 'plays', order: 'desc' as SortOrder }
+      const current = prev[showId]
       let next: { sortBy: SortKey; order: SortOrder }
-      if (current.sortBy === column) {
+      if (!current) {
+  // Pierwsze kliknięcie w kolumnę – ustaw domyślny kierunek (desc)
+  next = { sortBy: column, order: DEFAULT_ORDER[column] }
+      } else if (current.sortBy === column) {
+        // Kolejne kliknięcie tej samej kolumny – przełącz kierunek
         next = { sortBy: column, order: current.order === 'asc' ? 'desc' : 'asc' }
       } else {
-        next = { sortBy: column, order: column === 'lastPlayed' ? 'desc' : 'desc' } // default desc
+  // Zmiana na inną kolumnę – ustaw jej domyślny kierunek (desc)
+  next = { sortBy: column, order: DEFAULT_ORDER[column] }
       }
       return { ...prev, [showId]: next }
     })
-    // po ustawieniu state, odczyt nowego (krótka mikro-kolejka) – użyj timeout aby mieć zaktualizowany stan
-    setTimeout(() => fetchEpisodes(showId), 0)
+    // Bezpośredni refetch – stan episodesSort zostanie uwzględniony przy następnym renderze;
+    // przekazujemy parametry jawnie aby nie czekać na re-render.
+    const next = episodesSort[showId] ? (() => {
+      const current = episodesSort[showId]
+      if (current.sortBy === column) {
+        return { sortBy: column, order: current.order === 'asc' ? 'desc' : 'asc' as SortOrder }
+      }
+      return { sortBy: column as SortKey, order: DEFAULT_ORDER[column] }
+    })() : { sortBy: column as SortKey, order: DEFAULT_ORDER[column] }
+    await fetchEpisodesWithParams(showId, next.sortBy, next.order)
+  }
+
+  const fetchEpisodesWithParams = async (showId: number, s: SortKey, o: SortOrder) => {
+    if (!selectedProfile) return
+    const params = new URLSearchParams({ profileId: selectedProfile, limit: '500', sortBy: s, order: o })
+    const res = await fetch(`/api/podcasts/shows/${showId}/episodes?${params.toString()}`)
+    const json: ApiResponse<{ episodes: EpisodeRow[] }> = await res.json()
+    if (json.success) {
+      setEpisodesByShow(prev => ({ ...prev, [showId]: json.data.episodes }))
+    }
   }
 
   const formatMs = (ms: number) => {
@@ -160,7 +197,7 @@ export const PodcastsShowsList: React.FC = () => {
             </Button>
             <select
               value={sortBy}
-              onChange={(e) => { setSortBy(e.target.value as SortKey); setOffset(0) }}
+              onChange={(e) => { const val = e.target.value as SortKey; setSortBy(val); setOrder(DEFAULT_ORDER[val]); setOffset(0) }}
               className="border border-border bg-background text-foreground rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
               title={t('sortBy') || 'Sort by'}
             >
