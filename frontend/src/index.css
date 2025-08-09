@@ -40,16 +40,16 @@
     --popover-foreground: 213 31% 91%;
     --primary: 217 91% 60%; /* akcent */
     --primary-foreground: 222 47% 7%;
-    --secondary: 220 18% 16%; /* lekko jaśniejszy */
+    --secondary: 220 18% 6%; /* lekko jaśniejszy */
     --secondary-foreground: 213 31% 91%;
-    --muted: 220 18% 16%;
+    --muted: 220 18% 6%;
     --muted-foreground: 217 10% 64%; /* przygaszony */
-    --accent: 220 18% 16%;
+    --accent: 220 18% 6%;
     --accent-foreground: 213 31% 91%;
     --destructive: 0 62.8% 50%;
     --destructive-foreground: 213 31% 91%;
-    --border: 220 14% 23%;
-    --input: 220 14% 23%;
+    --border: 220 34% 23%;
+    --input: 220 34% 23%;
     --ring: 217 91% 60%;
     --chart-1: 217 91% 60%;
     --chart-2: 195 85% 55%;
@@ -60,12 +60,40 @@
 }
 
 @layer base {
+  /* Brand glow tylko w dark mode (brak w jasnym motywie) */
+  .dark .app-brand-glow::before {
+    content: "";
+    position: absolute;
+    inset: -16px -40px -18px -28px;
+    border-radius: 180px;
+    background: radial-gradient(
+        circle at 45% 52%,
+        rgba(0, 255, 140, 0.38),
+        transparent 72%
+      ),
+      radial-gradient(
+        circle at 70% 50%,
+        rgba(56, 189, 248, 0.24),
+        transparent 80%
+      );
+    filter: blur(46px) saturate(130%);
+    opacity: 0.5;
+    pointer-events: none;
+    mix-blend-mode: screen;
+    transition: opacity 0.35s ease, filter 0.35s ease;
+  }
+  .dark .app-brand-glow:hover::before {
+    opacity: 0.46;
+    filter: blur(44px) saturate(140%);
+  }
+
+  /* Globalny kolor obramowań – przywrócony */
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground antialiased;
-    /* subtelny nowoczesny backdrop */
     background-image: radial-gradient(
         1000px 500px at 10% -10%,
         hsl(var(--primary) / 0.12),
@@ -133,7 +161,15 @@
 
   /* utility do animowanych blobów w tle sekcji */
   .blob {
-    @apply absolute rounded-full opacity-30 blur-3xl pointer-events-none mix-blend-screen;
+    @apply absolute rounded-full pointer-events-none mix-blend-screen;
+    filter: blur(68px) saturate(120%);
+    opacity: 0.4;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-blob {
+      animation: none !important;
+    }
   }
 
   /* segmented control */

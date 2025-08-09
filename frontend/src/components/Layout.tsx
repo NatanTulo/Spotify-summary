@@ -46,17 +46,13 @@ const Layout = ({ children }: LayoutProps) => {
             <header className="sticky top-0 z-40 border-b bg-card/60 backdrop-blur-xl supports-[backdrop-filter]:bg-card/60">
                 <div className="container mx-auto px-4 py-3">
                     <div className="relative flex items-center justify-between">
-                        <div className="absolute inset-0 -z-10 overflow-hidden">
-                            <div className="blob w-40 h-40 -left-10 -top-10 bg-primary/30 animate-blob" />
-                            <div className="blob w-56 h-56 left-1/3 -top-16 bg-spotify-green/20 animate-blob [animation-delay:2s]" />
-                            <div className="blob w-48 h-48 -right-16 -bottom-24 bg-chart-4/20 animate-blob [animation-delay:4s]" />
+                        <div className="absolute inset-0 -z-10 pointer-events-none">
+                            {/* Usunięto zielone blob-y przy tytule i na środku dla czystszego wyglądu */}
+                            <div className="blob w-48 h-48 -right-16 -bottom-24 bg-chart-4/25 animate-blob [animation-delay:3s]" />
                         </div>
                         <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2">
-                                <div className="relative">
-                                    <div className="absolute -inset-2 rounded-full bg-gradient-to-tr from-spotify-green/30 to-primary/30 blur-lg" aria-hidden />
-                                    <Music className="relative h-8 w-8 text-spotify-green drop-shadow" />
-                                </div>
+                            <div className="app-brand-glow flex items-center gap-2 relative">
+                                <Music className="h-8 w-8 text-spotify-green drop-shadow-sm" />
                                 <h1 className="text-xl md:text-2xl font-semibold md:font-bold tracking-tight text-foreground">
                                     {t('appTitle')}
                                 </h1>
