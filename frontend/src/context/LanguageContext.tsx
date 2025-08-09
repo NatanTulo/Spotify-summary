@@ -309,6 +309,9 @@ const translations = {
     noDataToDisplay: "Brak danych do wyświetlenia",
     selectPeriodToZoom: "Wybierz okres do przybliżenia:",
     extendToToday: "Rozszerz do dziś",
+  approximateTrend: "przybliżony trend",
+  aggregatedInfo: "Dane zagregowane (sumy w przedziałach) dla szybszego renderu – przybliżone wartości.",
+  resetZoom: "Resetuj zoom",
 
     // Tooltip labels
     playsTooltip: "Odtworzenia",
@@ -780,6 +783,9 @@ const translations = {
     noDataToDisplay: "No data to display",
     selectPeriodToZoom: "Select period to zoom:",
     extendToToday: "Extend to today",
+  approximateTrend: "approximate trend",
+  aggregatedInfo: "Aggregated data (bucket sums) for faster rendering – approximate values.",
+  resetZoom: "Reset zoom",
 
     // Tooltip labels
     playsTooltip: "Plays",
