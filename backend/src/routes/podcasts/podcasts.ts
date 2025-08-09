@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express'
 import { Op, QueryTypes } from 'sequelize'
 import { Show, Episode, PodcastPlay, Profile } from '../../models/index.js'
+import sequelizePkg from 'sequelize'
+const { fn, col, literal } = sequelizePkg
 
 const router = Router()
 
@@ -19,9 +21,7 @@ router.get('/shows', async (req: Request, res: Response) => {
                 offset: parseInt(offset)
             }
 
-            let whereSearch = ''
             if (search) {
-                whereSearch = 'AND s.name ILIKE :search'
                 replacements.search = `%${search}%`
             }
 
@@ -33,58 +33,51 @@ router.get('/shows', async (req: Request, res: Response) => {
             )
             const sortDirection = (order && String(order).toLowerCase() === 'desc') ? 'DESC' : 'ASC'
 
-            const rows = await PodcastPlay.sequelize!.query(`
-                SELECT * FROM (
-                    SELECT 
-                        s.id as id,
-                        s.name as name,
-                        COUNT(*)::int as "playCount",
-                        COALESCE(SUM(p."msPlayed"),0)::bigint as "totalTime",
-                        MAX(p."timestamp") as "lastPlayed"
-                    FROM podcast_plays p
-                    INNER JOIN episodes e ON p."episodeId" = e.id
-                    INNER JOIN shows s ON e."showId" = s.id
-                    WHERE p."profileId" = :profileId
-                    ${whereSearch}
-                    GROUP BY s.id, s.name
-                ) as agg
-                ORDER BY ${sortColumn} ${sortDirection}
-                LIMIT :limit OFFSET :offset
-            `, { replacements, type: QueryTypes.SELECT }) as any[]
+            // ORM agregacja
+            const whereProfile: any = { profileId: parseInt(profileId) }
+            const include = [{
+                model: Episode,
+                attributes: [],
+                include: [{ model: Show, attributes: [] }]
+            }]
 
-            // Bezpieczne rzutowanie wartości do JSON (unikamy BigInt w odpowiedzi)
-            const safeRows = rows.map((r: any) => ({
+            // build having search condition via show name (since include hidden, use raw whereSearch part with literal if needed)
+            // search filtrowany później w JS
+
+            const showAgg = await PodcastPlay.findAll({
+                attributes: [
+                    [col('episode.show.id'), 'id'],
+                    [col('episode.show.name'), 'name'],
+                    [fn('COUNT', col('PodcastPlay.id')), 'playCount'],
+                    [fn('SUM', col('PodcastPlay.msPlayed')), 'totalTime'],
+                    [fn('MAX', col('PodcastPlay.timestamp')), 'lastPlayed']
+                ],
+                where: whereProfile,
+                include,
+                group: ['episode.show.id', 'episode.show.name'],
+                raw: true
+            }) as any[]
+
+            // sort in JS based on requested column
+            const sorter = (a: any, b: any) => {
+                const dir = sortDirection === 'DESC' ? -1 : 1
+                const aval = a[sortColumn.replace(/"/g,'')] ?? a.name
+                const bval = b[sortColumn.replace(/"/g,'')] ?? b.name
+                if (aval < bval) return -1 * dir
+                if (aval > bval) return 1 * dir
+                return 0
+            }
+            const sorted = showAgg.sort(sorter)
+            const paged = sorted.slice(parseInt(offset), parseInt(offset) + parseInt(limit))
+            const safeRows = paged.map(r => ({
                 id: r.id,
                 name: r.name || 'Unknown Show',
-                playCount: typeof r.playCount === 'string' ? parseInt(r.playCount, 10) : Number(r.playCount) || 0,
-                totalTime: typeof r.totalTime === 'string' ? parseInt(r.totalTime, 10) : Number(r.totalTime) || 0,
+                playCount: Number(r.playCount) || 0,
+                totalTime: Number(r.totalTime) || 0,
                 lastPlayed: r.lastPlayed ? new Date(r.lastPlayed).toISOString() : null
             }))
-
-            const countRows = await PodcastPlay.sequelize!.query(`
-                SELECT COUNT(*) as cnt FROM (
-                    SELECT s.id
-                    FROM podcast_plays p
-                    INNER JOIN episodes e ON p."episodeId" = e.id
-                    INNER JOIN shows s ON e."showId" = s.id
-                    WHERE p."profileId" = :profileId
-                    ${whereSearch}
-                    GROUP BY s.id
-                ) x
-            `, { replacements, type: QueryTypes.SELECT }) as any[]
-
-            const totalRaw = (countRows[0] as any)?.cnt
-            const total = typeof totalRaw === 'string' ? parseInt(totalRaw, 10) : Number(totalRaw) || 0
-
-        return res.json({
-                success: true,
-                data: {
-            shows: safeRows,
-                    total,
-                    limit: parseInt(limit),
-                    offset: parseInt(offset)
-                }
-            })
+            const total = showAgg.length
+            return res.json({ success: true, data: { shows: safeRows, total, limit: parseInt(limit), offset: parseInt(offset) } })
         }
 
         // Domyślne: wszystkie programy (bez agregacji)
@@ -132,9 +125,7 @@ router.get('/shows/:showId/episodes', async (req: Request, res: Response) => {
                 limit: parseInt(limit),
                 offset: parseInt(offset)
             }
-            let whereSearch = ''
             if (search) {
-                whereSearch = 'AND e.name ILIKE :search'
                 replacements.search = `%${search}%`
             }
             const sortColumn = (
@@ -144,53 +135,37 @@ router.get('/shows/:showId/episodes', async (req: Request, res: Response) => {
             )
             const sortDirection = (order && String(order).toLowerCase() === 'desc') ? 'DESC' : 'ASC'
 
-            const rows = await PodcastPlay.sequelize!.query(`
-                SELECT 
-                    e.id as id,
-                    e.name as name,
-                    e."spotifyUri" as "spotifyUri",
-                    COUNT(*)::int as "playCount",
-                    COALESCE(SUM(p."msPlayed"),0)::bigint as "totalTime",
-                    MAX(p."timestamp") as "lastPlayed"
-                FROM podcast_plays p
-                INNER JOIN episodes e ON p."episodeId" = e.id
-                WHERE e."showId" = :showId AND p."profileId" = :profileId
-                ${whereSearch}
-                GROUP BY e.id, e.name, e."spotifyUri"
-                ORDER BY ${sortColumn} ${sortDirection}
-                LIMIT :limit OFFSET :offset
-            `, { replacements, type: QueryTypes.SELECT }) as any[]
-
-            const safeRows = rows.map((r: any) => ({
+            const whereProfile: any = { profileId: parseInt(profileId) }
+            const episodeAgg = await PodcastPlay.findAll({
+                attributes: [
+                    [col('episode.id'), 'id'],
+                    [col('episode.name'), 'name'],
+                    [col('episode.spotifyUri'), 'spotifyUri'],
+                    [fn('COUNT', col('PodcastPlay.id')), 'playCount'],
+                    [fn('SUM', col('PodcastPlay.msPlayed')), 'totalTime'],
+                    [fn('MAX', col('PodcastPlay.timestamp')), 'lastPlayed']
+                ],
+                where: whereProfile,
+                include: [{ model: Episode, attributes: [], where: { showId: parseInt(showId) } }],
+                group: ['episode.id', 'episode.name', 'episode.spotifyUri'],
+                raw: true
+            }) as any[]
+            // search filter in memory for name
+            const filtered = search ? episodeAgg.filter(e => (e.name||'').toLowerCase().includes(String(search).toLowerCase())) : episodeAgg
+            const dir = sortDirection === 'DESC' ? -1 : 1
+            const keyMap: any = { '"playCount"':'playCount','"totalTime"':'totalTime','"lastPlayed"':'lastPlayed' }
+            const sortKey = keyMap[sortColumn] || 'name'
+            filtered.sort((a,b)=>{const av=a[sortKey]; const bv=b[sortKey]; if(av<bv) return -1*dir; if(av>bv) return 1*dir; return 0})
+            const paged = filtered.slice(parseInt(offset), parseInt(offset)+parseInt(limit))
+            const safeRows = paged.map(r=>({
                 id: r.id,
                 name: r.name || 'Unknown Episode',
                 spotifyUri: r.spotifyUri || null,
-                playCount: typeof r.playCount === 'string' ? parseInt(r.playCount, 10) : Number(r.playCount) || 0,
-                totalTime: typeof r.totalTime === 'string' ? parseInt(r.totalTime, 10) : Number(r.totalTime) || 0,
+                playCount: Number(r.playCount)||0,
+                totalTime: Number(r.totalTime)||0,
                 lastPlayed: r.lastPlayed ? new Date(r.lastPlayed).toISOString() : null
             }))
-
-            const countRows = await PodcastPlay.sequelize!.query(`
-                SELECT COUNT(*) as cnt FROM (
-                    SELECT e.id
-                    FROM podcast_plays p
-                    INNER JOIN episodes e ON p."episodeId" = e.id
-                    WHERE e."showId" = :showId AND p."profileId" = :profileId
-                    ${whereSearch}
-                    GROUP BY e.id
-                ) x
-            `, { replacements, type: QueryTypes.SELECT }) as any[]
-            const total = parseInt(countRows[0]?.cnt || '0')
-
-        return res.json({
-                success: true,
-                data: {
-            episodes: safeRows,
-                    total,
-                    limit: parseInt(limit),
-                    offset: parseInt(offset)
-                }
-            })
+            return res.json({ success:true, data: { episodes: safeRows, total: filtered.length, limit: parseInt(limit), offset: parseInt(offset) } })
         }
 
         // Domyślne: lista odcinków programu (bez agregatów)
@@ -325,34 +300,25 @@ router.get('/top-shows', async (req: Request, res: Response) => {
         }
 
         // Zapytanie SQL do pobrania top podcastów
-        const topShows = await PodcastPlay.sequelize!.query(`
-            SELECT 
-                s.id as "showId",
-                s.name as "showName",
-                COUNT(*) as "playCount",
-                SUM(p."msPlayed") as "totalTime"
-            FROM podcast_plays p
-            INNER JOIN episodes e ON p."episodeId" = e.id
-            INNER JOIN shows s ON e."showId" = s.id
-            WHERE p."profileId" = :profileId
-            GROUP BY s.id, s.name
-            ORDER BY COUNT(*) DESC
-            LIMIT :limit
-        `, {
-            replacements: { 
-                profileId: profileId,
-                limit: parseInt(limit as string)
-            },
-            type: QueryTypes.SELECT
+        const topShowsRaw = await PodcastPlay.findAll({
+            attributes: [
+                [col('episode.show.id'), 'showId'],
+                [col('episode.show.name'), 'showName'],
+                [fn('COUNT', col('PodcastPlay.id')), 'playCount'],
+                [fn('SUM', col('PodcastPlay.msPlayed')), 'totalTime']
+            ],
+            where: { profileId: parseInt(profileId as string) },
+            include: [{ model: Episode, attributes: [], include: [{ model: Show, attributes: [] }] }],
+            group: ['episode.show.id','episode.show.name'],
+            raw: true
         }) as any[]
-
-        const formattedShows = topShows.map((result: any) => ({
-            id: `show-${result.showId}`,
-            name: result.showName || 'Unknown Show',
-            playCount: parseInt(result.playCount) || 0,
-            totalTime: parseInt(result.totalTime) || 0,
+        const formattedShows = topShowsRaw.map(r=>({
+            id: `show-${r.showId}`,
+            name: r.showName || 'Unknown Show',
+            playCount: Number(r.playCount)||0,
+            totalTime: Number(r.totalTime)||0,
             publisher: null
-        }))
+        })).sort((a,b)=> b.playCount - a.playCount).slice(0, parseInt(limit as string))
 
         res.json({
             success: true,
@@ -381,35 +347,26 @@ router.get('/top-episodes', async (req: Request, res: Response) => {
             })
         }
 
-        const topEpisodes = await PodcastPlay.sequelize!.query(`
-            SELECT 
-                e.id as "episodeId",
-                e.name as "episodeName",
-                s.name as "showName",
-                COUNT(*) as "playCount",
-                SUM(p."msPlayed") as "totalTime"
-            FROM podcast_plays p
-            INNER JOIN episodes e ON p."episodeId" = e.id
-            INNER JOIN shows s ON e."showId" = s.id
-            WHERE p."profileId" = :profileId
-            GROUP BY e.id, e.name, s.name
-            ORDER BY COUNT(*) DESC
-            LIMIT :limit
-        `, {
-            replacements: { 
-                profileId: profileId,
-                limit: parseInt(limit as string)
-            },
-            type: QueryTypes.SELECT
+        const topEpisodesRaw = await PodcastPlay.findAll({
+            attributes: [
+                [col('episode.id'), 'episodeId'],
+                [col('episode.name'), 'episodeName'],
+                [col('episode.show.name'), 'showName'],
+                [fn('COUNT', col('PodcastPlay.id')), 'playCount'],
+                [fn('SUM', col('PodcastPlay.msPlayed')), 'totalTime']
+            ],
+            where: { profileId: parseInt(profileId as string) },
+            include: [{ model: Episode, attributes: [], include: [{ model: Show, attributes: [] }] }],
+            group: ['episode.id','episode.name','episode.show.name'],
+            raw: true
         }) as any[]
-
-        const formattedEpisodes = topEpisodes.map((result: any) => ({
-            id: `episode-${result.episodeId}`,
-            name: result.episodeName || 'Unknown Episode',
-            showName: result.showName || 'Unknown Show',
-            playCount: parseInt(result.playCount) || 0,
-            totalTime: parseInt(result.totalTime) || 0
-        }))
+        const formattedEpisodes = topEpisodesRaw.map(r=>({
+            id: `episode-${r.episodeId}`,
+            name: r.episodeName || 'Unknown Episode',
+            showName: r.showName || 'Unknown Show',
+            playCount: Number(r.playCount)||0,
+            totalTime: Number(r.totalTime)||0
+        })).sort((a,b)=> b.playCount - a.playCount).slice(0, parseInt(limit as string))
 
         res.json({
             success: true,
@@ -484,20 +441,15 @@ router.get('/daily-stats', async (req: Request, res: Response) => {
 
         const dailyStats = await PodcastPlay.findAll({
             attributes: [
-                [PodcastPlay.sequelize!.fn('DATE', PodcastPlay.sequelize!.col('timestamp')), 'date'],
-                [PodcastPlay.sequelize!.fn('COUNT', '*'), 'plays'],
-                [PodcastPlay.sequelize!.fn('SUM', PodcastPlay.sequelize!.col('msPlayed')), 'totalMs']
+                [fn('DATE', col('timestamp')), 'date'],
+                [fn('COUNT', col('id')), 'plays'],
+                [fn('SUM', col('msPlayed')), 'totalMs']
             ],
-            where: {
-                profileId,
-                timestamp: {
-                    [Op.gte]: startDate
-                }
-            },
-            group: [PodcastPlay.sequelize!.fn('DATE', PodcastPlay.sequelize!.col('timestamp'))],
-            order: [[PodcastPlay.sequelize!.fn('DATE', PodcastPlay.sequelize!.col('timestamp')), 'ASC']],
+            where: { profileId, timestamp: { [Op.gte]: startDate } },
+            group: [fn('DATE', col('timestamp'))],
+            order: [[fn('DATE', col('timestamp')), 'ASC']],
             raw: true
-        })
+        }) as any[]
 
         const formattedStats = dailyStats.map((stat: any) => {
             const totalMs = Number(stat.totalMs) || parseInt(stat.totalMs) || 0
@@ -579,27 +531,22 @@ router.get('/time-of-day', async (req: Request, res: Response) => {
             return res.status(400).json({ success: false, message: 'Profile ID is required' })
         }
 
-        const rows = await PodcastPlay.sequelize!.query(`
-            SELECT 
-                EXTRACT(HOUR FROM p."timestamp")::int AS hour,
-                COUNT(*)::int AS plays,
-                COALESCE(SUM(p."msPlayed"),0)::bigint AS totalMs
-            FROM podcast_plays p
-            WHERE p."profileId" = :profileId
-            GROUP BY EXTRACT(HOUR FROM p."timestamp")
-            ORDER BY hour ASC
-        `, { replacements: { profileId: parseInt(profileId) }, type: QueryTypes.SELECT }) as any[]
-
-        const data = rows.map((r: any) => {
-            const totalMs = (typeof r.totalMs === 'string' ? parseInt(r.totalMs, 10) : Number(r.totalMs) || 0)
-            const minutes = totalMs / 60000
-            return {
-                hour: typeof r.hour === 'string' ? parseInt(r.hour, 10) : Number(r.hour) || 0,
-                plays: typeof r.plays === 'string' ? parseInt(r.plays, 10) : Number(r.plays) || 0,
-                totalMs,
-                minutes
-            }
-        })
+        const rows = await PodcastPlay.findAll({
+            attributes: [
+                [literal('EXTRACT(HOUR FROM "timestamp")::int'), 'hour'],
+                [fn('COUNT', col('id')), 'plays'],
+                [fn('SUM', col('msPlayed')), 'totalMs']
+            ],
+            where: { profileId: parseInt(profileId) },
+            group: [col('hour')],
+            raw: true
+        }) as any[]
+        const data = rows.map(r=> ({
+            hour: Number(r.hour)||0,
+            plays: Number(r.plays)||0,
+            totalMs: Number(r.totalMs)||0,
+            minutes: (Number(r.totalMs)||0)/60000
+        })).sort((a,b)=> a.hour-b.hour)
 
         res.json({ success: true, data })
     } catch (error) {
@@ -615,27 +562,22 @@ router.get('/day-of-week', async (req: Request, res: Response) => {
             return res.status(400).json({ success: false, message: 'Profile ID is required' })
         }
 
-        const rows = await PodcastPlay.sequelize!.query(`
-            SELECT 
-                EXTRACT(DOW FROM p."timestamp")::int AS dow,
-                COUNT(*)::int AS plays,
-                COALESCE(SUM(p."msPlayed"),0)::bigint AS totalMs
-            FROM podcast_plays p
-            WHERE p."profileId" = :profileId
-            GROUP BY EXTRACT(DOW FROM p."timestamp")
-            ORDER BY dow ASC
-        `, { replacements: { profileId: parseInt(profileId) }, type: QueryTypes.SELECT }) as any[]
-
-        const data = rows.map((r: any) => {
-            const totalMs = (typeof r.totalMs === 'string' ? parseInt(r.totalMs, 10) : Number(r.totalMs) || 0)
-            const minutes = totalMs / 60000
-            return {
-                dow: typeof r.dow === 'string' ? parseInt(r.dow, 10) : Number(r.dow) || 0,
-                plays: typeof r.plays === 'string' ? parseInt(r.plays, 10) : Number(r.plays) || 0,
-                totalMs,
-                minutes
-            }
-        })
+        const rows = await PodcastPlay.findAll({
+            attributes: [
+                [literal('EXTRACT(DOW FROM "timestamp")::int'), 'dow'],
+                [fn('COUNT', col('id')), 'plays'],
+                [fn('SUM', col('msPlayed')), 'totalMs']
+            ],
+            where: { profileId: parseInt(profileId) },
+            group: [col('dow')],
+            raw: true
+        }) as any[]
+        const data = rows.map(r=> ({
+            dow: Number(r.dow)||0,
+            plays: Number(r.plays)||0,
+            totalMs: Number(r.totalMs)||0,
+            minutes: (Number(r.totalMs)||0)/60000
+        })).sort((a,b)=> a.dow-b.dow)
 
         res.json({ success: true, data })
     } catch (error) {
@@ -647,89 +589,3 @@ router.get('/day-of-week', async (req: Request, res: Response) => {
 /**
  * DEBUG: surowe sumy msPlayed dla szybkiej diagnostyki (tymczasowe)
  */
-router.get('/debug/ms', async (req: Request, res: Response) => {
-    try {
-        const { profileId } = req.query as any
-        if (!profileId) {
-            return res.status(400).json({ success: false, message: 'Profile ID is required' })
-        }
-
-                const pid = parseInt(profileId)
-
-                // Prosta suma i avg po cytowanej kolumnie (jedyny wariant)
-                const [agg] = await PodcastPlay.sequelize!.query(`
-                        SELECT 
-                            COUNT(*)::int AS plays,
-                            COALESCE(SUM(p."msPlayed"),0)::bigint AS totalMs,
-                            COALESCE(AVG(p."msPlayed"),0)::bigint AS avgMs
-                        FROM podcast_plays p WHERE p."profileId" = :pid
-                `, { replacements: { pid }, type: QueryTypes.SELECT }) as any[]
-
-                // ORM sum dla porównania
-                const ormSum = await PodcastPlay.sum('msPlayed', { where: { profileId: pid } }) as any
-
-                // Ręczny select kilku msPlayed bez agregacji via raw
-                const rawRows = await PodcastPlay.sequelize!.query(`
-                        SELECT id, "profileId", "msPlayed", "timestamp" FROM podcast_plays
-                        WHERE "profileId" = :pid ORDER BY id DESC LIMIT 5
-                `, { replacements: { pid }, type: QueryTypes.SELECT }) as any[]
-
-        // Próbka rekordów
-        const samples = await PodcastPlay.findAll({
-            where: { profileId: pid },
-            order: [['timestamp','DESC']],
-            limit: 10,
-            attributes: ['id','episodeId','msPlayed','timestamp']
-        })
-
-        // Top godziny z ms > 0
-        const hours = await PodcastPlay.sequelize!.query(`
-            SELECT EXTRACT(HOUR FROM "timestamp")::int AS hour, COUNT(*)::int AS plays, COALESCE(SUM("msPlayed"),0)::bigint AS totalMs
-            FROM podcast_plays WHERE "profileId" = :pid GROUP BY 1 ORDER BY hour
-        `, { replacements: { pid }, type: QueryTypes.SELECT })
-
-        // Top odcinki (pierwsze 5) z sumą ms
-        const topEpisodes = await PodcastPlay.sequelize!.query(`
-            SELECT e.name, SUM(p."msPlayed")::bigint AS totalMs, COUNT(*)::int AS plays
-            FROM podcast_plays p INNER JOIN episodes e ON p."episodeId" = e.id
-            WHERE p."profileId" = :pid
-            GROUP BY e.name ORDER BY totalMs DESC LIMIT 5
-        `, { replacements: { pid }, type: QueryTypes.SELECT })
-
-        res.json({
-            success: true,
-            data: {
-                aggregate: {
-                    plays: agg?.plays || 0,
-                    totalMs: typeof agg?.totalMs === 'string' ? parseInt(agg.totalMs,10) : Number(agg?.totalMs)||0,
-                    avgMs: typeof agg?.avgMs === 'string' ? parseInt(agg.avgMs,10) : Number(agg?.avgMs)||0,
-                    minutes: ((typeof agg?.totalMs === 'string' ? parseInt(agg.totalMs,10) : Number(agg?.totalMs)||0) / 60000),
-                    ormSum: typeof ormSum === 'string' ? parseInt(ormSum,10) : Number(ormSum)||0
-                },
-                rawRows: rawRows.map(r => ({
-                    id: r.id,
-                    profileId: r.profileId,
-                    msPlayed: typeof r.msPlayed === 'string' ? r.msPlayed : String(r.msPlayed),
-                    timestamp: r.timestamp
-                })),
-                sample: samples.map(s => ({ id: s.id, episodeId: s.episodeId, msPlayed: s.msPlayed, timestamp: s.timestamp })),
-                byHour: (hours as any[]).map(h => ({
-                    hour: h.hour,
-                    plays: typeof h.plays === 'string' ? parseInt(h.plays,10) : Number(h.plays)||0,
-                    totalMs: typeof h.totalMs === 'string' ? parseInt(h.totalMs,10) : Number(h.totalMs)||0,
-                    minutes: (typeof h.totalMs === 'string' ? parseInt(h.totalMs,10) : Number(h.totalMs)||0)/60000
-                })),
-                topEpisodes: (topEpisodes as any[]).map(te => ({
-                    name: te.name,
-                    plays: typeof te.plays === 'string' ? parseInt(te.plays,10) : Number(te.plays)||0,
-                    totalMs: typeof te.totalMs === 'string' ? parseInt(te.totalMs,10) : Number(te.totalMs)||0,
-                    minutes: (typeof te.totalMs === 'string' ? parseInt(te.totalMs,10) : Number(te.totalMs)||0)/60000
-                })),
-                env: { MIN_MS_PLAYED: process.env.MIN_MS_PLAYED }
-            }
-        })
-    } catch (error) {
-        console.error('Error in debug/ms endpoint', error)
-        res.json({ success: false, message: 'debug failed' })
-    }
-})
