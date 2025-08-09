@@ -34,6 +34,7 @@ export const PodcastsShowsList: React.FC = () => {
   const [shows, setShows] = useState<ShowRow[]>([])
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [episodesByShow, setEpisodesByShow] = useState<Record<number, EpisodeRow[]>>({})
+  const [episodesSort, setEpisodesSort] = useState<Record<number, { sortBy: SortKey; order: SortOrder }>>({})
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<SortKey>('plays')
@@ -70,17 +71,45 @@ export const PodcastsShowsList: React.FC = () => {
     }
   }
 
-  const toggleExpand = async (showId: number) => {
-    const isOpen = !!expanded[String(showId)]
-    setExpanded(prev => ({ ...prev, [String(showId)]: !isOpen }))
-    if (isOpen || episodesByShow[showId] || !selectedProfile) return
-
-    const params = new URLSearchParams({ profileId: selectedProfile, limit: '500', sortBy, order })
+  const fetchEpisodes = async (showId: number) => {
+    if (!selectedProfile) return
+    const es = episodesSort[showId] || { sortBy: 'plays' as SortKey, order: 'desc' as SortOrder }
+    const params = new URLSearchParams({
+      profileId: selectedProfile,
+      limit: '500',
+      sortBy: es.sortBy,
+      order: es.order
+    })
     const res = await fetch(`/api/podcasts/shows/${showId}/episodes?${params.toString()}`)
     const json: ApiResponse<{ episodes: EpisodeRow[] }> = await res.json()
     if (json.success) {
       setEpisodesByShow(prev => ({ ...prev, [showId]: json.data.episodes }))
     }
+  }
+
+  const toggleExpand = async (showId: number) => {
+    const isOpen = !!expanded[String(showId)]
+    setExpanded(prev => ({ ...prev, [String(showId)]: !isOpen }))
+    if (isOpen) return
+    if (!episodesByShow[showId]) {
+      await fetchEpisodes(showId)
+    }
+  }
+
+  const sortEpisodes = async (showId: number, column: 'plays' | 'time' | 'lastPlayed') => {
+    setEpisodesByShow(prev => ({ ...prev, [showId]: [] })) // pokaż loader
+    setEpisodesSort(prev => {
+      const current = prev[showId] || { sortBy: 'plays', order: 'desc' as SortOrder }
+      let next: { sortBy: SortKey; order: SortOrder }
+      if (current.sortBy === column) {
+        next = { sortBy: column, order: current.order === 'asc' ? 'desc' : 'asc' }
+      } else {
+        next = { sortBy: column, order: column === 'lastPlayed' ? 'desc' : 'desc' } // default desc
+      }
+      return { ...prev, [showId]: next }
+    })
+    // po ustawieniu state, odczyt nowego (krótka mikro-kolejka) – użyj timeout aby mieć zaktualizowany stan
+    setTimeout(() => fetchEpisodes(showId), 0)
   }
 
   const formatMs = (ms: number) => {
@@ -105,7 +134,7 @@ export const PodcastsShowsList: React.FC = () => {
       <CardHeader>
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
-            <CardTitle>{t('topShows') || 'Shows'}</CardTitle>
+            <CardTitle>{t('shows') || t('showsAndEpisodes') || 'Shows'}</CardTitle>
             <CardDescription>{t('clickToExpand') || 'Click a show to see played episodes'}</CardDescription>
           </div>
           <div className="flex items-center gap-2">
@@ -188,11 +217,28 @@ export const PodcastsShowsList: React.FC = () => {
                     ) : (
                       <table className="w-full text-sm">
                         <thead>
-                          <tr className="text-muted-foreground">
-                            <th className="text-left py-1 pr-2">{t('episode') || 'Episode'}</th>
-                            <th className="text-right py-1 pr-2">{t('totalPlays') || 'Plays'}</th>
-                            <th className="text-right py-1 pr-2">{t('totalMinutes') || 'Time'}</th>
-                            <th className="text-right py-1">{t('lastPlayed') || 'Last played'}</th>
+                          <tr className="text-muted-foreground select-none">
+                            <th className="text-left py-1 pr-2 font-medium">{t('episode') || 'Episode'}</th>
+                            {(['plays','time','lastPlayed'] as const).map(col => {
+                              const es = episodesSort[show.id]
+                              const active = es?.sortBy === (col === 'plays' ? 'plays' : col === 'time' ? 'time' : 'lastPlayed')
+                              const label = col === 'plays' ? (t('totalPlays') || 'Plays') : col === 'time' ? (t('totalMinutes') || 'Time') : (t('lastPlayed') || 'Last played')
+                              return (
+                                <th
+                                  key={col}
+                                  onClick={() => sortEpisodes(show.id, col)}
+                                  className="text-right py-1 pr-2 cursor-pointer hover:text-foreground transition-colors group"
+                                  title={t('toggleSortOrder') || 'Toggle sort order'}
+                                >
+                                  <span className={active ? 'text-foreground font-semibold inline-flex items-center gap-1' : 'inline-flex items-center gap-1'}>
+                                    {label}
+                                    {active && (
+                                      <span className="text-xs opacity-70">{(es!.order === 'asc') ? '▲' : '▼'}</span>
+                                    )}
+                                  </span>
+                                </th>
+                              )
+                            })}
                           </tr>
                         </thead>
                         <tbody>

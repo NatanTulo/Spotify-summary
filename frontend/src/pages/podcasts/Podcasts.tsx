@@ -137,15 +137,27 @@ const Podcasts: React.FC = () => {
     }
 
     const fetchDailyStats = async () => {
-        try {
-            const response = await fetch(`/api/podcasts/daily-stats?profileId=${selectedProfile}&days=30`)
-            const result: ApiResponse<DailyStats[]> = await response.json()
-            
-            if (result.success) {
-                setDailyStats(result.data)
+        if (!selectedProfile) return
+        const windows = [30, 180, 365]
+        for (const days of windows) {
+            try {
+                const response = await fetch(`/api/podcasts/daily-stats?profileId=${selectedProfile}&days=${days}`)
+                const result: ApiResponse<DailyStats[]> = await response.json()
+                if (result.success) {
+                    const sumPlays = (result.data || []).reduce((a, d) => a + (d.plays || 0), 0)
+                    // Jeśli mamy jakiekolwiek odtworzenia albo to ostatnie okno – użyj
+                    if (sumPlays > 0 || days === windows[windows.length - 1]) {
+                        setDailyStats(result.data)
+                        break
+                    }
+                }
+            } catch (err) {
+                console.error(`Error fetching daily stats (${days}d):`, err)
+                // jeżeli błąd i to ostatnia próba -> zostaw co jest
+                if (days === windows[windows.length - 1]) {
+                    setDailyStats([])
+                }
             }
-        } catch (error) {
-            console.error('Error fetching daily stats:', error)
         }
     }
 
@@ -356,10 +368,14 @@ const Podcasts: React.FC = () => {
                                         <CartesianGrid strokeDasharray="3 3" />
                                         <XAxis dataKey="hour" tickFormatter={(v) => `${v}:00`} />
                                         <YAxis />
-                                        <Tooltip formatter={(v: any, n: string) => [
-                                            n === 'plays' ? `${v} ${t('plays') || 'plays'}` : `${v} ${t('minutes') || 'minutes'}`,
-                                            n === 'plays' ? (t('totalPlays') || 'Plays') : (t('totalMinutes') || 'Minutes')
-                                        ]} />
+                                        <Tooltip formatter={(value: any, _name: string, item: any) => {
+                                            const isPlays = item?.dataKey === 'plays'
+                                            const val = isPlays ? value : Number(value).toFixed(1)
+                                            return [
+                                                `${val} ${isPlays ? (t('plays') || 'plays') : (t('minutes') || 'minutes')}`,
+                                                isPlays ? (t('totalPlays') || 'Plays') : (t('totalMinutes') || 'Minutes')
+                                            ]
+                                        }} />
                                         <Bar name={t('totalPlays') || 'Plays'} dataKey="plays" fill="#8884d8" />
                                         <Bar name={t('totalMinutes') || 'Minutes'} dataKey="minutes" fill="#82ca9d" />
                                     </BarChart>
@@ -380,10 +396,14 @@ const Podcasts: React.FC = () => {
                                         <CartesianGrid strokeDasharray="3 3" />
                                         <XAxis dataKey="label" />
                                         <YAxis />
-                                        <Tooltip formatter={(v: any, n: string) => [
-                                            n === 'plays' ? `${v} ${t('plays') || 'plays'}` : `${v} ${t('minutes') || 'minutes'}`,
-                                            n === 'plays' ? (t('totalPlays') || 'Plays') : (t('totalMinutes') || 'Minutes')
-                                        ]} />
+                                        <Tooltip formatter={(value: any, _name: string, item: any) => {
+                                            const isPlays = item?.dataKey === 'plays'
+                                            const val = isPlays ? value : Number(value).toFixed(1)
+                                            return [
+                                                `${val} ${isPlays ? (t('plays') || 'plays') : (t('minutes') || 'minutes')}`,
+                                                isPlays ? (t('totalPlays') || 'Plays') : (t('totalMinutes') || 'Minutes')
+                                            ]
+                                        }} />
                                         <Bar name={t('totalPlays') || 'Plays'} dataKey="plays" fill="#8884d8" />
                                         <Bar name={t('totalMinutes') || 'Minutes'} dataKey="minutes" fill="#82ca9d" />
                                     </BarChart>
@@ -402,6 +422,13 @@ const Podcasts: React.FC = () => {
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                 {(() => {
                                     const days = dailyStats || []
+                                    if (!days.length) {
+                                        return (
+                                            <div className="col-span-full text-muted-foreground text-sm">
+                                                {t('noData') || 'No data to display'}
+                                            </div>
+                                        )
+                                    }
                                     const totalDays = days.length
                                     let longest = 0
                                     let current = 0
@@ -410,7 +437,9 @@ const Podcasts: React.FC = () => {
                                     let activeDays = 0
                                     let maxMinutes = 0
                                     for (const d of days) {
-                                        const hasPlays = (Number((d as any).plays) || 0) > 0
+                                        const p = Number(d.plays) || 0
+                                        const m = Number(d.minutes) || 0
+                                        const hasPlays = p > 0
                                         if (hasPlays) {
                                             current += 1
                                             activeDays += 1
@@ -418,8 +447,6 @@ const Podcasts: React.FC = () => {
                                             longest = Math.max(longest, current)
                                             current = 0
                                         }
-                                        const p = Number((d as any).plays) || 0
-                                        const m = Number((d as any).minutes) || 0
                                         if (p > maxPlays) {
                                             maxPlays = p
                                             maxPlaysDate = (d as any).date
@@ -428,8 +455,17 @@ const Podcasts: React.FC = () => {
                                     }
                                     longest = Math.max(longest, current)
                                     const activePct = totalDays ? Math.round((activeDays / totalDays) * 100) : 0
-                                    const avgPlaysActive = activeDays ? Math.round(days.filter((d: any) => (d.plays || 0) > 0).reduce((a: number, d: any) => a + (Number(d.plays) || 0), 0) / activeDays) : 0
-                                    const avgMinutesActive = activeDays ? Math.round(days.filter((d: any) => (d.minutes || 0) > 0).reduce((a: number, d: any) => a + (Number(d.minutes) || 0), 0) / activeDays) : 0
+                                    const totalPlaysActive = days.filter(d => (d.plays || 0) > 0).reduce((a, d) => a + (d.plays || 0), 0)
+                                    const totalMinutesActive = days.filter(d => (d.minutes || 0) > 0).reduce((a, d) => a + (Number(d.minutes) || 0), 0)
+                                    const avgPlaysActive = activeDays ? Math.round(totalPlaysActive / activeDays) : 0
+                                    const avgMinutesActive = activeDays ? Math.round(totalMinutesActive / activeDays) : 0
+                                    if (totalPlaysActive === 0) {
+                                        return (
+                                            <div className="col-span-full text-muted-foreground text-sm">
+                                                {t('noData') || 'No data to display'}
+                                            </div>
+                                        )
+                                    }
                                     return (
                                         <>
                                             <div className="space-y-1">

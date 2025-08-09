@@ -592,10 +592,12 @@ router.get('/time-of-day', async (req: Request, res: Response) => {
 
         const data = rows.map((r: any) => {
             const totalMs = (typeof r.totalMs === 'string' ? parseInt(r.totalMs, 10) : Number(r.totalMs) || 0)
+            const minutes = totalMs / 60000
             return {
                 hour: typeof r.hour === 'string' ? parseInt(r.hour, 10) : Number(r.hour) || 0,
                 plays: typeof r.plays === 'string' ? parseInt(r.plays, 10) : Number(r.plays) || 0,
-                minutes: Number((totalMs / 60000).toFixed(1))
+                totalMs,
+                minutes
             }
         })
 
@@ -626,10 +628,12 @@ router.get('/day-of-week', async (req: Request, res: Response) => {
 
         const data = rows.map((r: any) => {
             const totalMs = (typeof r.totalMs === 'string' ? parseInt(r.totalMs, 10) : Number(r.totalMs) || 0)
+            const minutes = totalMs / 60000
             return {
                 dow: typeof r.dow === 'string' ? parseInt(r.dow, 10) : Number(r.dow) || 0,
                 plays: typeof r.plays === 'string' ? parseInt(r.plays, 10) : Number(r.plays) || 0,
-                minutes: Number((totalMs / 60000).toFixed(1))
+                totalMs,
+                minutes
             }
         })
 
@@ -637,5 +641,95 @@ router.get('/day-of-week', async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Error fetching day-of-week stats:', error)
         res.json({ success: true, data: [] })
+    }
+})
+
+/**
+ * DEBUG: surowe sumy msPlayed dla szybkiej diagnostyki (tymczasowe)
+ */
+router.get('/debug/ms', async (req: Request, res: Response) => {
+    try {
+        const { profileId } = req.query as any
+        if (!profileId) {
+            return res.status(400).json({ success: false, message: 'Profile ID is required' })
+        }
+
+                const pid = parseInt(profileId)
+
+                // Prosta suma i avg po cytowanej kolumnie (jedyny wariant)
+                const [agg] = await PodcastPlay.sequelize!.query(`
+                        SELECT 
+                            COUNT(*)::int AS plays,
+                            COALESCE(SUM(p."msPlayed"),0)::bigint AS totalMs,
+                            COALESCE(AVG(p."msPlayed"),0)::bigint AS avgMs
+                        FROM podcast_plays p WHERE p."profileId" = :pid
+                `, { replacements: { pid }, type: QueryTypes.SELECT }) as any[]
+
+                // ORM sum dla porównania
+                const ormSum = await PodcastPlay.sum('msPlayed', { where: { profileId: pid } }) as any
+
+                // Ręczny select kilku msPlayed bez agregacji via raw
+                const rawRows = await PodcastPlay.sequelize!.query(`
+                        SELECT id, "profileId", "msPlayed", "timestamp" FROM podcast_plays
+                        WHERE "profileId" = :pid ORDER BY id DESC LIMIT 5
+                `, { replacements: { pid }, type: QueryTypes.SELECT }) as any[]
+
+        // Próbka rekordów
+        const samples = await PodcastPlay.findAll({
+            where: { profileId: pid },
+            order: [['timestamp','DESC']],
+            limit: 10,
+            attributes: ['id','episodeId','msPlayed','timestamp']
+        })
+
+        // Top godziny z ms > 0
+        const hours = await PodcastPlay.sequelize!.query(`
+            SELECT EXTRACT(HOUR FROM "timestamp")::int AS hour, COUNT(*)::int AS plays, COALESCE(SUM("msPlayed"),0)::bigint AS totalMs
+            FROM podcast_plays WHERE "profileId" = :pid GROUP BY 1 ORDER BY hour
+        `, { replacements: { pid }, type: QueryTypes.SELECT })
+
+        // Top odcinki (pierwsze 5) z sumą ms
+        const topEpisodes = await PodcastPlay.sequelize!.query(`
+            SELECT e.name, SUM(p."msPlayed")::bigint AS totalMs, COUNT(*)::int AS plays
+            FROM podcast_plays p INNER JOIN episodes e ON p."episodeId" = e.id
+            WHERE p."profileId" = :pid
+            GROUP BY e.name ORDER BY totalMs DESC LIMIT 5
+        `, { replacements: { pid }, type: QueryTypes.SELECT })
+
+        res.json({
+            success: true,
+            data: {
+                aggregate: {
+                    plays: agg?.plays || 0,
+                    totalMs: typeof agg?.totalMs === 'string' ? parseInt(agg.totalMs,10) : Number(agg?.totalMs)||0,
+                    avgMs: typeof agg?.avgMs === 'string' ? parseInt(agg.avgMs,10) : Number(agg?.avgMs)||0,
+                    minutes: ((typeof agg?.totalMs === 'string' ? parseInt(agg.totalMs,10) : Number(agg?.totalMs)||0) / 60000),
+                    ormSum: typeof ormSum === 'string' ? parseInt(ormSum,10) : Number(ormSum)||0
+                },
+                rawRows: rawRows.map(r => ({
+                    id: r.id,
+                    profileId: r.profileId,
+                    msPlayed: typeof r.msPlayed === 'string' ? r.msPlayed : String(r.msPlayed),
+                    timestamp: r.timestamp
+                })),
+                sample: samples.map(s => ({ id: s.id, episodeId: s.episodeId, msPlayed: s.msPlayed, timestamp: s.timestamp })),
+                byHour: (hours as any[]).map(h => ({
+                    hour: h.hour,
+                    plays: typeof h.plays === 'string' ? parseInt(h.plays,10) : Number(h.plays)||0,
+                    totalMs: typeof h.totalMs === 'string' ? parseInt(h.totalMs,10) : Number(h.totalMs)||0,
+                    minutes: (typeof h.totalMs === 'string' ? parseInt(h.totalMs,10) : Number(h.totalMs)||0)/60000
+                })),
+                topEpisodes: (topEpisodes as any[]).map(te => ({
+                    name: te.name,
+                    plays: typeof te.plays === 'string' ? parseInt(te.plays,10) : Number(te.plays)||0,
+                    totalMs: typeof te.totalMs === 'string' ? parseInt(te.totalMs,10) : Number(te.totalMs)||0,
+                    minutes: (typeof te.totalMs === 'string' ? parseInt(te.totalMs,10) : Number(te.totalMs)||0)/60000
+                })),
+                env: { MIN_MS_PLAYED: process.env.MIN_MS_PLAYED }
+            }
+        })
+    } catch (error) {
+        console.error('Error in debug/ms endpoint', error)
+        res.json({ success: false, message: 'debug failed' })
     }
 })
