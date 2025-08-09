@@ -9,27 +9,102 @@ const router = Router()
  */
 router.get('/shows', async (req: Request, res: Response) => {
     try {
-        const { limit = 50, offset = 0, search } = req.query
+        const { limit = 50, offset = 0, search, profileId, sortBy = 'name', order = 'asc' } = req.query as any
 
+        // Jeśli podano profileId, zwróć tylko programy słuchane przez profil wraz z agregatami
+        if (profileId) {
+            const replacements: any = {
+                profileId: parseInt(profileId),
+                limit: parseInt(limit),
+                offset: parseInt(offset)
+            }
+
+            let whereSearch = ''
+            if (search) {
+                whereSearch = 'AND s.name ILIKE :search'
+                replacements.search = `%${search}%`
+            }
+
+            // Sortowanie po plays|time|lastPlayed|name (po agregacji używamy aliasów; camelCase muszą być w cudzysłowach)
+            const sortColumn = (
+                sortBy === 'plays' ? '"playCount"' :
+                sortBy === 'time' ? '"totalTime"' :
+                sortBy === 'lastPlayed' ? '"lastPlayed"' : 'name'
+            )
+            const sortDirection = (order && String(order).toLowerCase() === 'desc') ? 'DESC' : 'ASC'
+
+            const rows = await PodcastPlay.sequelize!.query(`
+                SELECT * FROM (
+                    SELECT 
+                        s.id as id,
+                        s.name as name,
+                        COUNT(*)::int as "playCount",
+                        COALESCE(SUM(p."msPlayed"),0)::bigint as "totalTime",
+                        MAX(p."timestamp") as "lastPlayed"
+                    FROM podcast_plays p
+                    INNER JOIN episodes e ON p."episodeId" = e.id
+                    INNER JOIN shows s ON e."showId" = s.id
+                    WHERE p."profileId" = :profileId
+                    ${whereSearch}
+                    GROUP BY s.id, s.name
+                ) as agg
+                ORDER BY ${sortColumn} ${sortDirection}
+                LIMIT :limit OFFSET :offset
+            `, { replacements, type: QueryTypes.SELECT }) as any[]
+
+            // Bezpieczne rzutowanie wartości do JSON (unikamy BigInt w odpowiedzi)
+            const safeRows = rows.map((r: any) => ({
+                id: r.id,
+                name: r.name || 'Unknown Show',
+                playCount: typeof r.playCount === 'string' ? parseInt(r.playCount, 10) : Number(r.playCount) || 0,
+                totalTime: typeof r.totalTime === 'string' ? parseInt(r.totalTime, 10) : Number(r.totalTime) || 0,
+                lastPlayed: r.lastPlayed ? new Date(r.lastPlayed).toISOString() : null
+            }))
+
+            const countRows = await PodcastPlay.sequelize!.query(`
+                SELECT COUNT(*) as cnt FROM (
+                    SELECT s.id
+                    FROM podcast_plays p
+                    INNER JOIN episodes e ON p."episodeId" = e.id
+                    INNER JOIN shows s ON e."showId" = s.id
+                    WHERE p."profileId" = :profileId
+                    ${whereSearch}
+                    GROUP BY s.id
+                ) x
+            `, { replacements, type: QueryTypes.SELECT }) as any[]
+
+            const totalRaw = (countRows[0] as any)?.cnt
+            const total = typeof totalRaw === 'string' ? parseInt(totalRaw, 10) : Number(totalRaw) || 0
+
+        return res.json({
+                success: true,
+                data: {
+            shows: safeRows,
+                    total,
+                    limit: parseInt(limit),
+                    offset: parseInt(offset)
+                }
+            })
+        }
+
+        // Domyślne: wszystkie programy (bez agregacji)
         const whereClause: any = {}
         if (search) {
             whereClause.name = { [Op.iLike]: `%${search}%` }
         }
-
         const shows = await Show.findAndCountAll({
             where: whereClause,
-            limit: parseInt(limit as string),
-            offset: parseInt(offset as string),
+            limit: parseInt(limit),
+            offset: parseInt(offset),
             order: [['name', 'ASC']]
         })
-
         res.json({
             success: true,
             data: {
                 shows: shows.rows,
                 total: shows.count,
-                limit: parseInt(limit as string),
-                offset: parseInt(offset as string)
+                limit: parseInt(limit),
+                offset: parseInt(offset)
             }
         })
     } catch (error) {
@@ -47,26 +122,95 @@ router.get('/shows', async (req: Request, res: Response) => {
 router.get('/shows/:showId/episodes', async (req: Request, res: Response) => {
     try {
         const { showId } = req.params
-        const { limit = 50, offset = 0 } = req.query
+        const { limit = 50, offset = 0, profileId, search, sortBy = 'name', order = 'asc' } = req.query as any
 
+        // Jeśli podano profileId, zwracamy wyłącznie odsłuchane odcinki z agregatami
+        if (profileId) {
+            const replacements: any = {
+                showId: parseInt(showId),
+                profileId: parseInt(profileId),
+                limit: parseInt(limit),
+                offset: parseInt(offset)
+            }
+            let whereSearch = ''
+            if (search) {
+                whereSearch = 'AND e.name ILIKE :search'
+                replacements.search = `%${search}%`
+            }
+            const sortColumn = (
+                sortBy === 'plays' ? '"playCount"' :
+                sortBy === 'time' ? '"totalTime"' :
+                sortBy === 'lastPlayed' ? '"lastPlayed"' : 'name'
+            )
+            const sortDirection = (order && String(order).toLowerCase() === 'desc') ? 'DESC' : 'ASC'
+
+            const rows = await PodcastPlay.sequelize!.query(`
+                SELECT 
+                    e.id as id,
+                    e.name as name,
+                    e."spotifyUri" as "spotifyUri",
+                    COUNT(*)::int as "playCount",
+                    COALESCE(SUM(p."msPlayed"),0)::bigint as "totalTime",
+                    MAX(p."timestamp") as "lastPlayed"
+                FROM podcast_plays p
+                INNER JOIN episodes e ON p."episodeId" = e.id
+                WHERE e."showId" = :showId AND p."profileId" = :profileId
+                ${whereSearch}
+                GROUP BY e.id, e.name, e."spotifyUri"
+                ORDER BY ${sortColumn} ${sortDirection}
+                LIMIT :limit OFFSET :offset
+            `, { replacements, type: QueryTypes.SELECT }) as any[]
+
+            const safeRows = rows.map((r: any) => ({
+                id: r.id,
+                name: r.name || 'Unknown Episode',
+                spotifyUri: r.spotifyUri || null,
+                playCount: typeof r.playCount === 'string' ? parseInt(r.playCount, 10) : Number(r.playCount) || 0,
+                totalTime: typeof r.totalTime === 'string' ? parseInt(r.totalTime, 10) : Number(r.totalTime) || 0,
+                lastPlayed: r.lastPlayed ? new Date(r.lastPlayed).toISOString() : null
+            }))
+
+            const countRows = await PodcastPlay.sequelize!.query(`
+                SELECT COUNT(*) as cnt FROM (
+                    SELECT e.id
+                    FROM podcast_plays p
+                    INNER JOIN episodes e ON p."episodeId" = e.id
+                    WHERE e."showId" = :showId AND p."profileId" = :profileId
+                    ${whereSearch}
+                    GROUP BY e.id
+                ) x
+            `, { replacements, type: QueryTypes.SELECT }) as any[]
+            const total = parseInt(countRows[0]?.cnt || '0')
+
+        return res.json({
+                success: true,
+                data: {
+            episodes: safeRows,
+                    total,
+                    limit: parseInt(limit),
+                    offset: parseInt(offset)
+                }
+            })
+        }
+
+        // Domyślne: lista odcinków programu (bez agregatów)
         const episodes = await Episode.findAndCountAll({
             where: { showId: parseInt(showId) },
-            limit: parseInt(limit as string),
-            offset: parseInt(offset as string),
+            limit: parseInt(limit),
+            offset: parseInt(offset),
             order: [['name', 'ASC']],
             include: [{
                 model: Show,
                 attributes: ['name']
             }]
         })
-
         res.json({
             success: true,
             data: {
                 episodes: episodes.rows,
                 total: episodes.count,
-                limit: parseInt(limit as string),
-                offset: parseInt(offset as string)
+                limit: parseInt(limit),
+                offset: parseInt(offset)
             }
         })
     } catch (error) {
@@ -355,11 +499,14 @@ router.get('/daily-stats', async (req: Request, res: Response) => {
             raw: true
         })
 
-        const formattedStats = dailyStats.map((stat: any) => ({
-            date: stat.date,
-            plays: parseInt(stat.plays),
-            minutes: Math.round((parseInt(stat.totalMs) || 0) / 60000)
-        }))
+        const formattedStats = dailyStats.map((stat: any) => {
+            const totalMs = Number(stat.totalMs) || parseInt(stat.totalMs) || 0
+            return {
+                date: stat.date,
+                plays: parseInt(stat.plays),
+                minutes: Number((totalMs / 60000).toFixed(1))
+            }
+        })
 
         res.json({
             success: true,
@@ -421,3 +568,74 @@ router.get('/platform-stats', async (req: Request, res: Response) => {
 })
 
 export default router
+
+/**
+ * Dodatkowe statystyki: rozkład w ciągu dnia (godzina) oraz dni tygodnia
+ */
+router.get('/time-of-day', async (req: Request, res: Response) => {
+    try {
+        const { profileId } = req.query as any
+        if (!profileId) {
+            return res.status(400).json({ success: false, message: 'Profile ID is required' })
+        }
+
+        const rows = await PodcastPlay.sequelize!.query(`
+            SELECT 
+                EXTRACT(HOUR FROM p."timestamp")::int AS hour,
+                COUNT(*)::int AS plays,
+                COALESCE(SUM(p."msPlayed"),0)::bigint AS totalMs
+            FROM podcast_plays p
+            WHERE p."profileId" = :profileId
+            GROUP BY EXTRACT(HOUR FROM p."timestamp")
+            ORDER BY hour ASC
+        `, { replacements: { profileId: parseInt(profileId) }, type: QueryTypes.SELECT }) as any[]
+
+        const data = rows.map((r: any) => {
+            const totalMs = (typeof r.totalMs === 'string' ? parseInt(r.totalMs, 10) : Number(r.totalMs) || 0)
+            return {
+                hour: typeof r.hour === 'string' ? parseInt(r.hour, 10) : Number(r.hour) || 0,
+                plays: typeof r.plays === 'string' ? parseInt(r.plays, 10) : Number(r.plays) || 0,
+                minutes: Number((totalMs / 60000).toFixed(1))
+            }
+        })
+
+        res.json({ success: true, data })
+    } catch (error) {
+        console.error('Error fetching time-of-day stats:', error)
+        res.json({ success: true, data: [] })
+    }
+})
+
+router.get('/day-of-week', async (req: Request, res: Response) => {
+    try {
+        const { profileId } = req.query as any
+        if (!profileId) {
+            return res.status(400).json({ success: false, message: 'Profile ID is required' })
+        }
+
+        const rows = await PodcastPlay.sequelize!.query(`
+            SELECT 
+                EXTRACT(DOW FROM p."timestamp")::int AS dow,
+                COUNT(*)::int AS plays,
+                COALESCE(SUM(p."msPlayed"),0)::bigint AS totalMs
+            FROM podcast_plays p
+            WHERE p."profileId" = :profileId
+            GROUP BY EXTRACT(DOW FROM p."timestamp")
+            ORDER BY dow ASC
+        `, { replacements: { profileId: parseInt(profileId) }, type: QueryTypes.SELECT }) as any[]
+
+        const data = rows.map((r: any) => {
+            const totalMs = (typeof r.totalMs === 'string' ? parseInt(r.totalMs, 10) : Number(r.totalMs) || 0)
+            return {
+                dow: typeof r.dow === 'string' ? parseInt(r.dow, 10) : Number(r.dow) || 0,
+                plays: typeof r.plays === 'string' ? parseInt(r.plays, 10) : Number(r.plays) || 0,
+                minutes: Number((totalMs / 60000).toFixed(1))
+            }
+        })
+
+        res.json({ success: true, data })
+    } catch (error) {
+        console.error('Error fetching day-of-week stats:', error)
+        res.json({ success: true, data: [] })
+    }
+})

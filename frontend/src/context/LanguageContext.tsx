@@ -467,6 +467,19 @@ const translations = {
     dailyListening: "Dzienne słuchanie (ostatnie 30 dni)",
     platformDistribution: "Rozkład platform",
     platformsDescription: "Podział słuchania podcastów według platform",
+  showsAndEpisodes: "Programy i odcinki",
+  clickToExpand: "Kliknij program, aby zobaczyć odcinki",
+  listeningByHour: "Słuchanie wg godziny",
+  listeningByWeekday: "Słuchanie wg dnia tygodnia",
+  prev: "Poprzednia",
+  total: "Razem",
+  // Controls & labels used in PodcastsShowsList
+  filter: "Filtruj",
+  toggleSortOrder: "Przełącz kolejność sortowania",
+  lastPlayed: "Ostatnio grane",
+  episode: "Odcinek",
+  name: "Nazwa",
+  noEpisodes: "Brak odtworzonych odcinków",
   },
   en: {
     // Navigation
@@ -667,6 +680,20 @@ const translations = {
     daysLabel: "Days",
     hoursLabel: "Hours",
     year: "Year",
+  // Podcasts page extras
+  showsAndEpisodes: "Shows & Episodes",
+  clickToExpand: "Click a show to see episodes",
+  listeningByHour: "Listening by Hour",
+  listeningByWeekday: "Listening by Weekday",
+  prev: "Prev",
+  total: "Total",
+  // Controls & labels used in PodcastsShowsList
+  filter: "Filter",
+  toggleSortOrder: "Toggle sort order",
+  lastPlayed: "Last played",
+  episode: "Episode",
+  name: "Name",
+  noEpisodes: "No played episodes",
 
     // Dashboard
     totalPlaysCard: "Total Plays",

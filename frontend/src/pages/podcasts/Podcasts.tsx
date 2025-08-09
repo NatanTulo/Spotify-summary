@@ -3,7 +3,8 @@ import { useProfile } from '../../context/ProfileContext'
 import { useLanguage } from '../../context/LanguageContext'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs'
-import { ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, LineChart, Line } from 'recharts'
+import PodcastsShowsList from '../../components/podcasts/PodcastsShowsList'
+import { ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar } from 'recharts'
 
 interface ApiResponse<T> {
     success: boolean
@@ -41,30 +42,14 @@ interface DailyStats {
     minutes: number
 }
 
+interface TimeOfDayStat { hour: number; plays: number; minutes: number }
+interface DayOfWeekStat { dow: number; plays: number; minutes: number }
+
 // Removed platform distribution to reduce duplication across pages
 
-interface PodcastPlay {
-    id: string
-    ts: string
-    episodeName: string
-    showName: string
-    msPlayed: number
-    reasonStart: string
-    reasonEnd: string
-    platform: string
-    episodeUri: string
-    episodeShowUri: string
-}
+// Removed PodcastPlay interface (recent tab removed)
 
-interface SpotifyShow {
-    id: string
-    name: string
-    description?: string
-    publisher?: string
-    totalEpisodes?: number
-    totalPlays?: number
-    totalMinutes?: number
-}
+// legacy SpotifyShow interface removed (unused after unification)
 
 const Podcasts: React.FC = () => {
     const { selectedProfile } = useProfile()
@@ -74,12 +59,10 @@ const Podcasts: React.FC = () => {
     const [overviewStats, setOverviewStats] = useState<PodcastStats | null>(null)
     const [topShows, setTopShows] = useState<TopShow[]>([])
     const [topEpisodes, setTopEpisodes] = useState<TopEpisode[]>([])
-    const [recentPlays, setRecentPlays] = useState<PodcastPlay[]>([])
     const [dailyStats, setDailyStats] = useState<DailyStats[]>([])
+    const [timeOfDayStats, setTimeOfDayStats] = useState<TimeOfDayStat[]>([])
+    const [dayOfWeekStats, setDayOfWeekStats] = useState<DayOfWeekStat[]>([])
     // const [platformStats, setPlatformStats] = useState<PlatformStats[]>([])
-    const [shows, setShows] = useState<SpotifyShow[]>([])
-    const [selectedShow, setSelectedShow] = useState<SpotifyShow | null>(null)
-    const [showEpisodes, setShowEpisodes] = useState<PodcastPlay[]>([])
     const [error, setError] = useState<string | null>(null)
 
     // Colors for charts
@@ -102,9 +85,9 @@ const Podcasts: React.FC = () => {
                 fetchOverviewStats(),
                 fetchTopShows(),
                 fetchTopEpisodes(),
-                fetchRecentPlays(),
                 fetchDailyStats(),
-                fetchShows()
+                fetchTimeOfDay(),
+                fetchDayOfWeek()
             ])
         } catch (err) {
             console.error('Error fetching podcast data:', err)
@@ -153,19 +136,6 @@ const Podcasts: React.FC = () => {
         }
     }
 
-    const fetchRecentPlays = async () => {
-        try {
-            const response = await fetch(`/api/podcasts/recent-plays?profileId=${selectedProfile}&limit=50`)
-            const result: ApiResponse<PodcastPlay[]> = await response.json()
-            
-            if (result.success) {
-                setRecentPlays(result.data)
-            }
-        } catch (error) {
-            console.error('Error fetching recent plays:', error)
-        }
-    }
-
     const fetchDailyStats = async () => {
         try {
             const response = await fetch(`/api/podcasts/daily-stats?profileId=${selectedProfile}&days=30`)
@@ -179,84 +149,29 @@ const Podcasts: React.FC = () => {
         }
     }
 
-    // Removed platform stats fetch
-
-    const fetchShows = async () => {
+    const fetchTimeOfDay = async () => {
         try {
-            console.log('🔍 Fetching shows...')
-            const response = await fetch(`/api/podcasts/shows?limit=100`)
-            console.log('🔍 Shows response status:', response.status)
-            const result: ApiResponse<{shows: SpotifyShow[], total: number, limit: number, offset: number}> = await response.json()
-            console.log('🔍 Shows result:', result)
-            
-            if (result.success && result.data.shows && Array.isArray(result.data.shows)) {
-                console.log('🔍 Setting shows:', result.data.shows.length, 'items')
-                setShows(result.data.shows)
-            } else {
-                console.log('🔍 Shows result not successful or invalid data:', result)
-            }
+            const response = await fetch(`/api/podcasts/time-of-day?profileId=${selectedProfile}`)
+            const result: ApiResponse<TimeOfDayStat[]> = await response.json()
+            if (result.success) setTimeOfDayStats(result.data)
         } catch (error) {
-            console.error('Error fetching shows:', error)
+            console.error('Error fetching time-of-day:', error)
         }
     }
 
-    const fetchShowEpisodes = async (showId: string) => {
+    const fetchDayOfWeek = async () => {
         try {
-            console.log('🔍 Fetching episodes for show:', showId)
-            const response = await fetch(`/api/podcasts/shows/${showId}/episodes?limit=50`)
-            console.log('🔍 Episodes response status:', response.status)
-            const result: ApiResponse<{episodes: any[], total: number, limit: number, offset: number}> = await response.json()
-            console.log('🔍 Episodes result:', result)
-            
-            if (result.success && result.data.episodes && Array.isArray(result.data.episodes)) {
-                console.log('🔍 Processing episodes:', result.data.episodes.length, 'items')
-                // Przekształć episode na format oczekiwany przez frontend
-                const transformedEpisodes = result.data.episodes.map(episode => ({
-                    id: episode.id.toString(),
-                    episodeId: episode.id,
-                    episodeName: episode.name || 'Unknown Episode',
-                    showName: episode.show?.name || 'Unknown Show',
-                    ts: episode.createdAt || new Date().toISOString(),
-                    msPlayed: 0, // Placeholder - nie mamy tej informacji w samych odcinkach
-                    platform: 'spotify', // Placeholder
-                    reasonStart: 'unknown',
-                    reasonEnd: 'unknown',
-                    episodeUri: episode.spotifyUri || '',
-                    episodeShowUri: ''
-                }))
-                console.log('🔍 Transformed episodes:', transformedEpisodes)
-                setShowEpisodes(transformedEpisodes)
-            } else {
-                console.log('🔍 Episodes result not successful or invalid data:', result)
-            }
+            const response = await fetch(`/api/podcasts/day-of-week?profileId=${selectedProfile}`)
+            const result: ApiResponse<DayOfWeekStat[]> = await response.json()
+            if (result.success) setDayOfWeekStats(result.data)
         } catch (error) {
-            console.error('Error fetching show episodes:', error)
+            console.error('Error fetching day-of-week:', error)
         }
     }
 
-    const handleShowSelect = (show: SpotifyShow) => {
-        console.log('🔍 Show selected:', show)
-        setSelectedShow(show)
-        fetchShowEpisodes(show.id)
-    }
+    // Removed platform stats fetch and legacy shows/episodes fetch for tabs; unified list handles its own data
 
-    const formatDuration = (ms: number): string => {
-        const minutes = Math.floor(ms / 60000)
-        const hours = Math.floor(minutes / 60)
-        
-        if (hours > 0) {
-            return `${hours}h ${minutes % 60}m`
-        }
-        return `${minutes}m`
-    }
-
-    const formatTime = (dateString: string): string => {
-        const d = new Date(dateString)
-        if (isNaN(d.getTime())) return '-'
-        return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
-    }
-
-    const toMinutes = (ms: number): number => Math.round((ms || 0) / 60000)
+    // helpers removed with recent tab
 
     if (!selectedProfile) {
         return (
@@ -349,23 +264,15 @@ const Podcasts: React.FC = () => {
                 </div>
             )}
 
-            <Tabs defaultValue="overview" className="space-y-4">
-                <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6">
+            <Tabs defaultValue="shows" className="space-y-4">
+                <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5">
+                    <TabsTrigger value="shows">
+                        <span className="hidden sm:inline">{t('showsAndEpisodes') || 'Shows & Episodes'}</span>
+                        <span className="sm:hidden">{t('shows') || 'Shows'}</span>
+                    </TabsTrigger>
                     <TabsTrigger value="overview">
                         <span className="hidden sm:inline">{t('overview') || 'Overview'}</span>
                         <span className="sm:hidden">{t('overviewShort') || 'Overview'}</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="top-shows">
-                        <span className="hidden sm:inline">{t('topShows') || 'Top Shows'}</span>
-                        <span className="sm:hidden">{t('topShowsShort') || 'Shows'}</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="episodes">
-                        <span className="hidden sm:inline">{t('episodes') || 'Episodes'}</span>
-                        <span className="sm:hidden">{t('episodesShort') || 'Episodes'}</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="recent">
-                        <span className="hidden sm:inline">{t('recent') || 'Recent'}</span>
-                        <span className="sm:hidden">{t('recentShort') || 'Recent'}</span>
                     </TabsTrigger>
                     <TabsTrigger value="charts">
                         <span className="hidden sm:inline">{t('charts') || 'Charts'}</span>
@@ -432,191 +339,54 @@ const Podcasts: React.FC = () => {
                     </div>
                 </TabsContent>
 
-                <TabsContent value="top-shows" className="space-y-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>{t('topShows') || 'Top Shows'}</CardTitle>
-                            <CardDescription>
-                                {t('topShowsDescription') || 'Your most listened to podcast shows'}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                {topShows.map((show, index) => (
-                                    <div key={show.id} className="flex items-center justify-between p-4 border rounded-lg gap-4">
-                                        <div className="flex items-center space-x-4 min-w-0 flex-1">
-                                            <div className="text-2xl font-bold text-primary flex-shrink-0">
-                                                #{index + 1}
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <h3 className="font-medium truncate" title={show.name}>{show.name}</h3>
-                                                {show.publisher && (
-                                                    <p className="text-sm text-muted-foreground truncate" title={show.publisher}>{show.publisher}</p>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="text-right flex-shrink-0">
-                                            <div className="font-medium">{show.playCount} plays</div>
-                                            <div className="text-sm text-muted-foreground">
-                                                {formatDuration(show.totalTime)}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                <TabsContent value="episodes" className="space-y-4">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        {/* Shows List */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>{t('shows') || 'Shows'}</CardTitle>
-                                <CardDescription>
-                                    {t('selectShowToViewEpisodes') || 'Select a show to view episodes'}
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-2 max-h-96 overflow-y-auto">
-                                    {shows.map((show) => (
-                                        <div
-                                            key={show.id}
-                                            className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                                                selectedShow?.id === show.id
-                                                    ? 'bg-primary/10 border-primary'
-                                                    : 'hover:bg-muted/50'
-                                            }`}
-                                            onClick={() => handleShowSelect(show)}
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <div className="min-w-0 flex-1 mr-2">
-                                                    <h4 className="font-medium truncate" title={show.name}>{show.name}</h4>
-                                                    {show.publisher && (
-                                                        <p className="text-sm text-muted-foreground truncate" title={show.publisher}>{show.publisher}</p>
-                                                    )}
-                                                </div>
-                                                {show.totalPlays && (
-                                                    <span className="text-sm text-muted-foreground flex-shrink-0">
-                                                        {show.totalPlays} plays
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Episodes List */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="truncate" title={selectedShow ? `${t('episodesFor') || 'Episodes for'} ${selectedShow.name}` : undefined}>
-                                    {selectedShow 
-                                        ? `${t('episodesFor') || 'Episodes for'} ${selectedShow.name}`
-                                        : t('selectShowForEpisodes') || 'Select a show to view episodes'
-                                    }
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                {selectedShow ? (
-                                    <div className="space-y-3 max-h-96 overflow-y-auto">
-                                        {showEpisodes.map((episode) => (
-                                            <div key={episode.id} className="p-3 border rounded-lg">
-                                                <div className="flex items-center justify-between gap-2">
-                                                    <div className="flex-1 min-w-0">
-                                                        <h4 className="font-medium text-sm truncate" title={episode.episodeName}>{episode.episodeName}</h4>
-                                                        <div className="flex items-center space-x-2 text-xs text-muted-foreground mt-1 flex-wrap">
-                                                            <span className="flex-shrink-0">{formatTime(episode.ts)}</span>
-                                                            <span className="flex-shrink-0">•</span>
-                                                            <span className="flex-shrink-0">{formatDuration(episode.msPlayed)}</span>
-                                                            <span className="flex-shrink-0">•</span>
-                                                            <span className="flex-shrink-0">{episode.platform}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                        {showEpisodes.length === 0 && (
-                                            <div className="text-center text-muted-foreground py-8">
-                                                {t('noEpisodesFound') || 'No episodes found for this show'}
-                                            </div>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div className="text-center text-muted-foreground py-8">
-                                        {t('selectShowMessage') || 'Select a show from the list to view episodes'}
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="recent" className="space-y-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>{t('recentPlays') || 'Recent Plays'}</CardTitle>
-                            <CardDescription>
-                                {t('recentPlaysDescription') || 'Your recently played podcast episodes'}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-3">
-                                {recentPlays.map((play) => (
-                                    <div key={play.id} className="flex items-start justify-between p-3 border rounded-lg gap-4">
-                                        <div className="flex-1 min-w-0">
-                                            <h4 className="font-medium truncate" title={play.episodeName}>{play.episodeName}</h4>
-                                            <p className="text-sm text-muted-foreground truncate" title={play.showName}>{play.showName}</p>
-                                            <div className="mt-1 grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                                                <div className="truncate">{formatTime(play.ts)}</div>
-                                                <div className="truncate capitalize">{play.platform || '-'}</div>
-                                                <div className="truncate col-span-2 sm:col-span-1">{play.reasonStart || '-'} → {play.reasonEnd || '-'}</div>
-                                            </div>
-                                        </div>
-                                        <div className="text-right flex-shrink-0">
-                                            <div className="text-sm font-medium whitespace-nowrap">
-                                                {formatDuration(play.msPlayed)}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground mt-0.5">
-                                                {toMinutes(play.msPlayed)}m
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
+                <TabsContent value="shows" className="space-y-4">
+                    <PodcastsShowsList />
                 </TabsContent>
 
                 <TabsContent value="charts" className="space-y-4">
-                    {/* Daily Listening Chart only (removed platform duplication) */}
+                    {/* Time of Day */}
                     <Card>
                         <CardHeader>
-                            <CardTitle>{t('dailyListening') || 'Daily Listening (Last 30 Days)'}</CardTitle>
+                            <CardTitle>{t('listeningByHour') || 'Listening by Hour'}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="h-64">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={dailyStats}>
+                                    <BarChart data={timeOfDayStats}>
                                         <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis 
-                                            dataKey="date" 
-                                            tick={{ fontSize: 12 }}
-                                            tickFormatter={(value) => new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                        />
-                                        <YAxis tick={{ fontSize: 12 }} />
-                                        <Tooltip 
-                                            labelFormatter={(value) => new Date(value).toLocaleDateString()}
-                                            formatter={(value: any, name: string) => [
-                                                name === 'plays' ? `${value} plays` : `${value} minutes`,
-                                                name === 'plays' ? 'Plays' : 'Minutes'
-                                            ]}
-                                        />
-                                        <Line type="monotone" dataKey="plays" stroke="#8884d8" strokeWidth={2} />
-                                        <Line type="monotone" dataKey="minutes" stroke="#82ca9d" strokeWidth={2} />
-                                    </LineChart>
+                                        <XAxis dataKey="hour" tickFormatter={(v) => `${v}:00`} />
+                                        <YAxis />
+                                        <Tooltip formatter={(v: any, n: string) => [
+                                            n === 'plays' ? `${v} ${t('plays') || 'plays'}` : `${v} ${t('minutes') || 'minutes'}`,
+                                            n === 'plays' ? (t('totalPlays') || 'Plays') : (t('totalMinutes') || 'Minutes')
+                                        ]} />
+                                        <Bar name={t('totalPlays') || 'Plays'} dataKey="plays" fill="#8884d8" />
+                                        <Bar name={t('totalMinutes') || 'Minutes'} dataKey="minutes" fill="#82ca9d" />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Day of Week */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>{t('listeningByWeekday') || 'Listening by Weekday'}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="h-64">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={dayOfWeekStats.map(d => ({ ...d, label: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.dow] }))}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="label" />
+                                        <YAxis />
+                                        <Tooltip formatter={(v: any, n: string) => [
+                                            n === 'plays' ? `${v} ${t('plays') || 'plays'}` : `${v} ${t('minutes') || 'minutes'}`,
+                                            n === 'plays' ? (t('totalPlays') || 'Plays') : (t('totalMinutes') || 'Minutes')
+                                        ]} />
+                                        <Bar name={t('totalPlays') || 'Plays'} dataKey="plays" fill="#8884d8" />
+                                        <Bar name={t('totalMinutes') || 'Minutes'} dataKey="minutes" fill="#82ca9d" />
+                                    </BarChart>
                                 </ResponsiveContainer>
                             </div>
                         </CardContent>
