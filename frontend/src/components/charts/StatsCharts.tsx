@@ -657,7 +657,11 @@ export function ListeningTimelineChart({ data }: ListeningTimelineProps) {
                     }
                   };
                   return (
-                    <g style={{ cursor: isTop ? 'pointer' : 'default', display: isTop ? undefined : 'none' }} onClick={handleClick}>
+                    <g
+                      key={payload?.date || `${cx}-${cy}`}
+                      style={{ cursor: isTop ? 'pointer' : 'default', display: isTop ? undefined : 'none' }}
+                      onClick={handleClick}
+                    >
                       <circle cx={cx} cy={cy} r={6} fill="hsl(var(--destructive))" />
                       <circle cx={cx} cy={cy} r={10} fill="none" stroke="hsl(var(--destructive))" strokeWidth={2} opacity={0.6} />
                     </g>
