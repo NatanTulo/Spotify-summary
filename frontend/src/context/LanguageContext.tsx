@@ -483,6 +483,21 @@ const translations = {
   episode: "Odcinek",
   name: "Nazwa",
   noEpisodes: "Brak odtworzonych odcinków",
+  
+  // Audiobooks specific
+  audiobooksList: "Twoje Audiobooki",
+  selectAudiobook: "Wybierz audiobook, aby zobaczyć historię słuchania",
+  noAudiobooks: "Nie znaleziono audiobooków",
+  by: "przez",
+  skipped: "Pominięte",
+  audiobooksInfoBanner: "Czy wiesz, że Spotify oferuje audiobooki przez plan Audiobooks Access (tylko USA)? Dowiedz się więcej o ich katalogu audiobooków i opcjach subskrypcji.",
+  spotifyAudiobooksInfo: "Informacje o Audiobookach Spotify",
+  failedToFetchAudiobooks: "Nie udało się pobrać listy audiobooków",
+  audiobooksConnectionError: "Błąd połączenia z serwerem podczas pobierania audiobooków",
+  noAudiobooksInDatabase: "Brak danych o audiobookach w bazie danych dla tego profilu",
+  unknownAudiobooksError: "Wystąpił nieznany błąd podczas ładowania audiobooków",
+  endpointNotFound: "Endpoint nie został znaleziony - problem z konfiguracją serwera",
+  connectionErrorHelp: "Sprawdź połączenie internetowe i czy serwer działa.",
   },
   en: {
     // Navigation
@@ -949,6 +964,21 @@ const translations = {
     dailyListening: "Daily Listening (Last 30 Days)",
     platformDistribution: "Platform Distribution",
     platformsDescription: "Breakdown of your podcast listening by platform",
+
+    // Audiobooks specific
+    audiobooksList: "Your Audiobooks",
+    selectAudiobook: "Select an audiobook to see listening history",
+    noAudiobooks: "No audiobooks found",
+    by: "by",
+    skipped: "Skipped",
+    audiobooksInfoBanner: "Did you know? Spotify offers audiobooks through their Audiobooks Access plan (US only). Learn more about their audiobook catalog and subscription options.",
+    spotifyAudiobooksInfo: "Spotify Audiobooks Info",
+    failedToFetchAudiobooks: "Failed to fetch audiobooks list",
+    audiobooksConnectionError: "Connection error while fetching audiobooks",
+    noAudiobooksInDatabase: "No audiobook data in database for this profile",
+    unknownAudiobooksError: "An unknown error occurred while loading audiobooks",
+    endpointNotFound: "Endpoint not found - server configuration issue",
+    connectionErrorHelp: "Check your internet connection and if the server is running.",
 
     // Debug messages (development only)
     debugYes: "YES",

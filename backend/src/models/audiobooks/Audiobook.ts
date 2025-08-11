@@ -1,4 +1,5 @@
-import { Table, Column, Model, DataType, CreatedAt, UpdatedAt, PrimaryKey, AutoIncrement } from 'sequelize-typescript'
+import { Table, Column, Model, DataType, CreatedAt, UpdatedAt, PrimaryKey, AutoIncrement, HasMany } from 'sequelize-typescript'
+import { AudiobookPlay } from './AudiobookPlay.js'
 
 @Table({
     tableName: 'audiobooks',
@@ -34,4 +35,7 @@ export class Audiobook extends Model {
     @UpdatedAt
     @Column(DataType.DATE)
     updatedAt!: Date
+
+    @HasMany(() => AudiobookPlay)
+    plays!: AudiobookPlay[]
 }

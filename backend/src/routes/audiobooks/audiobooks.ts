@@ -36,6 +36,7 @@ router.get('/:profileId', async (req, res) => {
             order: [['createdAt', 'DESC']]
         })
 
+        // Always return 200 with data, even if empty
         res.json({
             success: true,
             data: {
@@ -44,7 +45,8 @@ router.get('/:profileId', async (req, res) => {
                     current: pageNum,
                     pages: Math.ceil(audiobooks.count / limitNum),
                     total: audiobooks.count
-                }
+                },
+                isEmpty: audiobooks.count === 0
             }
         })
     } catch (error) {

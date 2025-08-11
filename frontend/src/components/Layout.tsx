@@ -95,6 +95,18 @@ const Layout = ({ children }: LayoutProps) => {
                                 >
                                     {t('podcastsTitle')}
                                 </NavLink>
+                                <NavLink
+                                    to="/audiobooks"
+                                    className={({ isActive }) =>
+                                        `px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                                            isActive
+                                                ? 'text-foreground bg-background/70 shadow-sm'
+                                                : 'text-muted-foreground hover:text-foreground'
+                                        }`
+                                    }
+                                >
+                                    {t('audiobooks') || 'Audiobooks'}
+                                </NavLink>
                             </nav>
                         </div>
 
