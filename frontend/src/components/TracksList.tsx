@@ -489,7 +489,7 @@ export function TracksList({
                 {t("resetColumns")}
               </Button>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {availableColumns.map((column) => (
                 <label
                   key={column.key}
@@ -517,7 +517,7 @@ export function TracksList({
           <>
             {/* Tabela */}
             <div className="overflow-x-auto">
-              <table className="w-full">
+                <table className="w-full min-w-[600px]">
                 <thead>
                   <tr className="border-b">
                     {visibleColumns.map((columnKey) => {

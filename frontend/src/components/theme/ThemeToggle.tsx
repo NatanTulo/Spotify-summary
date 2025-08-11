@@ -20,13 +20,13 @@ export function ThemeToggle() {
     const getIcon = () => {
         switch (theme) {
             case 'light':
-                return <Sun className="h-4 w-4" />
+                return <Sun className="h-3 w-3 sm:h-4 sm:w-4" />
             case 'dark':
-                return <Moon className="h-4 w-4" />
+                return <Moon className="h-3 w-3 sm:h-4 sm:w-4" />
             case 'system':
-                return <Monitor className="h-4 w-4" />
+                return <Monitor className="h-3 w-3 sm:h-4 sm:w-4" />
             default:
-                return <Sun className="h-4 w-4" />
+                return <Sun className="h-3 w-3 sm:h-4 sm:w-4" />
         }
     }
 
@@ -49,7 +49,7 @@ export function ThemeToggle() {
             size="icon"
             onClick={toggleTheme}
             title={getTooltip()}
-            className="h-9 w-9"
+            className="h-8 w-8 sm:h-9 sm:w-9"
         >
             {getIcon()}
         </Button>

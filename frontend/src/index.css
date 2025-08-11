@@ -132,13 +132,13 @@
 @layer components {
   .glass {
     /* Jaśniejsze tło w trybie jasnym, zachowanie szklanego efektu w ciemnym */
-    @apply backdrop-blur-xl rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.18)];
+    @apply backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-[0_6px_20px_rgba(0,0,0,0.12)] sm:shadow-[0_10px_40px_rgba(0,0,0,0.18)];
     background-color: hsl(var(--card) / 0.85);
     border: 1px solid hsl(var(--border));
   }
 
   .page-section {
-    @apply glass p-6 md:p-8 relative overflow-hidden;
+    @apply glass p-3 sm:p-6 md:p-8 relative overflow-hidden;
   }
 
   .hero-gradient {
@@ -157,7 +157,7 @@
   }
 
   .elevated {
-    @apply shadow-[0_10px_30px_rgba(0,0,0,0.15)] hover:shadow-[0_16px_40px_rgba(0,0,0,0.22)] transition-shadow;
+    @apply shadow-[0_6px_20px_rgba(0,0,0,0.1)] sm:shadow-[0_10px_30px_rgba(0,0,0,0.15)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.18)] sm:hover:shadow-[0_16px_40px_rgba(0,0,0,0.22)] transition-shadow;
   }
 
   /* utility do animowanych blobów w tle sekcji */
@@ -173,14 +173,66 @@
     }
   }
 
-  /* segmented control */
+  /* segmented control - improved mobile styles */
   .segmented {
-    @apply inline-flex items-center gap-1 rounded-xl p-1 bg-muted/40 border border-border/60;
+    @apply inline-flex items-center gap-0.5 sm:gap-1 rounded-lg sm:rounded-xl p-0.5 sm:p-1 bg-muted/40 border border-border/60;
   }
   .segmented-btn {
-    @apply px-3 py-2 text-sm font-medium rounded-lg transition-colors text-muted-foreground hover:text-foreground;
+    @apply px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium rounded-md sm:rounded-lg transition-colors text-muted-foreground hover:text-foreground;
   }
   .segmented-btn-active {
     @apply text-foreground bg-background/70 shadow-sm;
+  }
+
+  /* Mobile-specific improvements */
+  @media (max-width: 640px) {
+    .container {
+      @apply px-2;
+    }
+
+    /* Smaller cards on mobile */
+    .glass {
+      @apply rounded-lg shadow-[0_4px_12px_rgba(0,0,0,0.08)];
+    }
+
+    /* Tighter spacing for mobile */
+    .space-y-8 > * + * {
+      @apply mt-6;
+    }
+
+    .space-y-6 > * + * {
+      @apply mt-4;
+    }
+
+    /* Hide complex animations on mobile for better performance */
+    .animate-blob {
+      animation: none !important;
+    }
+
+    /* Improve touch targets */
+    button,
+    a {
+      min-height: 44px;
+    }
+  }
+
+  /* Very small screens (less than 475px) */
+  @media (max-width: 475px) {
+    .text-2xl {
+      @apply text-xl;
+    }
+
+    .text-3xl {
+      @apply text-2xl;
+    }
+
+    /* Even tighter spacing */
+    .space-y-6 > * + * {
+      @apply mt-3;
+    }
+
+    .space-y-4 > * + * {
+      @apply mt-3;
+    }
   }
 }

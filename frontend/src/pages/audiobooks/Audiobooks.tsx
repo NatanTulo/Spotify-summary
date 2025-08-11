@@ -133,26 +133,26 @@ const Audiobooks: React.FC = () => {
     }
 
     return (
-        <div className="container mx-auto p-6">
-            <h1 className="text-3xl font-bold mb-6">{t('audiobooks') || 'Audiobooks'}</h1>
+        <div className="space-y-4 sm:space-y-6">
+            <h1 className="text-2xl sm:text-3xl font-bold">{t('audiobooks') || 'Audiobooks'}</h1>
 
             {/* Spotify Audiobooks Info Banner */}
-            <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
-                <div className="flex items-start gap-3">
+            <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 sm:p-4">
+                <div className="flex items-start gap-2 sm:gap-3">
                     <div className="flex-shrink-0 text-blue-600 dark:text-blue-400">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
-                    <div className="flex-1">
-                        <p className="text-sm text-blue-900 dark:text-blue-100">
+                    <div className="flex-1 min-w-0">
+                        <p className="text-xs sm:text-sm text-blue-900 dark:text-blue-100">
                             {t('audiobooksInfoBanner') || 'Did you know? Spotify offers audiobooks through their Audiobooks Access plan (US only). Learn more about their audiobook catalog and subscription options.'}
                         </p>
                         <a 
                             href="https://support.spotify.com/us/article/audiobooks-access-plan/" 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 mt-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
+                            className="inline-flex items-center gap-1 mt-1 sm:mt-2 text-xs sm:text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
                         >
                             {t('spotifyAudiobooksInfo') || 'Spotify Audiobooks Info'}
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -181,10 +181,10 @@ const Audiobooks: React.FC = () => {
                 </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                 {/* Audiobooks List */}
                 <div className="lg:col-span-1">
-                    <h2 className="text-xl font-semibold mb-4">{t('audiobooksList') || 'Your Audiobooks'}</h2>
+                    <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">{t('audiobooksList') || 'Your Audiobooks'}</h2>
                     
                     {loading && !selectedAudiobook && (
                         <div className="flex items-center justify-center h-32">

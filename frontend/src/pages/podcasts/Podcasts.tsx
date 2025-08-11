@@ -245,17 +245,17 @@ const Podcasts: React.FC = () => {
     }
 
     return (
-        <div className="container mx-auto p-6 space-y-6">
-            <div className="flex flex-col space-y-2">
-                <h1 className="text-3xl font-bold">{t('podcastsTitle') || 'Podcasts'}</h1>
-                <p className="text-muted-foreground">
+        <div className="space-y-4 sm:space-y-6">
+            <div className="flex flex-col space-y-1 sm:space-y-2">
+                <h1 className="text-2xl sm:text-3xl font-bold">{t('podcastsTitle') || 'Podcasts'}</h1>
+                <p className="text-muted-foreground text-sm sm:text-base">
                     {t('podcastsDescription') || 'Explore your podcast listening history and statistics'}
                 </p>
             </div>
 
             {/* Overview Stats */}
             {overviewStats && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                     <Card>
                         <CardHeader className="pb-2">
                             <CardTitle className="text-2xl font-bold text-primary">
@@ -300,27 +300,27 @@ const Podcasts: React.FC = () => {
             )}
 
             <Tabs defaultValue="shows" className="space-y-4">
-                <TabsList className="grid w-full grid-cols-4">
-                    <TabsTrigger value="shows">
+                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+                    <TabsTrigger value="shows" className="text-xs sm:text-sm">
                         <span className="hidden sm:inline">{t('showsAndEpisodes') || 'Shows & Episodes'}</span>
                         <span className="sm:hidden">{t('shows') || 'Shows'}</span>
                     </TabsTrigger>
-                    <TabsTrigger value="overview">
+                    <TabsTrigger value="overview" className="text-xs sm:text-sm">
                         <span className="hidden sm:inline">{t('overview') || 'Overview'}</span>
                         <span className="sm:hidden">{t('overviewShort') || 'Overview'}</span>
                     </TabsTrigger>
-                    <TabsTrigger value="charts">
+                    <TabsTrigger value="charts" className="text-xs sm:text-sm hidden sm:flex">
                         <span className="hidden sm:inline">{t('charts') || 'Charts'}</span>
                         <span className="sm:hidden">{t('chartsShort') || 'Charts'}</span>
                     </TabsTrigger>
-                    <TabsTrigger value="insights">
+                    <TabsTrigger value="insights" className="text-xs sm:text-sm hidden sm:flex">
                         <span className="hidden sm:inline">{t('insights') || 'Insights'}</span>
                         <span className="sm:hidden">{t('insightsShort') || 'Insights'}</span>
                     </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                         {/* Top Shows */}
                         <Card>
                             <CardHeader>
@@ -449,7 +449,7 @@ const Podcasts: React.FC = () => {
                             <CardDescription>{t('podcastInsightsDescription') || 'Key takeaways from your podcast listening'}</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                                 {(() => {
                                     const days = dailyStats || []
                                     if (!days.length) {

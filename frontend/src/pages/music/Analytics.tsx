@@ -259,12 +259,12 @@ export default function Analytics() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-foreground">{t('analyticsTitle')}</h1>
-                    <p className="text-muted-foreground mt-2">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{t('analyticsTitle')}</h1>
+                    <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
                         {t('analyticsDescription')}
                     </p>
                 </div>
@@ -284,28 +284,28 @@ export default function Analytics() {
 
             {/* Tabs */}
             <Tabs defaultValue="tracks" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-3 sm:grid-cols-4">
-                    <TabsTrigger value="tracks" className="flex items-center space-x-2">
-                        <Music className="h-4 w-4" />
-                        <span>{t('tracksList')}</span>
+                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+                    <TabsTrigger value="tracks" className="flex items-center justify-center space-x-1 sm:space-x-2">
+                        <Music className="h-3 w-3 sm:h-4 sm:w-4" />
+                        <span className="text-xs sm:text-sm">{t('tracksList')}</span>
                     </TabsTrigger>
-                    <TabsTrigger value="overview" className="flex items-center space-x-2">
-                        <BarChart3 className="h-4 w-4" />
-                        <span>{t('overview')}</span>
+                    <TabsTrigger value="overview" className="flex items-center justify-center space-x-1 sm:space-x-2">
+                        <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
+                        <span className="text-xs sm:text-sm">{t('overview')}</span>
                     </TabsTrigger>
-                    <TabsTrigger value="charts" className="flex items-center space-x-2">
-                        <PieChart className="h-4 w-4" />
-                        <span>{t('charts')}</span>
+                    <TabsTrigger value="charts" className="flex items-center justify-center space-x-1 sm:space-x-2">
+                        <PieChart className="h-3 w-3 sm:h-4 sm:w-4" />
+                        <span className="text-xs sm:text-sm">{t('charts')}</span>
                     </TabsTrigger>
-                    <TabsTrigger value="insights" className="flex items-center space-x-2">
-                        <Percent className="h-4 w-4" />
-                        <span>{t('insights')}</span>
+                    <TabsTrigger value="insights" className="hidden sm:flex items-center justify-center space-x-1 sm:space-x-2">
+                        <Percent className="h-3 w-3 sm:h-4 sm:w-4" />
+                        <span className="text-xs sm:text-sm">{t('insights')}</span>
                     </TabsTrigger>
                 </TabsList>
 
                 {/* Overview Tab */}
                 <TabsContent value="overview">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                         {/* Top Artists */}
                         <Card>
                             <CardHeader>
@@ -375,9 +375,9 @@ export default function Analytics() {
 
                 {/* Charts Tab */}
                 <TabsContent value="charts">
-                    <div className="space-y-6">
+                    <div className="space-y-4 sm:space-y-6">
                         {/* Yearly Stats and Country Stats side by side */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
                             <Suspense fallback={<ChartLoader />}>
                                 <YearlyStatsChart data={yearlyStats} />
                             </Suspense>
@@ -488,14 +488,14 @@ export default function Analytics() {
 
                 {/* Insights Tab */}
                 <TabsContent value="insights">
-                    <div className="grid grid-cols-1 gap-6">
+                    <div className="grid grid-cols-1 gap-4 sm:gap-6">
                         <Card>
                             <CardHeader>
-                                <CardTitle>{t('quickInsights') || 'Quick insights'}</CardTitle>
-                                <CardDescription>{t('quickInsightsDescription') || 'Highlights based on your recent listening'}</CardDescription>
+                                <CardTitle className="text-lg sm:text-xl">{t('quickInsights') || 'Quick insights'}</CardTitle>
+                                <CardDescription className="text-sm">{t('quickInsightsDescription') || 'Highlights based on your recent listening'}</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                                     {(() => {
                                         const days = timelineData || []
                                         const totalDays = days.length
@@ -566,7 +566,7 @@ export default function Analytics() {
                                 <CardDescription>{t('musicInsightsMore') || 'Concentration and distribution of your listening'}</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                                     {(() => {
                                         const totalPlays = (topArtists || []).reduce((a: number, x: TopArtist) => a + (Number(x.plays) || 0), 0)
                                         const top1 = topArtists && topArtists[0] ? Math.round(((Number(topArtists[0].plays) || 0) / (totalPlays || 1)) * 100) : 0

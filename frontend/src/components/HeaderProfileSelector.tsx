@@ -77,18 +77,18 @@ export const HeaderProfileSelector = ({
     const hasMultipleProfiles = profiles.length > 1
 
     return (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
             {/* Profile Selection - tylko jeśli jest więcej niż jeden profil */}
             {hasMultipleProfiles && (
-                <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
+                <div className="flex items-center gap-1 sm:gap-2">
+                    <User className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                     <div className="segmented">
                         <Button
                             onClick={() => onProfileSelect(null)}
                             disabled={isLoading}
                             variant={selectedProfile === null ? 'default' : 'outline'}
                             size="sm"
-                            className={`segmented-btn ${selectedProfile === null ? 'segmented-btn-active' : ''}`}
+                            className={`segmented-btn text-xs sm:text-sm px-2 sm:px-3 ${selectedProfile === null ? 'segmented-btn-active' : ''}`}
                         >
                             {t('allProfiles')}
                         </Button>
@@ -99,9 +99,11 @@ export const HeaderProfileSelector = ({
                                 disabled={isLoading}
                                 variant={selectedProfile === profile._id ? 'default' : 'outline'}
                                 size="sm"
-                                className={`segmented-btn ${selectedProfile === profile._id ? 'segmented-btn-active' : ''}`}
+                                className={`segmented-btn text-xs sm:text-sm px-2 sm:px-3 ${selectedProfile === profile._id ? 'segmented-btn-active' : ''}`}
                             >
-                                {profile.name}
+                                <span className="truncate max-w-[60px] sm:max-w-none">
+                                    {profile.name}
+                                </span>
                             </Button>
                         ))}
                     </div>
@@ -114,10 +116,12 @@ export const HeaderProfileSelector = ({
                 disabled={isLoading}
                 variant="spotify"
                 size="sm"
-                className="inline-flex items-center gap-2"
+                className="inline-flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3"
             >
-                <Download className="h-4 w-4" />
-                {hasDataToImport ? t('importData') : t('dataManagement')}
+                <Download className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">
+                    {hasDataToImport ? t('importData') : t('dataManagement')}
+                </span>
             </Button>
         </div>
     )
