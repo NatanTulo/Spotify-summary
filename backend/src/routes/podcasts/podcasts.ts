@@ -370,4 +370,51 @@ router.get('/day-of-week', async (req: Request, res: Response) => {
   }
 })
 
+// Get podcast plays for a specific episode and profile
+router.get('/:profileId/episode/:episodeId/plays', async (req: Request, res: Response) => {
+    try {
+        const { profileId, episodeId } = req.params
+        const { page = 1, limit = 50 } = req.query
+
+        const pageNum = parseInt(page as string)
+        const limitNum = parseInt(limit as string)
+        const offset = (pageNum - 1) * limitNum
+
+        const plays = await PodcastPlay.findAndCountAll({
+            where: {
+                profileId: parseInt(profileId),
+                episodeId: parseInt(episodeId)
+            },
+            include: [{
+                model: Episode,
+                attributes: ['name']
+            }],
+            limit: limitNum,
+            offset,
+            order: [['timestamp', 'DESC']]
+        })
+
+        res.json({
+            success: true,
+            data: {
+                plays: plays.rows.map(play => ({
+                    ...play.toJSON(),
+                    msPlayed: parseInt(play.msPlayed as any) || 0
+                })),
+                pagination: {
+                    current: pageNum,
+                    pages: Math.ceil(plays.count / limitNum),
+                    total: plays.count
+                }
+            }
+        })
+    } catch (error) {
+        console.error('Error fetching episode plays:', error)
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch episode plays'
+        })
+    }
+})
+
 export default router

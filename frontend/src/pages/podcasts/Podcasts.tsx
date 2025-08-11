@@ -297,7 +297,7 @@ const Podcasts: React.FC = () => {
             )}
 
             <Tabs defaultValue="shows" className="space-y-4">
-                <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5">
+                <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="shows">
                         <span className="hidden sm:inline">{t('showsAndEpisodes') || 'Shows & Episodes'}</span>
                         <span className="sm:hidden">{t('shows') || 'Shows'}</span>

@@ -75,7 +75,7 @@ router.get('/:profileId/audiobook/:audiobookId/plays', async (req, res) => {
             },
             include: [{
                 model: Audiobook,
-                attributes: ['name', 'author']
+                attributes: ['name', 'spotifyUri']
             }, {
                 model: Profile,
                 attributes: ['name']

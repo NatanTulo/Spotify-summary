@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Play, Users, Music, Clock, Globe } from 'lucide-react'
+import { Play, Users, Music, Clock, Globe, Radio } from 'lucide-react'
 import { useProfile } from '../context/ProfileContext'
 import { DataImportGuide } from '@/components/DataImportGuide'
 import { useLanguage } from '../context/LanguageContext'
@@ -18,8 +18,16 @@ const Dashboard = () => {
         avgSessionLength: 0,
         avgSessionDuration: 0
     })
+    const [podcastStats, setPodcastStats] = useState({
+        totalPodcastPlays: 0,
+        totalPodcastMinutes: 0,
+        uniqueShows: 0,
+        uniqueEpisodes: 0
+    })
     const [topTracks, setTopTracks] = useState<Array<{ name: string, artist: string, plays: number }>>([])
     const [topArtists, setTopArtists] = useState<Array<{ name: string, plays: number }>>([])
+    const [topShows, setTopShows] = useState<Array<{ name: string, plays: number }>>([])
+    const [topEpisodes, setTopEpisodes] = useState<Array<{ name: string, plays: number }>>([])
 
     useEffect(() => {
         fetchDashboardData()
@@ -67,6 +75,46 @@ const Dashboard = () => {
                 })) || [])
             }
 
+            // Fetch podcast stats
+            if (selectedProfile) {
+                const podcastStatsRes = await fetch(`/api/podcasts/stats?profileId=${selectedProfile}`)
+                if (podcastStatsRes.ok) {
+                    const podcastStatsData = await podcastStatsRes.json()
+                    if (podcastStatsData.success) {
+                        setPodcastStats(podcastStatsData.data || {
+                            totalPodcastPlays: 0,
+                            totalPodcastMinutes: 0,
+                            uniqueShows: 0,
+                            uniqueEpisodes: 0
+                        })
+                    }
+                }
+
+                // Fetch top shows
+                const showsRes = await fetch(`/api/podcasts/top-shows?limit=5&profileId=${selectedProfile}`)
+                if (showsRes.ok) {
+                    const showsData = await showsRes.json()
+                    if (showsData.success) {
+                        setTopShows(showsData.data?.map((show: any) => ({
+                            name: show.name,
+                            plays: show.playCount
+                        })) || [])
+                    }
+                }
+
+                // Fetch top episodes
+                const episodesRes = await fetch(`/api/podcasts/top-episodes?limit=5&profileId=${selectedProfile}`)
+                if (episodesRes.ok) {
+                    const episodesData = await episodesRes.json()
+                    if (episodesData.success) {
+                        setTopEpisodes(episodesData.data?.map((episode: any) => ({
+                            name: episode.name,
+                            plays: episode.playCount
+                        })) || [])
+                    }
+                }
+            }
+
         } catch (error) {
             console.error('Failed to fetch dashboard data:', error)
         }
@@ -85,7 +133,7 @@ const Dashboard = () => {
             </div>
 
             {/* Stats Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-8 gap-4">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">{t('totalPlaysCard')}</CardTitle>
@@ -173,10 +221,40 @@ const Dashboard = () => {
                         </p>
                     </CardContent>
                 </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">{t('totalPodcastPlaysCard')}</CardTitle>
+                        <Radio className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">
+                            {podcastStats.totalPodcastPlays > 0 ? podcastStats.totalPodcastPlays.toLocaleString() : '——'}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            {podcastStats.totalPodcastPlays > 0 ? t('playsLabel') : t('noData')}
+                        </p>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">{t('uniqueShowsCard')}</CardTitle>
+                        <Radio className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">
+                            {podcastStats.uniqueShows > 0 ? podcastStats.uniqueShows.toLocaleString() : '——'}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            {podcastStats.uniqueShows > 0 ? t('differentShows') || 'Different shows' : t('noData')}
+                        </p>
+                    </CardContent>
+                </Card>
             </div>
 
             {/* Top Content */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-8">
                 {/* Top Tracks */}
                 <Card>
                     <CardHeader>
@@ -247,6 +325,80 @@ const Dashboard = () => {
                                 <div className="text-center py-8 text-muted-foreground">
                                     <div className="text-4xl mb-2">🎤</div>
                                     <div>{t('noArtistsData')}</div>
+                                    <div className="text-sm">{t('importSpotifyData')}</div>
+                                </div>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Top Shows */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>{t('topShowsTitle')}</CardTitle>
+                        <CardDescription>
+                            {t('topShowsDesc')}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            {topShows.length > 0 ? (
+                                topShows.map((show, index) => (
+                                    <div key={index} className="flex items-center space-x-4">
+                                        <div className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
+                                            {index + 1}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-sm font-medium text-foreground truncate">
+                                                {show.name}
+                                            </div>
+                                        </div>
+                                        <div className="text-sm text-muted-foreground">
+                                            {show.plays} {t('playsLabel')}
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-center py-8 text-muted-foreground">
+                                    <div className="text-4xl mb-2">🎙️</div>
+                                    <div>{t('noShowsData')}</div>
+                                    <div className="text-sm">{t('importSpotifyData')}</div>
+                                </div>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Top Episodes */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>{t('topEpisodesTitle')}</CardTitle>
+                        <CardDescription>
+                            {t('topEpisodesDesc')}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            {topEpisodes.length > 0 ? (
+                                topEpisodes.map((episode, index) => (
+                                    <div key={index} className="flex items-center space-x-4">
+                                        <div className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
+                                            {index + 1}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-sm font-medium text-foreground truncate">
+                                                {episode.name}
+                                            </div>
+                                        </div>
+                                        <div className="text-sm text-muted-foreground">
+                                            {episode.plays} {t('playsLabel')}
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-center py-8 text-muted-foreground">
+                                    <div className="text-4xl mb-2">🎧</div>
+                                    <div>{t('noEpisodesData')}</div>
                                     <div className="text-sm">{t('importSpotifyData')}</div>
                                 </div>
                             )}

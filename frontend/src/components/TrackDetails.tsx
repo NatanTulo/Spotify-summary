@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
-import { ArrowLeft, Play, Clock, Hash, Shuffle, WifiOff, EyeOff } from 'lucide-react'
+import { ArrowLeft, Play, Clock, Hash } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { useLanguage } from '../context/LanguageContext'
 
@@ -362,24 +362,10 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
                                                     </div>
                                                 </div>
                                                 <div className="flex gap-2">
-                                                    {play.shuffle && (
-                                                        <div className="flex items-center gap-1 text-xs bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded">
-                                                            <Shuffle className="h-3 w-3" />
-                                                            {t('shuffleLabel')}
-                                                        </div>
-                                                    )}
-                                                    {play.offline && (
-                                                        <div className="flex items-center gap-1 text-xs bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
-                                                            <WifiOff className="h-3 w-3" />
-                                                            {t('offlineLabel')}
-                                                        </div>
-                                                    )}
-                                                    {play.incognitoMode && (
-                                                        <div className="flex items-center gap-1 text-xs bg-purple-100 dark:bg-purple-900 px-2 py-1 rounded">
-                                                            <EyeOff className="h-3 w-3" />
-                                                            {t('incognitoLabel')}
-                                                        </div>
-                                                    )}
+                                                    {play.shuffle && <span className="text-blue-500">🔀 {t('shuffleLabel') || 'Shuffle'}</span>}
+                                                    {play.offline && <span className="text-blue-500">📱 {t('offlineLabel') || 'Offline'}</span>}
+                                                    {play.incognitoMode && <span className="text-purple-500">🕵️ {t('incognitoLabel') || 'Incognito'}</span>}
+                                                    {play.skipped && <span className="text-orange-500">⏭ {t('skipped') || 'Skipped'}</span>}
                                                 </div>
                                             </div>
 

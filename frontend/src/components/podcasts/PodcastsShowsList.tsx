@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui
 import { Button } from '../ui/button'
 import { useProfile } from '../../context/ProfileContext'
 import { useLanguage } from '../../context/LanguageContext'
+import EpisodeDetails from './EpisodeDetails'
 
 type SortKey = 'name' | 'plays' | 'time' | 'lastPlayed'
 type SortOrder = 'asc' | 'desc'
@@ -43,6 +44,7 @@ export const PodcastsShowsList: React.FC = () => {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [episodesByShow, setEpisodesByShow] = useState<Record<number, EpisodeRow[]>>({})
   const [episodesSort, setEpisodesSort] = useState<Record<number, { sortBy: SortKey; order: SortOrder }>>({})
+  const [selectedEpisode, setSelectedEpisode] = useState<{ id: number; name: string; showName: string } | null>(null)
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<SortKey>('plays')
@@ -166,6 +168,19 @@ export const PodcastsShowsList: React.FC = () => {
   const canPrev = offset > 0
   const canNext = offset + limit < total
 
+  // Show episode details if selected
+  if (selectedEpisode && selectedProfile) {
+    return (
+      <EpisodeDetails
+        episodeId={selectedEpisode.id}
+        episodeName={selectedEpisode.name}
+        showName={selectedEpisode.showName}
+        profileId={selectedProfile}
+        onBack={() => setSelectedEpisode(null)}
+      />
+    )
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -281,7 +296,14 @@ export const PodcastsShowsList: React.FC = () => {
                         <tbody>
                           {episodesByShow[show.id].map(ep => (
                             <tr key={ep.id} className="border-t">
-                              <td className="py-1 pr-2">{ep.name}</td>
+                              <td className="py-1 pr-2">
+                                <button 
+                                  onClick={() => setSelectedEpisode({ id: ep.id, name: ep.name, showName: show.name })}
+                                  className="text-left hover:underline text-blue-600 dark:text-blue-400"
+                                >
+                                  {ep.name}
+                                </button>
+                              </td>
                               <td className="text-right py-1 pr-2">{ep.playCount.toLocaleString()}</td>
                               <td className="text-right py-1 pr-2">{formatMs(ep.totalTime)}</td>
                               <td className="text-right py-1">{ep.lastPlayed ? new Date(ep.lastPlayed).toLocaleDateString() : '-'}</td>
