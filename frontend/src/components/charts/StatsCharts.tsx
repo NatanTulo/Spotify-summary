@@ -566,8 +566,17 @@ export function ListeningTimelineChart({ data }: ListeningTimelineProps) {
                 height={dense ? 60 : 20}
               />
               <YAxis
+                yAxisId="left"
                 tick={{ fill: "hsl(var(--foreground))" }}
                 axisLine={{ stroke: "hsl(var(--border))" }}
+                tickFormatter={(v: number) => v.toLocaleString()}
+              />
+              <YAxis
+                yAxisId="right"
+                orientation="right"
+                tick={{ fill: "hsl(var(--foreground))" }}
+                axisLine={{ stroke: "hsl(var(--border))" }}
+                tickFormatter={(v: number) => Math.round(v).toLocaleString()}
               />
               <Tooltip
                 content={(tpProps: any) => {
@@ -628,6 +637,7 @@ export function ListeningTimelineChart({ data }: ListeningTimelineProps) {
                 dataKey="plays"
                 stroke="hsl(var(--primary))"
                 strokeWidth={2}
+                yAxisId="left"
                 dot={zoomState.isZoomed || displayData.length <= 200 ? { r: 2 } : false}
               />
               <Line
@@ -635,6 +645,7 @@ export function ListeningTimelineChart({ data }: ListeningTimelineProps) {
                 dataKey="minutes"
                 stroke="hsl(var(--chart-2))"
                 strokeWidth={2}
+                yAxisId="right"
                 dot={zoomState.isZoomed || displayData.length <= 200 ? { r: 2 } : false}
               />
               {/* Markery top dni (kliknięcie przybliża) */}
@@ -642,6 +653,7 @@ export function ListeningTimelineChart({ data }: ListeningTimelineProps) {
                 type="linear"
                 dataKey="plays"
                 stroke="none"
+                yAxisId="left"
                 isAnimationActive={false}
                 dot={(props: any) => {
                   const { cx, cy, payload } = props;
