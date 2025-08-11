@@ -36,9 +36,7 @@ const Audiobooks: React.FC = () => {
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
-        if (selectedProfile) {
-            fetchAudiobooks()
-        }
+        fetchAudiobooks()
     }, [selectedProfile])
 
     const fetchAudiobooks = async () => {
