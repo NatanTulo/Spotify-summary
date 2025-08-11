@@ -377,15 +377,8 @@ const Podcasts: React.FC = () => {
 
                 <TabsContent value="charts" className="space-y-4">
                     {/* Timeline (daily activity) */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>{t('listeningTimeline') || 'Listening Timeline'}</CardTitle>
-                            <CardDescription>{t('dailyPodcastActivity') || t('dailyActivity') || 'Daily podcast activity'}</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <ListeningTimelineChart data={(timelineStats.length ? timelineStats : dailyStats)} />
-                        </CardContent>
-                    </Card>
+                    <ListeningTimelineChart data={(timelineStats.length ? timelineStats : dailyStats)} />
+                    
                     {/* Time of Day */}
                     <Card>
                         <CardHeader>

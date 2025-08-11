@@ -12,7 +12,6 @@ import { useLanguage } from '../../context/LanguageContext'
 const TracksList = lazy(() => import('@/components/TracksList').then(module => ({ default: module.TracksList })))
 const PlaysByCountryChart = lazy(() => import('@/components/charts/StatsCharts').then(module => ({ default: module.PlaysByCountryChart })))
 const YearlyStatsChart = lazy(() => import('@/components/charts/StatsCharts').then(module => ({ default: module.YearlyStatsChart })))
-const TopArtistsChart = lazy(() => import('@/components/charts/StatsCharts').then(module => ({ default: module.TopArtistsChart })))
 const ListeningTimelineChart = lazy(() => import('@/components/charts/StatsCharts').then(module => ({ default: module.ListeningTimelineChart })))
 
 // Loading component dla wykresów
@@ -284,8 +283,12 @@ export default function Analytics() {
             </div>
 
             {/* Tabs */}
-            <Tabs defaultValue="overview" className="space-y-6">
+            <Tabs defaultValue="tracks" className="space-y-6">
                 <TabsList className="grid w-full grid-cols-3 sm:grid-cols-4">
+                    <TabsTrigger value="tracks" className="flex items-center space-x-2">
+                        <Music className="h-4 w-4" />
+                        <span>{t('tracksList')}</span>
+                    </TabsTrigger>
                     <TabsTrigger value="overview" className="flex items-center space-x-2">
                         <BarChart3 className="h-4 w-4" />
                         <span>{t('overview')}</span>
@@ -293,10 +296,6 @@ export default function Analytics() {
                     <TabsTrigger value="charts" className="flex items-center space-x-2">
                         <PieChart className="h-4 w-4" />
                         <span>{t('charts')}</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="tracks" className="flex items-center space-x-2">
-                        <Music className="h-4 w-4" />
-                        <span>{t('tracksList')}</span>
                     </TabsTrigger>
                     <TabsTrigger value="insights" className="flex items-center space-x-2">
                         <Percent className="h-4 w-4" />
@@ -306,19 +305,81 @@ export default function Analytics() {
 
                 {/* Overview Tab */}
                 <TabsContent value="overview">
-                    <div className="grid grid-cols-1 gap-6">
-                        <Suspense fallback={<ChartLoader />}>
-                            <YearlyStatsChart data={yearlyStats} />
-                        </Suspense>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Top Artists */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>{t('topArtists') || 'Top Artists'}</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-2">
+                                    {topArtists.slice(0, 5).map((artist, index) => (
+                                        <div key={artist.name} className="flex items-center justify-between gap-2">
+                                            <div className="flex items-center space-x-2 min-w-0 flex-1">
+                                                <span className="text-sm font-medium text-muted-foreground flex-shrink-0">
+                                                    #{index + 1}
+                                                </span>
+                                                <span className="text-sm truncate" title={artist.name}>{artist.name}</span>
+                                            </div>
+                                            <span className="text-sm text-muted-foreground flex-shrink-0">
+                                                {artist.plays} plays
+                                            </span>
+                                        </div>
+                                    ))}
+                                    {topArtists.length === 0 && (
+                                        <div className="text-center py-8 text-muted-foreground">
+                                            <div className="text-4xl mb-2">🎤</div>
+                                            <div>{t('noArtistsData') || 'No artists data'}</div>
+                                            <div className="text-sm">{t('importSpotifyData') || 'Import your Spotify data to see statistics'}</div>
+                                        </div>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Top Tracks */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>{t('topTracks') || 'Top Tracks'}</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-2">
+                                    {tracks.slice(0, 5).map((track, index) => (
+                                        <div key={track.trackId} className="flex items-center justify-between gap-2">
+                                            <div className="flex items-center space-x-2 min-w-0 flex-1">
+                                                <span className="text-sm font-medium text-muted-foreground flex-shrink-0">
+                                                    #{index + 1}
+                                                </span>
+                                                <div className="flex flex-col min-w-0 flex-1">
+                                                    <span className="text-sm truncate" title={track.trackName}>{track.trackName}</span>
+                                                    <span className="text-xs text-muted-foreground truncate" title={track.artistName}>{track.artistName}</span>
+                                                </div>
+                                            </div>
+                                            <span className="text-sm text-muted-foreground flex-shrink-0">
+                                                {track.totalPlays} plays
+                                            </span>
+                                        </div>
+                                    ))}
+                                    {tracks.length === 0 && (
+                                        <div className="text-center py-8 text-muted-foreground">
+                                            <div className="text-4xl mb-2">🎵</div>
+                                            <div>{t('noTracksData') || 'No tracks data'}</div>
+                                            <div className="text-sm">{t('importSpotifyData') || 'Import your Spotify data to see statistics'}</div>
+                                        </div>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
                     </div>
                 </TabsContent>
 
                 {/* Charts Tab */}
                 <TabsContent value="charts">
                     <div className="space-y-6">
+                        {/* Yearly Stats and Country Stats side by side */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <Suspense fallback={<ChartLoader />}>
-                                <TopArtistsChart data={topArtists} loading={statsLoading} />
+                                <YearlyStatsChart data={yearlyStats} />
                             </Suspense>
                             <Suspense fallback={<ChartLoader />}>
                                 <PlaysByCountryChart data={countryStats} loading={statsLoading} />

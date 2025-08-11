@@ -348,6 +348,7 @@ const translations = {
     // TopArtistsChart
     topArtists: "Top artyści",
     topArtistsDescription: "Najczęściej słuchani wykonawcy",
+    topTracks: "Top utwory",
 
     // ProfileManager specific translations
     profileSelection: "Wybór Profilu",
@@ -846,6 +847,7 @@ const translations = {
     // TopArtistsChart
     topArtists: "Top Artists",
     topArtistsDescription: "Most listened artists",
+    topTracks: "Top Tracks",
 
     // ProfileManager specific translations
     profileSelection: "Profile Selection",

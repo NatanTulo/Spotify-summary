@@ -253,8 +253,45 @@ const Dashboard = () => {
                 </Card>
             </div>
 
-            {/* Top Content */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-8">
+            {/* Top Content - Music */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Top Artists */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>{t('topArtistsTitle')}</CardTitle>
+                        <CardDescription>
+                            {t('topArtistsDesc')}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            {topArtists.length > 0 ? (
+                                topArtists.map((artist, index) => (
+                                    <div key={index} className="flex items-center space-x-4">
+                                        <div className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
+                                            {index + 1}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-sm font-medium text-foreground truncate">
+                                                {artist.name}
+                                            </div>
+                                        </div>
+                                        <div className="text-sm text-muted-foreground">
+                                            {artist.plays} {t('playsLabel')}
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-center py-8 text-muted-foreground">
+                                    <div className="text-4xl mb-2">🎤</div>
+                                    <div>{t('noArtistsData')}</div>
+                                    <div className="text-sm">{t('importSpotifyData')}</div>
+                                </div>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+
                 {/* Top Tracks */}
                 <Card>
                     <CardHeader>
@@ -294,44 +331,10 @@ const Dashboard = () => {
                         </div>
                     </CardContent>
                 </Card>
+            </div>
 
-                {/* Top Artists */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>{t('topArtistsTitle')}</CardTitle>
-                        <CardDescription>
-                            {t('topArtistsDesc')}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            {topArtists.length > 0 ? (
-                                topArtists.map((artist, index) => (
-                                    <div key={index} className="flex items-center space-x-4">
-                                        <div className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
-                                            {index + 1}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="text-sm font-medium text-foreground truncate">
-                                                {artist.name}
-                                            </div>
-                                        </div>
-                                        <div className="text-sm text-muted-foreground">
-                                            {artist.plays} {t('playsLabel')}
-                                        </div>
-                                    </div>
-                                ))
-                            ) : (
-                                <div className="text-center py-8 text-muted-foreground">
-                                    <div className="text-4xl mb-2">🎤</div>
-                                    <div>{t('noArtistsData')}</div>
-                                    <div className="text-sm">{t('importSpotifyData')}</div>
-                                </div>
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
-
+            {/* Top Content - Podcasts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Top Shows */}
                 <Card>
                     <CardHeader>
