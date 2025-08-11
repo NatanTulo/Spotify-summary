@@ -54,20 +54,18 @@ export const PodcastsShowsList: React.FC = () => {
   const [total, setTotal] = useState(0)
 
   useEffect(() => {
-    if (!selectedProfile) return
     fetchShows()
   }, [selectedProfile, sortBy, order, offset])
 
   const fetchShows = async () => {
-    if (!selectedProfile) return
     setLoading(true)
     try {
       const params = new URLSearchParams({
-        profileId: selectedProfile,
         limit: String(limit),
         offset: String(offset),
         sortBy,
         order,
+        profileId: selectedProfile || 'all',
       })
       if (search) params.append('search', search)
       const res = await fetch(`/api/podcasts/shows?${params.toString()}`)
@@ -82,13 +80,12 @@ export const PodcastsShowsList: React.FC = () => {
   }
 
   const fetchEpisodes = async (showId: number) => {
-    if (!selectedProfile) return
     const es = episodesSort[showId] || { sortBy: 'plays' as SortKey, order: 'desc' as SortOrder }
     const params = new URLSearchParams({
-      profileId: selectedProfile,
       limit: '500',
       sortBy: es.sortBy,
-      order: es.order
+      order: es.order,
+      profileId: selectedProfile || 'all',
     })
     const res = await fetch(`/api/podcasts/shows/${showId}/episodes?${params.toString()}`)
     const json: ApiResponse<{ episodes: EpisodeRow[] }> = await res.json()
@@ -142,8 +139,12 @@ export const PodcastsShowsList: React.FC = () => {
   }
 
   const fetchEpisodesWithParams = async (showId: number, s: SortKey, o: SortOrder) => {
-    if (!selectedProfile) return
-    const params = new URLSearchParams({ profileId: selectedProfile, limit: '500', sortBy: s, order: o })
+    const params = new URLSearchParams({ 
+      limit: '500', 
+      sortBy: s, 
+      order: o,
+      profileId: selectedProfile || 'all',
+    })
     const res = await fetch(`/api/podcasts/shows/${showId}/episodes?${params.toString()}`)
     const json: ApiResponse<{ episodes: EpisodeRow[] }> = await res.json()
     if (json.success) {

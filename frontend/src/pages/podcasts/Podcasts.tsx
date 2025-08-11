@@ -72,14 +72,10 @@ const Podcasts: React.FC = () => {
     // const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D']
 
     useEffect(() => {
-        if (selectedProfile) {
-            fetchData()
-        }
+        fetchData()
     }, [selectedProfile])
 
     const fetchData = async () => {
-        if (!selectedProfile) return
-
         setLoading(true)
         setError(null)
 
@@ -103,7 +99,9 @@ const Podcasts: React.FC = () => {
 
     const fetchOverviewStats = async () => {
         try {
-            const response = await fetch(`/api/podcasts/stats?profileId=${selectedProfile}`)
+            const params = new URLSearchParams()
+            params.append('profileId', selectedProfile || 'all')
+            const response = await fetch(`/api/podcasts/stats?${params}`)
             const result: ApiResponse<PodcastStats> = await response.json()
             
             if (result.success) {
@@ -116,7 +114,11 @@ const Podcasts: React.FC = () => {
 
     const fetchTopShows = async () => {
         try {
-            const response = await fetch(`/api/podcasts/top-shows?profileId=${selectedProfile}&limit=10`)
+            const params = new URLSearchParams({ 
+                limit: '10',
+                profileId: selectedProfile || 'all'
+            })
+            const response = await fetch(`/api/podcasts/top-shows?${params}`)
             const result: ApiResponse<TopShow[]> = await response.json()
             
             if (result.success) {
@@ -129,7 +131,11 @@ const Podcasts: React.FC = () => {
 
     const fetchTopEpisodes = async () => {
         try {
-            const response = await fetch(`/api/podcasts/top-episodes?profileId=${selectedProfile}&limit=20`)
+            const params = new URLSearchParams({ 
+                limit: '20',
+                profileId: selectedProfile || 'all'
+            })
+            const response = await fetch(`/api/podcasts/top-episodes?${params}`)
             const result: ApiResponse<TopEpisode[]> = await response.json()
             
             if (result.success) {
@@ -141,11 +147,14 @@ const Podcasts: React.FC = () => {
     }
 
     const fetchDailyStats = async () => {
-        if (!selectedProfile) return
         const windows = [30, 180, 365]
         for (const days of windows) {
             try {
-                const response = await fetch(`/api/podcasts/daily-stats?profileId=${selectedProfile}&days=${days}`)
+                const params = new URLSearchParams({ 
+                    days: days.toString(),
+                    profileId: selectedProfile || 'all'
+                })
+                const response = await fetch(`/api/podcasts/daily-stats?${params}`)
                 const result: ApiResponse<DailyStats[]> = await response.json()
                 if (result.success) {
                     const sumPlays = (result.data || []).reduce((a, d) => a + (d.plays || 0), 0)
@@ -167,9 +176,10 @@ const Podcasts: React.FC = () => {
 
     // Pełny zestaw (np. 365 dni) do timeline – zawsze szeroki zakres
     const fetchTimelineStats = async () => {
-        if (!selectedProfile) return
         try {
-            const response = await fetch(`/api/podcasts/daily-stats-all?profileId=${selectedProfile}`)
+            const params = new URLSearchParams()
+            params.append('profileId', selectedProfile || 'all')
+            const response = await fetch(`/api/podcasts/daily-stats-all?${params}`)
             const result: ApiResponse<DailyStats[]> = await response.json()
             if (result.success) {
                 // Posortuj dla pewności
@@ -183,7 +193,9 @@ const Podcasts: React.FC = () => {
 
     const fetchTimeOfDay = async () => {
         try {
-            const response = await fetch(`/api/podcasts/time-of-day?profileId=${selectedProfile}`)
+            const params = new URLSearchParams()
+            params.append('profileId', selectedProfile || 'all')
+            const response = await fetch(`/api/podcasts/time-of-day?${params}`)
             const result: ApiResponse<TimeOfDayStat[]> = await response.json()
             if (result.success) setTimeOfDayStats(result.data)
         } catch (error) {
@@ -193,7 +205,9 @@ const Podcasts: React.FC = () => {
 
     const fetchDayOfWeek = async () => {
         try {
-            const response = await fetch(`/api/podcasts/day-of-week?profileId=${selectedProfile}`)
+            const params = new URLSearchParams()
+            params.append('profileId', selectedProfile || 'all')
+            const response = await fetch(`/api/podcasts/day-of-week?${params}`)
             const result: ApiResponse<DayOfWeekStat[]> = await response.json()
             if (result.success) setDayOfWeekStats(result.data)
         } catch (error) {
@@ -204,17 +218,6 @@ const Podcasts: React.FC = () => {
     // Removed platform stats fetch and legacy shows/episodes fetch for tabs; unified list handles its own data
 
     // helpers removed with recent tab
-
-    if (!selectedProfile) {
-        return (
-            <div className="container mx-auto p-6">
-                <div className="text-center">
-                    <h1 className="text-3xl font-bold mb-4">{t('podcastsTitle') || 'Podcasts'}</h1>
-                    <p className="text-muted-foreground">{t('selectProfile') || 'Please select a profile to view podcast data'}</p>
-                </div>
-            </div>
-        )
-    }
 
     if (loading) {
         return (

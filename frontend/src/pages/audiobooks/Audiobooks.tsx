@@ -42,13 +42,12 @@ const Audiobooks: React.FC = () => {
     }, [selectedProfile])
 
     const fetchAudiobooks = async () => {
-        if (!selectedProfile) return
-
         setLoading(true)
         setError(null)
 
         try {
-            const response = await fetch(`/api/audiobooks/${selectedProfile}`)
+            const profileParam = selectedProfile || 'all'
+            const response = await fetch(`/api/audiobooks/${profileParam}`)
             if (!response.ok) {
                 if (response.status >= 500) {
                     throw new Error('CONNECTION_ERROR')
@@ -77,13 +76,12 @@ const Audiobooks: React.FC = () => {
     }
 
     const fetchAudiobookPlays = async (audiobookId: number) => {
-        if (!selectedProfile) return
-
         setLoading(true)
         setError(null)
 
         try {
-            const response = await fetch(`/api/audiobooks/${selectedProfile}/audiobook/${audiobookId}/plays`)
+            const profileParam = selectedProfile || 'all'
+            const response = await fetch(`/api/audiobooks/${profileParam}/audiobook/${audiobookId}/plays`)
             if (!response.ok) {
                 throw new Error('Failed to fetch audiobook plays')
             }
@@ -134,14 +132,6 @@ const Audiobooks: React.FC = () => {
                     ? t('failedToFetchAudiobooks') || errorCode
                     : errorCode
         }
-    }
-
-    if (!selectedProfile) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <p className="text-muted-foreground">{t('selectProfile')}</p>
-            </div>
-        )
     }
 
     return (

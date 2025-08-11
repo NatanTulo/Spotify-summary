@@ -22,13 +22,19 @@ router.get('/:profileId', async (req, res) => {
             ]
         }
 
+        // If profileId is 'all', get audiobooks for all profiles
+        const includeCondition: any = {
+            model: AudiobookPlay,
+            required: true,
+            attributes: []
+        }
+        
+        if (profileId !== 'all') {
+            includeCondition.where = { profileId: parseInt(profileId) }
+        }
+
         const audiobooks = await Audiobook.findAndCountAll({
-            include: [{
-                model: AudiobookPlay,
-                where: { profileId: parseInt(profileId) },
-                required: true,
-                attributes: []
-            }],
+            include: [includeCondition],
             where: whereCondition,
             distinct: true,
             limit: limitNum,
@@ -68,11 +74,17 @@ router.get('/:profileId/audiobook/:audiobookId/plays', async (req, res) => {
         const limitNum = parseInt(limit as string)
         const offset = (pageNum - 1) * limitNum
 
+        const whereCondition: any = {
+            audiobookId: parseInt(audiobookId)
+        }
+        
+        // If profileId is not 'all', add profileId filter
+        if (profileId !== 'all') {
+            whereCondition.profileId = parseInt(profileId)
+        }
+
         const plays = await AudiobookPlay.findAndCountAll({
-            where: {
-                profileId: parseInt(profileId),
-                audiobookId: parseInt(audiobookId)
-            },
+            where: whereCondition,
             include: [{
                 model: Audiobook,
                 attributes: ['name', 'spotifyUri']

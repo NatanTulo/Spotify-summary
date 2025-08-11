@@ -51,7 +51,11 @@ router.get('/shows', async (req: Request, res: Response) => {
     const { limit = '50', offset = '0', search, profileId, sortBy = 'name', order = 'asc' } = req.query as any
     const limitNum = toInt(limit, 50)
     const offsetNum = toInt(offset, 0)
+    
+    // For aggregated stats with plays data (specific profile or all profiles)
     if (profileId) {
+      const whereCondition = profileId !== 'all' ? { profileId: toInt(profileId, 0) } : {}
+      
       const agg = await PodcastPlay.findAll({
         attributes: [
           [col('episode.show.id'), 'id'],
@@ -60,7 +64,7 @@ router.get('/shows', async (req: Request, res: Response) => {
           [fn('SUM', col('PodcastPlay.msPlayed')), 'totalTime'],
           [fn('MAX', col('PodcastPlay.timestamp')), 'lastPlayed']
         ],
-        where: { profileId: toInt(profileId, 0) },
+        where: whereCondition,
         include: [{ model: Episode, attributes: [], include: [{ model: Show, attributes: [] }] }],
         group: ['episode.show.id', 'episode.show.name'],
         raw: true
@@ -80,6 +84,8 @@ router.get('/shows', async (req: Request, res: Response) => {
       const total = rows.length
       return res.json({ success: true, data: { shows: rows.slice(offsetNum, offsetNum + limitNum), total, limit: limitNum, offset: offsetNum } })
     }
+    
+    // For no profile parameter - show all available shows without stats
     const where: any = {}
     if (search) where.name = { [Op.iLike]: `%${search}%` }
     const shows = await Show.findAndCountAll({ where, limit: limitNum, offset: offsetNum, order: [['name', 'ASC']] })
@@ -97,7 +103,11 @@ router.get('/shows/:showId/episodes', async (req: Request, res: Response) => {
     const { limit = '50', offset = '0', profileId, search, sortBy = 'name', order = 'asc' } = req.query as any
     const limitNum = toInt(limit, 50)
     const offsetNum = toInt(offset, 0)
+    
+    // For aggregated plays data (specific profile or all profiles)
     if (profileId) {
+      const whereCondition = profileId !== 'all' ? { profileId: toInt(profileId, 0) } : {}
+      
       const agg = await PodcastPlay.findAll({
         attributes: [
           [col('episode.id'), 'id'],
@@ -107,7 +117,7 @@ router.get('/shows/:showId/episodes', async (req: Request, res: Response) => {
           [fn('SUM', col('PodcastPlay.msPlayed')), 'totalTime'],
           [fn('MAX', col('PodcastPlay.timestamp')), 'lastPlayed']
         ],
-        where: { profileId: toInt(profileId, 0) },
+        where: whereCondition,
         include: [{ model: Episode, attributes: [], where: { showId: toInt(showId, 0) } }],
         group: ['episode.id', 'episode.name', 'episode.spotifyUri'],
         raw: true
@@ -128,6 +138,8 @@ router.get('/shows/:showId/episodes', async (req: Request, res: Response) => {
       const total = rows.length
       return res.json({ success: true, data: { episodes: rows.slice(offsetNum, offsetNum + limitNum), total, limit: limitNum, offset: offsetNum } })
     }
+    
+    // For no profile parameter - show all available episodes without stats
     const where: any = { showId: toInt(showId, 0) }
     if (search) where.name = { [Op.iLike]: `%${search}%` }
     const episodes = await Episode.findAndCountAll({ where, limit: limitNum, offset: offsetNum, order: [['name', 'ASC']], include: [{ model: Show, attributes: ['name'] }] })
@@ -142,19 +154,34 @@ router.get('/shows/:showId/episodes', async (req: Request, res: Response) => {
 router.get('/stats', async (req: Request, res: Response) => {
   try {
     const { profileId } = req.query as any
-    if (!profileId) return res.status(400).json({ success: false, message: 'Profile ID is required' })
-    const pid = toInt(profileId, 0)
-    const profile = await Profile.findByPk(pid)
-    if (!profile) return res.status(404).json({ success: false, message: 'Profile not found' })
-    const totalPodcastPlays = await PodcastPlay.count({ where: { profileId: pid } })
-    const totalMs = await PodcastPlay.sum('msPlayed', { where: { profileId: pid } }) || 0
-    const uniqueEpisodes = await PodcastPlay.count({ distinct: true, col: 'episodeId', where: { profileId: pid } })
-    const showRows = await PodcastPlay.sequelize!.query(`
-      SELECT COUNT(DISTINCT e."showId") as count
-      FROM podcast_plays p
-      INNER JOIN episodes e ON p."episodeId" = e.id
-      WHERE p."profileId" = :pid
-    `, { replacements: { pid }, type: QueryTypes.SELECT }) as any[]
+    
+    // Jeśli profileId nie jest podane lub === 'all', agreguj wszystkie profile
+    const filter = profileId && profileId !== 'all' ? { profileId: toInt(profileId, 0) } : {}
+    
+    if (profileId && profileId !== 'all') {
+      const pid = toInt(profileId, 0)
+      const profile = await Profile.findByPk(pid)
+      if (!profile) return res.status(404).json({ success: false, message: 'Profile not found' })
+    }
+    
+    const totalPodcastPlays = await PodcastPlay.count({ where: filter })
+    const totalMs = await PodcastPlay.sum('msPlayed', { where: filter }) || 0
+    const uniqueEpisodes = await PodcastPlay.count({ distinct: true, col: 'episodeId', where: filter })
+    
+    const showQuery = profileId && profileId !== 'all' 
+      ? `SELECT COUNT(DISTINCT e."showId") as count
+         FROM podcast_plays p
+         INNER JOIN episodes e ON p."episodeId" = e.id
+         WHERE p."profileId" = :pid`
+      : `SELECT COUNT(DISTINCT e."showId") as count
+         FROM podcast_plays p
+         INNER JOIN episodes e ON p."episodeId" = e.id`
+    
+    const showRows = await PodcastPlay.sequelize!.query(showQuery, { 
+      replacements: profileId && profileId !== 'all' ? { pid: toInt(profileId, 0) } : {}, 
+      type: QueryTypes.SELECT 
+    }) as any[]
+    
     const uniqueShows = showRows[0]?.count || 0
     res.json({ success: true, data: { totalPodcastPlays, totalPodcastMinutes: Math.round(totalMs / 60000), uniqueEpisodes, uniqueShows } })
   } catch (e) {
@@ -167,8 +194,16 @@ router.get('/stats', async (req: Request, res: Response) => {
 router.get('/top-shows', async (req: Request, res: Response) => {
   try {
     const { profileId, limit = '10' } = req.query as any
-    if (!profileId) return res.status(400).json({ success: false, message: 'Profile ID is required' })
-    const pid = toInt(profileId, 0)
+    
+    // Jeśli profileId nie jest podane lub === 'all', agreguj wszystkie profile
+    const filter = profileId && profileId !== 'all' ? { profileId: toInt(profileId, 0) } : {}
+    
+    if (profileId && profileId !== 'all') {
+      const pid = toInt(profileId, 0)
+      const profile = await Profile.findByPk(pid)
+      if (!profile) return res.status(404).json({ success: false, message: 'Profile not found' })
+    }
+    
     const rows = await PodcastPlay.findAll({
       attributes: [
         [col('episode.show.id'), 'showId'],
@@ -176,7 +211,7 @@ router.get('/top-shows', async (req: Request, res: Response) => {
         [fn('COUNT', col('PodcastPlay.id')), 'playCount'],
         [fn('SUM', col('PodcastPlay.msPlayed')), 'totalTime']
       ],
-      where: { profileId: pid },
+      where: filter,
       include: [{ model: Episode, attributes: [], include: [{ model: Show, attributes: [] }] }],
       group: ['episode.show.id', 'episode.show.name'],
       raw: true
@@ -198,8 +233,16 @@ router.get('/top-shows', async (req: Request, res: Response) => {
 router.get('/top-episodes', async (req: Request, res: Response) => {
   try {
     const { profileId, limit = '20' } = req.query as any
-    if (!profileId) return res.status(400).json({ success: false, message: 'Profile ID is required' })
-    const pid = toInt(profileId, 0)
+    
+    // Jeśli profileId nie jest podane lub === 'all', agreguj wszystkie profile
+    const filter = profileId && profileId !== 'all' ? { profileId: toInt(profileId, 0) } : {}
+    
+    if (profileId && profileId !== 'all') {
+      const pid = toInt(profileId, 0)
+      const profile = await Profile.findByPk(pid)
+      if (!profile) return res.status(404).json({ success: false, message: 'Profile not found' })
+    }
+    
     const rows = await PodcastPlay.findAll({
       attributes: [
         [col('episode.id'), 'episodeId'],
@@ -207,7 +250,7 @@ router.get('/top-episodes', async (req: Request, res: Response) => {
         [fn('COUNT', col('PodcastPlay.id')), 'playCount'],
         [fn('SUM', col('PodcastPlay.msPlayed')), 'totalTime']
       ],
-      where: { profileId: pid },
+      where: filter,
       include: [{ model: Episode, attributes: [] }],
       group: ['episode.id', 'episode.name'],
       raw: true
@@ -229,17 +272,25 @@ router.get('/top-episodes', async (req: Request, res: Response) => {
 router.get('/daily-stats', async (req: Request, res: Response) => {
   try {
     const { profileId, days = '30' } = req.query as any
-    if (!profileId) return res.status(400).json({ success: false, message: 'Profile ID is required' })
-    const pid = toInt(profileId, 0)
-    const startDate = new Date()
-    startDate.setDate(startDate.getDate() - toInt(days, 30))
+    
+    // Jeśli profileId nie jest podane lub === 'all', agreguj wszystkie profile
+    const filter: any = { timestamp: { [Op.gte]: (() => {
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() - toInt(days, 30))
+      return startDate
+    })() } }
+    
+    if (profileId && profileId !== 'all') {
+      filter.profileId = toInt(profileId, 0)
+    }
+    
     const rows = await PodcastPlay.findAll({
       attributes: [
         [fn('DATE', col('timestamp')), 'date'],
         [fn('COUNT', col('id')), 'plays'],
         [fn('SUM', col('msPlayed')), 'totalMs']
       ],
-      where: { profileId: pid, timestamp: { [Op.gte]: startDate } },
+      where: filter,
       group: [fn('DATE', col('timestamp')) as any],
       order: [[fn('DATE', col('timestamp')), 'ASC']],
       raw: true
@@ -261,15 +312,17 @@ router.get('/daily-stats', async (req: Request, res: Response) => {
 router.get('/daily-stats-all', async (req: Request, res: Response) => {
   try {
     const { profileId } = req.query as any
-    if (!profileId) return res.status(400).json({ success: false, message: 'Profile ID is required' })
-    const pid = toInt(profileId, 0)
+    
+    // Jeśli profileId nie jest podane lub === 'all', agreguj wszystkie profile
+    const filter = profileId && profileId !== 'all' ? { profileId: toInt(profileId, 0) } : {}
+    
     const rows = await PodcastPlay.findAll({
       attributes: [
         [fn('DATE', col('timestamp')), 'date'],
         [fn('COUNT', col('id')), 'plays'],
         [fn('SUM', col('msPlayed')), 'totalMs']
       ],
-      where: { profileId: pid },
+      where: filter,
       group: [fn('DATE', col('timestamp')) as any],
       order: [[fn('DATE', col('timestamp')), 'ASC']],
       raw: true
@@ -316,15 +369,17 @@ router.get('/platform-stats', async (req: Request, res: Response) => {
 router.get('/time-of-day', async (req: Request, res: Response) => {
   try {
     const { profileId } = req.query as any
-    if (!profileId) return res.status(400).json({ success: false, message: 'Profile ID is required' })
-    const pid = toInt(profileId, 0)
+    
+    // Jeśli profileId nie jest podane lub === 'all', agreguj wszystkie profile
+    const filter = profileId && profileId !== 'all' ? { profileId: toInt(profileId, 0) } : {}
+    
     const rows = await PodcastPlay.findAll({
       attributes: [
         [literal('EXTRACT(HOUR FROM "timestamp")::int'), 'hour'],
         [fn('COUNT', col('id')), 'plays'],
         [fn('SUM', col('msPlayed')), 'totalMs']
       ],
-      where: { profileId: pid },
+      where: filter,
       group: [literal('EXTRACT(HOUR FROM "timestamp")::int') as any],
       raw: true
     }) as any[]
@@ -345,15 +400,17 @@ router.get('/time-of-day', async (req: Request, res: Response) => {
 router.get('/day-of-week', async (req: Request, res: Response) => {
   try {
     const { profileId } = req.query as any
-    if (!profileId) return res.status(400).json({ success: false, message: 'Profile ID is required' })
-    const pid = toInt(profileId, 0)
+    
+    // Jeśli profileId nie jest podane lub === 'all', agreguj wszystkie profile
+    const filter = profileId && profileId !== 'all' ? { profileId: toInt(profileId, 0) } : {}
+    
     const rows = await PodcastPlay.findAll({
       attributes: [
         [literal('EXTRACT(DOW FROM "timestamp")::int'), 'dow'],
         [fn('COUNT', col('id')), 'plays'],
         [fn('SUM', col('msPlayed')), 'totalMs']
       ],
-      where: { profileId: pid },
+      where: filter,
       group: [literal('EXTRACT(DOW FROM "timestamp")::int') as any],
       raw: true
     }) as any[]
