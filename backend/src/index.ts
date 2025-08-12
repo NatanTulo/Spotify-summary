@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit'
 import dotenv from 'dotenv'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { networkInterfaces } from 'os'
 import 'reflect-metadata'
 import { connectDB } from './config/database.js'
 import tracksRouter from './routes/music/tracks.js'
@@ -17,6 +18,41 @@ import podcastsRouter from './routes/podcasts/podcasts.js'
 import audiobooksRouter from './routes/audiobooks/audiobooks.js'
 
 dotenv.config()
+
+// Funkcja do wykrywania lokalnych adresów IP
+function getLocalNetworkAddresses() {
+    const addresses = []
+    const nets = networkInterfaces()
+    
+    for (const name of Object.keys(nets)) {
+        const interfaces = nets[name]
+        if (!interfaces) continue
+        
+        for (const net of interfaces) {
+            // Pomiń interfejsy niebędące IPv4 i wewnętrzne (loopback)
+            if (net.family === 'IPv4' && !net.internal) {
+                addresses.push(net.address)
+            }
+        }
+    }
+    
+    return addresses
+}
+
+// Tworzenie listy dozwolonych origins
+function createAllowedOrigins() {
+    const localAddresses = getLocalNetworkAddresses()
+    const origins = [
+        'http://localhost:3000'
+    ]
+    
+    // Dodaj wszystkie lokalne adresy IP z portem 3000
+    localAddresses.forEach(address => {
+        origins.push(`http://${address}:3000`)
+    })
+    
+    return origins
+}
 
 const app = express()
 const PORT = process.env.PORT || 5000
@@ -40,7 +76,7 @@ app.use(helmet({
 }))
 
 app.use(cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    origin: createAllowedOrigins(),
     credentials: true
 }))
 
@@ -132,10 +168,16 @@ async function startServer() {
         console.log('✅ Routes configured')
 
         // Start listening
-        app.listen(PORT, () => {
-            console.log(`🚀 Server running on port ${PORT}`)
-            console.log(`📊 API available at http://localhost:${PORT}/api`)
-            console.log(`🔍 Health check: http://localhost:${PORT}/api/health`)
+        const port = parseInt(PORT.toString(), 10)
+        const allowedOrigins = createAllowedOrigins()
+        
+        app.listen(port, '0.0.0.0', () => {
+            console.log(`🚀 Server running on port ${port}`)
+            console.log(`📊 API available at http://localhost:${port}/api`)
+            console.log(`🌐 Network access: http://0.0.0.0:${port}/api`)
+            console.log(`🔍 Health check: http://localhost:${port}/api/health`)
+            console.log(`🔒 Allowed CORS origins:`)
+            allowedOrigins.forEach(origin => console.log(`   - ${origin}`))
         })
     } catch (error) {
         console.error('❌ Failed to start server:', error)
