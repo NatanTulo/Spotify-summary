@@ -4,7 +4,7 @@ import { Show, Episode, PodcastPlay, Profile } from '../../models/index.js'
 
 // NOWY CZYSTY PLIK – poprzednia uszkodzona zawartość została nadpisana.
 
-const router = Router()
+const router: Router = Router()
 
 // Deterministyczne sortowanie (stabilne) dla zagregowanych rekordów
 function sortAggregated<T extends { id: number; name?: string | null; playCount?: number; totalTime?: number; lastPlayed?: string | null }>(rows: T[], sortBy: string, order: string) {

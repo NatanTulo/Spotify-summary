@@ -1,8 +1,8 @@
-import express from 'express'
+import express, { Router } from 'express'
 import { sequelize } from '../../config/database.js'
 import { QueryTypes } from 'sequelize'
 
-const router = express.Router()
+const router: Router = express.Router()
 
 // GET /api/artists/top - Top artyści według liczby odtworzeń
 router.get('/top', async (req, res) => {

@@ -1,4 +1,4 @@
-import express from 'express'
+import express, { Router } from 'express'
 import { Op, fn, col, QueryTypes } from 'sequelize'
 import { sequelize } from '../config/database.js'
 import { Play } from '../models/music/Play.js'
@@ -6,7 +6,7 @@ import { PodcastPlay } from '../models/podcasts/PodcastPlay.js'
 import { literal } from 'sequelize'
 
 console.log('Stats router loaded')
-const router = express.Router()
+const router: Router = express.Router()
 
 // Test route
 router.get('/test', (_req, res) => {

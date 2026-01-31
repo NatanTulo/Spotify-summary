@@ -1,4 +1,4 @@
-import express from 'express'
+import express, { Router } from 'express'
 import { fn, col, literal, QueryTypes } from 'sequelize'
 import { sequelize } from '../../config/database.js'
 import { Track } from '../../models/music/Track.js'
@@ -7,7 +7,7 @@ import { Artist } from '../../models/music/Artist.js'
 import { Play } from '../../models/music/Play.js'
 import { Profile } from '../../models/common/Profile.js'
 
-const router = express.Router()
+const router: Router = express.Router()
 
 // GET /api/tracks - Lista utworów z filtrowaniem i paginacją
 router.get('/', async (req, res) => {

@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { Audiobook, AudiobookPlay, Profile } from '../../models/index.js'
 import { Op } from 'sequelize'
 
-const router = Router()
+const router: Router = Router()
 
 // Get all audiobooks for a profile
 router.get('/:profileId', async (req, res) => {
