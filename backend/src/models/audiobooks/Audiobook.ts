@@ -24,7 +24,8 @@ export class Audiobook extends Model {
 
     @Column({
         type: DataType.STRING,
-        allowNull: true
+        allowNull: true,
+        unique: true
     })
     spotifyUri?: string
 

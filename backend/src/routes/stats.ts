@@ -409,4 +409,45 @@ router.get('/podcasts', async (req, res) => {
     }
 })
 
+// GET /api/stats/metadata - Unikalne kraje i platformy dla filtrów
+router.get('/metadata', async (req, res) => {
+    try {
+        const { profileId } = req.query
+        const filter = profileId && profileId !== 'all' ? { profileId } : {}
+
+        const [countries, platforms] = await Promise.all([
+            Play.findAll({
+                where: {
+                    ...filter,
+                    country: { [Op.ne]: null }
+                },
+                attributes: [[fn('DISTINCT', col('country')), 'country']],
+                raw: true
+            }).then(rows => rows.map((r: any) => r.country).sort()),
+            Play.findAll({
+                where: {
+                    ...filter,
+                    platform: { [Op.ne]: null }
+                },
+                attributes: [[fn('DISTINCT', col('platform')), 'platform']],
+                raw: true
+            }).then(rows => rows.map((r: any) => r.platform).sort())
+        ])
+
+        res.json({
+            success: true,
+            data: {
+                countries,
+                platforms
+            }
+        })
+    } catch (error) {
+        console.error('Error fetching filter metadata:', error)
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch filter metadata'
+        })
+    }
+})
+
 export default router

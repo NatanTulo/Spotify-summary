@@ -47,6 +47,7 @@ export class StatsAggregator {
     private async aggregateDailyStats(): Promise<void> {
         console.log('📅 Aggregating daily stats...')
 
+        // Podstawowe statystyki dzienne
         const dailyData = await Play.findAll({
             where: { profileId: this.profileId },
             attributes: [
@@ -60,14 +61,87 @@ export class StatsAggregator {
             raw: true
         })
 
+        // Pobieramy unikalnych artystów per dzień
+        const artistCounts = await sequelize.query(`
+            SELECT 
+                DATE(p.timestamp) as date,
+                COUNT(DISTINCT ar.id) as unique_artists
+            FROM plays p
+            JOIN tracks t ON p."trackId" = t.id
+            JOIN albums al ON t."albumId" = al.id
+            JOIN artists ar ON al."artistId" = ar.id
+            WHERE p."profileId" = :profileId
+            GROUP BY DATE(p.timestamp)
+        `, {
+            replacements: { profileId: this.profileId },
+            type: QueryTypes.SELECT
+        }) as any[]
+
+        const artistCountsMap = new Map(artistCounts.map(r => [r.date, parseInt(r.unique_artists)]))
+
+        // Pobieramy Top Artist per dzień
+        const topArtists = await sequelize.query(`
+            SELECT DISTINCT ON (date)
+                date,
+                artist_name,
+                plays
+            FROM (
+                SELECT 
+                    DATE(p.timestamp) as date,
+                    ar.name as artist_name,
+                    COUNT(*) as plays
+                FROM plays p
+                JOIN tracks t ON p."trackId" = t.id
+                JOIN albums al ON t."albumId" = al.id
+                JOIN artists ar ON al."artistId" = ar.id
+                WHERE p."profileId" = :profileId
+                GROUP BY date, ar.id, ar.name
+            ) sub
+            ORDER BY date, plays DESC
+        `, {
+            replacements: { profileId: this.profileId },
+            type: QueryTypes.SELECT
+        }) as any[]
+
+        const topArtistsMap = new Map(topArtists.map(r => [r.date, { name: r.artist_name, plays: parseInt(r.plays) }]))
+
+        // Pobieramy Top Track per dzień
+        const topTracks = await sequelize.query(`
+            SELECT DISTINCT ON (date)
+                date,
+                track_name,
+                artist_name,
+                plays
+            FROM (
+                SELECT 
+                    DATE(p.timestamp) as date,
+                    t.name as track_name,
+                    ar.name as artist_name,
+                    COUNT(*) as plays
+                FROM plays p
+                JOIN tracks t ON p."trackId" = t.id
+                JOIN albums al ON t."albumId" = al.id
+                JOIN artists ar ON al."artistId" = ar.id
+                WHERE p."profileId" = :profileId
+                GROUP BY date, t.id, t.name, ar.name
+            ) sub
+            ORDER BY date, plays DESC
+        `, {
+            replacements: { profileId: this.profileId },
+            type: QueryTypes.SELECT
+        }) as any[]
+
+        const topTracksMap = new Map(topTracks.map(r => [r.date, { name: r.track_name, artist: r.artist_name, plays: parseInt(r.plays) }]))
+
         const dailyStats = (dailyData as any[]).map(day => ({
             profileId: this.profileId,
             date: day.date,
             totalPlays: parseInt(day.totalPlays),
             totalMinutes: Math.round(parseInt(day.totalMsPlayed) / 60000),
             uniqueTracks: parseInt(day.uniqueTracks),
-            topTrack: 'Unknown', // TODO: Implement top track calculation
-            topArtist: 'Unknown', // TODO: Implement top artist calculation
+            uniqueArtists: artistCountsMap.get(day.date) || 0,
+            topTrack: topTracksMap.get(day.date) || null,
+            topArtist: topArtistsMap.get(day.date) || null,
             createdAt: new Date(),
             updatedAt: new Date()
         }))
@@ -85,6 +159,7 @@ export class StatsAggregator {
     private async aggregateYearlyStats(): Promise<void> {
         console.log('📅 Aggregating yearly stats...')
 
+        // Podstawowe statystyki roczne
         const yearlyData = await Play.findAll({
             where: { profileId: this.profileId },
             attributes: [
@@ -98,16 +173,110 @@ export class StatsAggregator {
             raw: true
         })
 
-        const yearlyStats = (yearlyData as any[]).map(year => ({
-            profileId: this.profileId,
-            year: parseInt(year.year),
-            totalPlays: parseInt(year.totalPlays),
-            totalMinutes: Math.round(parseInt(year.totalMsPlayed) / 60000),
-            uniqueTracks: parseInt(year.uniqueTracks),
-            topGenre: 'Unknown', // TODO: Implement genre calculation
-            createdAt: new Date(),
-            updatedAt: new Date()
-        }))
+        // Pobieramy unikalnych artystów i albumy per rok
+        const yearlyCounts = await sequelize.query(`
+            SELECT 
+                EXTRACT(YEAR FROM p.timestamp)::int as year,
+                COUNT(DISTINCT ar.id) as unique_artists,
+                COUNT(DISTINCT al.id) as unique_albums
+            FROM plays p
+            JOIN tracks t ON p."trackId" = t.id
+            JOIN albums al ON t."albumId" = al.id
+            JOIN artists ar ON al."artistId" = ar.id
+            WHERE p."profileId" = :profileId
+            GROUP BY EXTRACT(YEAR FROM p.timestamp)::int
+        `, {
+            replacements: { profileId: this.profileId },
+            type: QueryTypes.SELECT
+        }) as any[]
+
+        const yearlyCountsMap = new Map(yearlyCounts.map(r => [r.year, r]))
+
+        // Pobieramy Top Artist per rok
+        const topArtists = await sequelize.query(`
+            SELECT DISTINCT ON (year)
+                year,
+                artist_name,
+                plays,
+                minutes
+            FROM (
+                SELECT 
+                    EXTRACT(YEAR FROM p.timestamp)::int as year,
+                    ar.name as artist_name,
+                    COUNT(*) as plays,
+                    SUM(p."msPlayed") as minutes
+                FROM plays p
+                JOIN tracks t ON p."trackId" = t.id
+                JOIN albums al ON t."albumId" = al.id
+                JOIN artists ar ON al."artistId" = ar.id
+                WHERE p."profileId" = :profileId
+                GROUP BY year, ar.id, ar.name
+            ) sub
+            ORDER BY year, plays DESC
+        `, {
+            replacements: { profileId: this.profileId },
+            type: QueryTypes.SELECT
+        }) as any[]
+
+        const topArtistsMap = new Map(topArtists.map(r => [r.year, { 
+            name: r.artist_name, 
+            plays: parseInt(r.plays),
+            minutes: Math.round(parseInt(r.minutes || r.ms) / 60000)
+        }]))
+
+        // Pobieramy Top Track per rok
+        const topTracks = await sequelize.query(`
+            SELECT DISTINCT ON (year)
+                year,
+                track_name,
+                artist_name,
+                plays,
+                minutes
+            FROM (
+                SELECT 
+                    EXTRACT(YEAR FROM p.timestamp)::int as year,
+                    t.name as track_name,
+                    ar.name as artist_name,
+                    COUNT(*) as plays,
+                    SUM(p."msPlayed") as minutes
+                FROM plays p
+                JOIN tracks t ON p."trackId" = t.id
+                JOIN albums al ON t."albumId" = al.id
+                JOIN artists ar ON al."artistId" = ar.id
+                WHERE p."profileId" = :profileId
+                GROUP BY year, t.id, t.name, ar.name
+            ) sub
+            ORDER BY year, plays DESC
+        `, {
+            replacements: { profileId: this.profileId },
+            type: QueryTypes.SELECT
+        }) as any[]
+
+        const topTracksMap = new Map(topTracks.map(r => [r.year, { 
+            name: r.track_name, 
+            artist: r.artist_name, 
+            plays: parseInt(r.plays),
+            minutes: Math.round(parseInt(r.minutes || r.ms) / 60000)
+        }]))
+
+        const yearlyStats = (yearlyData as any[]).map(yearData => {
+            const year = parseInt(yearData.year)
+            const counts = yearlyCountsMap.get(year) || { unique_artists: 0, unique_albums: 0 }
+            
+            return {
+                profileId: this.profileId,
+                year,
+                totalPlays: parseInt(yearData.totalPlays),
+                totalMinutes: Math.round(parseInt(yearData.totalMsPlayed) / 60000),
+                uniqueTracks: parseInt(yearData.uniqueTracks),
+                uniqueArtists: parseInt(counts.unique_artists),
+                uniqueAlbums: parseInt(counts.unique_albums),
+                topArtist: topArtistsMap.get(year) || null,
+                topTrack: topTracksMap.get(year) || null,
+                createdAt: new Date(),
+                updatedAt: new Date()
+            }
+        })
 
         if (yearlyStats.length > 0) {
             await YearlyStats.bulkCreate(yearlyStats)

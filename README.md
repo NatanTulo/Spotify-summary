@@ -31,7 +31,8 @@ Nowoczesna aplikacja webowa do analizy danych ze Spotify GDPR Export z pełnym s
 - **Charts:** Recharts 3.0 z interaktywnymi wykresami i zoom
 - **State Management:** React Context + TanStack Query 5.81 + React Router DOM 7.6
 - **Security:** Helmet 8.1, CORS 2.8, Express Rate Limit 7.5, Compression 1.8
-- **Dev Tools:** tsx 4.20, ESLint 9.30, npm-run-all 4.1, TypeScript 5.8
+- **Testing:** Vitest 4.0 (Frontend JSDOM, Backend Node), React Testing Library
+- **Dev Tools:** tsx 4.20, ESLint 9.30, pnpm, TypeScript 5.8
 - **Styling:** Tailwind CSS 3.4 + PostCSS 8.5 + Autoprefixer 10.4 + CVA 0.7
 - **Date Handling:** date-fns 4.1 z pełną lokalizacją PL/EN
 - **HTTP Client:** Axios 1.10 z interceptorami i error handling
@@ -104,17 +105,16 @@ git clone <repo-url>
 cd spotify-analytics
 
 # Instalacja wszystkich zależności
-npm run install:all
+pnpm install
 
 # Test połączenia z bazą
-npm run dev:server
+pnpm run dev:server
 # Powinno pokazać: "Database connected successfully"
 ```
 
 ### 5. Przygotowanie danych Spotify
 
 1. **Pobierz dane GDPR ze Spotify:**
-
    - Przejdź do https://www.spotify.com/account/privacy/
    - Kliknij "Request data" → "Extended streaming history"
    - Spotify wyśle link do pobrania (może zająć do 30 dni)
@@ -138,15 +138,15 @@ data/
 **Tryb rozwoju (z hot reload):**
 
 ```bash
-npm run dev
+pnpm run dev
 # Otwórz: http://localhost:3000
 ```
 
 **Tryb produkcyjny:**
 
 ```bash
-npm run build
-npm start
+pnpm run build
+pnpm start
 # Otwórz: http://localhost:5000
 ```
 
@@ -161,8 +161,8 @@ Aplikacja w trybie produkcyjnym będzie dostępna pod:
 
 ## 📁 Import danych
 
-1. **Tryb dev:** Uruchom `npm run dev` → otwórz http://localhost:3000
-2. **Tryb prod:** Uruchom `npm start` → otwórz http://localhost:5000
+1. **Tryb dev:** Uruchom `pnpm run dev` → otwórz http://localhost:3000
+2. **Tryb prod:** Uruchom `pnpm start` → otwórz http://localhost:5000
 3. Kliknij **"Importuj dane"** w górnym menu
 4. Aplikacja automatycznie wykryje profile w folderze `data/`
 5. Wybierz profile i kliknij **"Importuj"**
@@ -172,35 +172,39 @@ Aplikacja w trybie produkcyjnym będzie dostępna pod:
 
 ```bash
 # Rozwój
-npm run dev              # Frontend (port 3000) + backend (port 5000) - tryb dev z hot reload
-npm run dev:client       # Tylko frontend (port 3000)
-npm run dev:server       # Tylko backend (port 5000)
+pnpm run dev              # Frontend (port 3000) + backend (port 5000) - tryb dev z hot reload
+pnpm run dev:client       # Tylko frontend (port 3000)
+pnpm run dev:server       # Tylko backend (port 5000)
 
 # Instalacja
-npm run install:all      # Instaluj wszystkie zależności
+pnpm install              # Instaluj wszystkie zależności
 
 # Import danych (alternatywnie przez CLI)
-npm run import-data
+pnpm run import-data
 
 # Budowanie i uruchomienie (produkcja)
-npm run build           # Buduje frontend + backend
-npm start               # Uruchamia aplikację produkcyjną (port 5000 - frontend + API)
+pnpm run build           # Buduje frontend + backend
+pnpm start               # Uruchamia aplikację produkcyjną (port 5000 - frontend + API)
+
+# Testy
+pnpm test                # Uruchom wszystkie testy (Vitest workspace)
+pnpm run test:ui         # Uruchom testy w trybie UI (Vitest)
 
 # Dodatkowe komendy
-npm run setup           # Instalacja wszystkich zależności + import danych
-npm run dev:client      # Tylko frontend development server (port 3000)
-npm run dev:server      # Tylko backend development server (port 5000)
-npm run build:client    # Buduje tylko frontend
-npm run build:server    # Buduje tylko backend
-npm run lint            # ESLint dla frontend
-npm run preview         # Preview frontend po build
+pnpm run setup           # Instalacja wszystkich zależności + import danych
+pnpm run dev:client      # Tylko frontend development server (port 3000)
+pnpm run dev:server      # Tylko backend development server (port 5000)
+pnpm run build:client    # Buduje tylko frontend
+pnpm run build:server    # Buduje tylko backend
+pnpm run lint            # ESLint dla frontend
+pnpm run preview         # Preview frontend po build
 ```
 
 ## 🏗️ Struktura projektu
 
 ```
 Spotify-summary/
-├── package.json           # Root scripts + npm-run-all
+├── package.json           # Root scripts + npm-run-all (pnpm compatible)
 ├── README.md             # Dokumentacja projektu
 ├── .github/              # GitHub configuration & Copilot instructions
 ├── .vscode/              # VS Code workspace configuration
@@ -250,6 +254,7 @@ Spotify-summary/
 - `GET /api/stats/countries` - Statystyki według krajów
 - `GET /api/stats/time-of-day` - Wzorce słuchania według godzin
 - `GET /api/stats/day-of-week` - Wzorce słuchania według dni tygodnia
+- `GET /api/stats/metadata` - Unikalne kraje i platformy (używane w filtrach)
 - `GET /api/stats/video` - Statystyki wideo (YouTube itp.)
 - `GET /api/stats/podcasts` - Ogólne statystyki podcastów
 
@@ -337,11 +342,11 @@ taskkill /F /PID (netstat -ano | findstr :3000)
 cd backend && npx tsc --noEmit
 
 # Test kompilacji frontend
-cd frontend && npm run build
+cd frontend && pnpm run build
 
 # Jeśli błędy - wyczyść cache
-rm -rf node_modules package-lock.json
-npm run install:all
+rm -rf node_modules pnpm-lock.yaml
+pnpm install
 ```
 
 ### Problemy z profilami
@@ -353,11 +358,11 @@ npm run install:all
 ### Czyszczenie i reinstalacja
 
 ```bash
-# Wyczyść cache NPM
-rm -rf node_modules package-lock.json
-rm -rf frontend/node_modules frontend/package-lock.json
-rm -rf backend/node_modules backend/package-lock.json
-npm run install:all
+# Wyczyść cache pnpm
+rm -rf node_modules pnpm-lock.yaml
+rm -rf frontend/node_modules frontend/pnpm-lock.yaml
+rm -rf backend/node_modules backend/pnpm-lock.yaml
+pnpm install
 
 # Reset bazy danych (jeśli potrzebne)
 # W aplikacji: "Zarządzaj danymi" → "Wyczyść wszystkie dane"

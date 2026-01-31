@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect } from 'react'
 import { AdvancedFilters } from '@/components/filters/AdvancedFilters'
 import { useAlbumsData } from '../hooks/useAlbumsData'
+import { useFilterMetadata } from '@/hooks/useFilterMetadata'
 
 const AlbumsList = lazy(() => import('@/components/AlbumsList').then(module => ({ default: module.AlbumsList })))
 
@@ -27,6 +28,8 @@ export function AlbumsTab({ selectedProfile }: AlbumsTabProps) {
         handleSort
     } = useAlbumsData(selectedProfile)
 
+    const { metadata } = useFilterMetadata(selectedProfile)
+
     useEffect(() => {
         fetchAlbums()
     }, [fetchAlbums])
@@ -52,8 +55,8 @@ export function AlbumsTab({ selectedProfile }: AlbumsTabProps) {
                     })
                     fetchAlbums(1)
                 }}
-                countries={[]} // TODO
-                platforms={[]} // TODO
+                countries={metadata.countries}
+                platforms={metadata.platforms}
             />
             <Suspense fallback={<ChartLoader />}>
                 <AlbumsList

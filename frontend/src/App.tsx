@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
 import Layout from './components/Layout'
 import { LanguageProvider } from './context/LanguageContext'
+import { ErrorBoundary } from './components/common/ErrorBoundary'
 
 // Lazy load głównych stron dla code-splitting
 const Dashboard = lazy(() => import('./pages/Dashboard'))
@@ -21,20 +22,22 @@ const LoadingSpinner = () => (
 
 function App() {
     return (
-        <LanguageProvider>
-            <Layout>
-                <Suspense fallback={<LoadingSpinner />}>
-                    <Routes>
-                        <Route path="/" element={<Dashboard />} />
-                        <Route path="/dashboard" element={<Dashboard />} />
-                        <Route path="/music" element={<MusicAnalytics />} />
-                        <Route path="/analytics" element={<MusicAnalytics />} />
-                        <Route path="/podcasts" element={<Podcasts />} />
-                        <Route path="/audiobooks" element={<Audiobooks />} />
-                    </Routes>
-                </Suspense>
-            </Layout>
-        </LanguageProvider>
+        <ErrorBoundary>
+            <LanguageProvider>
+                <Layout>
+                    <Suspense fallback={<LoadingSpinner />}>
+                        <Routes>
+                            <Route path="/" element={<Dashboard />} />
+                            <Route path="/dashboard" element={<Dashboard />} />
+                            <Route path="/music" element={<MusicAnalytics />} />
+                            <Route path="/analytics" element={<MusicAnalytics />} />
+                            <Route path="/podcasts" element={<Podcasts />} />
+                            <Route path="/audiobooks" element={<Audiobooks />} />
+                        </Routes>
+                    </Suspense>
+                </Layout>
+            </LanguageProvider>
+        </ErrorBoundary>
     )
 }
 
