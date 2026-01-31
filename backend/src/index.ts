@@ -122,7 +122,7 @@ function setupRoutes() {
     app.use(express.static(frontendDistPath))
     
     // SPA fallback - serve index.html for all non-API routes
-    app.get('*', (req, res) => {
+    app.get('{*splat}', (req, res) => {
         // Skip API routes
         if (req.path.startsWith('/api/')) {
             return res.status(404).json({

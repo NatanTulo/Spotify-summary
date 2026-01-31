@@ -55,7 +55,7 @@ export const getAllProgress = async (_req: Request, res: Response) => {
 export const getProgress = async (req: Request, res: Response) => {
     try {
         const { profileName } = req.params
-        const progress = ImportService.getProgress(profileName)
+        const progress = ImportService.getProgress(profileName as string)
         res.json({
             success: true,
             data: progress
@@ -73,7 +73,7 @@ export const getProgress = async (req: Request, res: Response) => {
 export const startImport = async (req: Request, res: Response) => {
     try {
         const { profileName } = req.params
-        const result = await ImportService.startImport(profileName)
+        const result = await ImportService.startImport(profileName as string)
         
         if (result.alreadyRunning) {
             return res.json({

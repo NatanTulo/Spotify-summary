@@ -439,8 +439,8 @@ router.get('/:profileId/episode/:episodeId/plays', async (req: Request, res: Res
 
         const plays = await PodcastPlay.findAndCountAll({
             where: {
-                profileId: parseInt(profileId),
-                episodeId: parseInt(episodeId)
+                profileId: parseInt(profileId as string),
+                episodeId: parseInt(episodeId as string)
             },
             include: [{
                 model: Episode,

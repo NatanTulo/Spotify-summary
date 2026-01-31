@@ -56,7 +56,7 @@ export default defineConfig({
                 manualChunks: {
                     // Vendor libraries - największe zależności
                     'vendor-react': ['react', 'react-dom'],
-                    'vendor-ui': ['@radix-ui/react-dialog', '@radix-ui/react-progress', '@radix-ui/react-select', '@radix-ui/react-tabs'],
+                    'vendor-ui': ['@radix-ui/react-progress', '@radix-ui/react-tabs', '@radix-ui/react-slot'],
                     'vendor-charts': ['recharts'],
                     'vendor-utils': ['clsx', 'class-variance-authority', 'tailwind-merge'],
                     

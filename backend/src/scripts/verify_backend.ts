@@ -1,4 +1,4 @@
-import { connectDB, sequelize } from '../config/database.js';
+import { connectDB } from '../config/database.js';
 import { Profile } from '../models/common/Profile.js';
 import { StatsAggregator } from '../utils/StatsAggregator.js';
 import { DailyStats } from '../models/stats/DailyStats.js';

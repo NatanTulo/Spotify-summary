@@ -21,7 +21,7 @@ export const getProfiles = async (_req: Request, res: Response) => {
 export const updateStats = async (req: Request, res: Response) => {
     try {
         const { profileName } = req.params
-        const result = await ProfileService.updateProfileStats(profileName)
+        const result = await ProfileService.updateProfileStats(profileName as string)
         res.json({
             success: true,
             data: result
@@ -85,7 +85,7 @@ export const clearAll = async (_req: Request, res: Response) => {
 export const getDebugData = async (req: Request, res: Response) => {
     try {
         const { profileId } = req.params
-        const data = await ProfileService.getDebugData(profileId)
+        const data = await ProfileService.getDebugData(profileId as string)
         res.json({
             success: true,
             data
