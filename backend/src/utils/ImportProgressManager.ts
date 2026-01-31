@@ -102,6 +102,8 @@ class ImportProgressManager {
         if (progress) {
             progress.completedFiles++
             progress.totalRecordsProcessed += progress.totalRecordsInFile
+            progress.currentRecord = 0
+            progress.totalRecordsInFile = 0
             progress.lastUpdate = new Date()
         }
     }
