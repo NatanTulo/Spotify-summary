@@ -291,7 +291,7 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
                 </CardHeader>
                 <CardContent>
                     {timelineData.length > 0 ? (
-                        <ResponsiveContainer width="100%" height={300}>
+                        <ResponsiveContainer width="100%" height={300} minWidth={0}>
                             <BarChart data={timelineData}>
                                 <CartesianGrid
                                     strokeDasharray="3 3"

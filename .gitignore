@@ -60,3 +60,6 @@ temp/
 # Vite build files (keep only .ts source)
 vite.config.js
 vite.config.d.ts
+
+.notatki
+.agent

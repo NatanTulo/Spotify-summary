@@ -10,9 +10,10 @@ import { useLanguage } from '../../context/LanguageContext'
 
 // Lazy load dużych komponentów
 const TracksList = lazy(() => import('@/components/TracksList').then(module => ({ default: module.TracksList })))
-const PlaysByCountryChart = lazy(() => import('@/components/charts/StatsCharts').then(module => ({ default: module.PlaysByCountryChart })))
-const YearlyStatsChart = lazy(() => import('@/components/charts/StatsCharts').then(module => ({ default: module.YearlyStatsChart })))
-const ListeningTimelineChart = lazy(() => import('@/components/charts/StatsCharts').then(module => ({ default: module.ListeningTimelineChart })))
+const PlaysByCountryChart = lazy(() => import('@/components/charts/PlaysByCountryChart').then(module => ({ default: module.PlaysByCountryChart })))
+const YearlyStatsChart = lazy(() => import('@/components/charts/YearlyStatsChart').then(module => ({ default: module.YearlyStatsChart })))
+const ListeningTimelineChart = lazy(() => import('@/components/charts/ListeningTimelineChart').then(module => ({ default: module.ListeningTimelineChart })))
+
 
 // Loading component dla wykresów
 const ChartLoader = () => (
@@ -392,7 +393,7 @@ export default function Analytics() {
                             </CardHeader>
                             <CardContent>
                                 <div className="h-64">
-                                    <ResponsiveContainer width="100%" height="100%">
+                                    <ResponsiveContainer width="100%" height={256} minWidth={0}>
                                         <BarChart data={timeOfDayStats.map(d => ({
                                             hour: d.hour,
                                             plays: d.plays,
@@ -402,7 +403,7 @@ export default function Analytics() {
                                             <XAxis dataKey="hour" tickFormatter={(v)=> `${v}:00`} />
                                             <YAxis yAxisId="plays" orientation="left" />
                                             <YAxis yAxisId="minutes" orientation="right" />
-                                            <Tooltip formatter={(value:any, name:string)=> [value, name==='plays' ? (t('plays')||'Plays') : (t('minutes')||'Minutes')]} />
+                                            <Tooltip formatter={((value: number, name: string) => [value, name === 'plays' ? (t('plays') || 'Plays') : (t('minutes') || 'Minutes')]) as any} />
                                             <Legend />
                                             <Bar yAxisId="plays" dataKey="plays" name={t('totalPlays')||'Plays'} fill="#8884d8" />
                                             <Bar yAxisId="minutes" dataKey="minutes" name={t('totalMinutes')||'Minutes'} fill="#82ca9d" />
@@ -417,7 +418,7 @@ export default function Analytics() {
                             </CardHeader>
                             <CardContent>
                                 <div className="h-64">
-                                    <ResponsiveContainer width="100%" height="100%">
+                                    <ResponsiveContainer width="100%" height={256} minWidth={0}>
                                         <BarChart data={dayOfWeekStats.map(d => ({
                                             dow: d.dow,
                                             label: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.dow],
@@ -428,7 +429,7 @@ export default function Analytics() {
                                             <XAxis dataKey="label" />
                                             <YAxis yAxisId="plays" orientation="left" />
                                             <YAxis yAxisId="minutes" orientation="right" />
-                                            <Tooltip formatter={(value:any, name:string)=> [value, name==='plays' ? (t('plays')||'Plays') : (t('minutes')||'Minutes')]} />
+                                            <Tooltip formatter={((value: number, name: string) => [value, name === 'plays' ? (t('plays') || 'Plays') : (t('minutes') || 'Minutes')]) as any} />
                                             <Legend />
                                             <Bar yAxisId="plays" dataKey="plays" name={t('totalPlays')||'Plays'} fill="#8884d8" />
                                             <Bar yAxisId="minutes" dataKey="minutes" name={t('totalMinutes')||'Minutes'} fill="#82ca9d" />

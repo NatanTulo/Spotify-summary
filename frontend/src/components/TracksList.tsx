@@ -682,7 +682,8 @@ export function TracksList({
                                 <div className="h-64">
                                   <ResponsiveContainer
                                     width="100%"
-                                    height="100%"
+                                    height={256}
+                                    minWidth={0}
                                   >
                                     <BarChart
                                       data={getFilteredTimelineData(
@@ -726,7 +727,7 @@ export function TracksList({
                                             value
                                           )}`
                                         }
-                                        formatter={(
+                                        formatter={(((
                                           value: any,
                                           name: string
                                         ) => [
@@ -734,7 +735,7 @@ export function TracksList({
                                           name === "plays"
                                             ? t("plays")
                                             : t("minutes"),
-                                        ]}
+                                        ]) as any)}
                                         contentStyle={{
                                           backgroundColor: "hsl(var(--card))",
                                           border:

@@ -61,8 +61,13 @@ export default defineConfig({
                     'vendor-utils': ['clsx', 'class-variance-authority', 'tailwind-merge'],
                     
                     // Komponenty aplikacji - największe strony
-                    'components-charts': ['./src/components/charts/StatsCharts.tsx'],
-                    'components-tracks': ['./src/components/TracksList.tsx', './src/components/TracksListNew.tsx'],
+                    'components-charts': [
+                        './src/components/charts/PlaysByCountryChart.tsx',
+                        './src/components/charts/YearlyStatsChart.tsx',
+                        './src/components/charts/TopArtistsChart.tsx',
+                        './src/components/charts/ListeningTimelineChart.tsx'
+                    ],
+                    'components-tracks': ['./src/components/TracksList.tsx'],
                     'pages': [
                         './src/pages/Dashboard.tsx',
                         './src/pages/music/Analytics.tsx',

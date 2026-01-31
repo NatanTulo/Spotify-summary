@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs'
 import PodcastsShowsList from '../../components/podcasts/PodcastsShowsList'
 import { ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Legend } from 'recharts'
-import { ListeningTimelineChart } from '../../components/charts/StatsCharts'
+import { ListeningTimelineChart } from '../../components/charts/ListeningTimelineChart'
 
 interface ApiResponse<T> {
     success: boolean
@@ -389,20 +389,20 @@ const Podcasts: React.FC = () => {
                         </CardHeader>
                         <CardContent>
                             <div className="h-64">
-                                <ResponsiveContainer width="100%" height="100%">
+                                <ResponsiveContainer width="100%" height={256} minWidth={0}>
                                     <BarChart data={timeOfDayStats}>
                                         <CartesianGrid strokeDasharray="3 3" />
                                         <XAxis dataKey="hour" tickFormatter={(v) => `${v}:00`} />
                                         <YAxis yAxisId="plays" orientation="left" tickFormatter={(v)=> v} label={{ value: t('plays') || 'Plays', angle: -90, position: 'insideLeft' }} />
                                         <YAxis yAxisId="minutes" orientation="right" tickFormatter={(v)=> Number(v).toFixed(0)} label={{ value: t('minutes') || 'Minutes', angle: 90, position: 'insideRight' }} />
-                                        <Tooltip formatter={(value: any, _name: string, item: any) => {
+                                        <Tooltip formatter={((value: any, _name: string, item: any) => {
                                             const isPlays = item?.dataKey === 'plays'
                                             const val = isPlays ? value : Number(value).toFixed(1)
                                             return [
                                                 `${val} ${isPlays ? (t('plays') || 'plays') : (t('minutes') || 'minutes')}`,
                                                 isPlays ? (t('totalPlays') || 'Plays') : (t('totalMinutes') || 'Minutes')
                                             ]
-                                        }} />
+                                        }) as any} />
                                         <Legend />
                                         <Bar yAxisId="plays" name={t('totalPlays') || 'Plays'} dataKey="plays" fill="#8884d8" />
                                         <Bar yAxisId="minutes" name={t('totalMinutes') || 'Minutes'} dataKey="minutes" fill="#82ca9d" />
@@ -419,20 +419,20 @@ const Podcasts: React.FC = () => {
                         </CardHeader>
                         <CardContent>
                             <div className="h-64">
-                                <ResponsiveContainer width="100%" height="100%">
+                                <ResponsiveContainer width="100%" height={256} minWidth={0}>
                                     <BarChart data={dayOfWeekStats.map(d => ({ ...d, label: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.dow] }))}>
                                         <CartesianGrid strokeDasharray="3 3" />
                                         <XAxis dataKey="label" />
                                         <YAxis yAxisId="plays" orientation="left" tickFormatter={(v)=> v} label={{ value: t('plays') || 'Plays', angle: -90, position: 'insideLeft' }} />
                                         <YAxis yAxisId="minutes" orientation="right" tickFormatter={(v)=> Number(v).toFixed(0)} label={{ value: t('minutes') || 'Minutes', angle: 90, position: 'insideRight' }} />
-                                        <Tooltip formatter={(value: any, _name: string, item: any) => {
+                                        <Tooltip formatter={((value: any, _name: string, item: any) => {
                                             const isPlays = item?.dataKey === 'plays'
                                             const val = isPlays ? value : Number(value).toFixed(1)
                                             return [
                                                 `${val} ${isPlays ? (t('plays') || 'plays') : (t('minutes') || 'minutes')}`,
                                                 isPlays ? (t('totalPlays') || 'Plays') : (t('totalMinutes') || 'Minutes')
                                             ]
-                                        }} />
+                                        }) as any} />
                                         <Legend />
                                         <Bar yAxisId="plays" name={t('totalPlays') || 'Plays'} dataKey="plays" fill="#8884d8" />
                                         <Bar yAxisId="minutes" name={t('totalMinutes') || 'Minutes'} dataKey="minutes" fill="#82ca9d" />
