@@ -1,223 +1,29 @@
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { useProfile } from '../../context/ProfileContext'
 import { useLanguage } from '../../context/LanguageContext'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
+import { Card, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs'
 import PodcastsShowsList from '../../components/podcasts/PodcastsShowsList'
-import { ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Legend } from 'recharts'
-import { ListeningTimelineChart } from '../../components/charts/ListeningTimelineChart'
-
-interface ApiResponse<T> {
-    success: boolean
-    data: T
-    error?: string
-}
-
-interface PodcastStats {
-    totalPodcastPlays: number
-    totalPodcastMinutes: number
-    uniqueShows: number
-    uniqueEpisodes: number
-}
-
-interface TopShow {
-    id: string
-    name: string
-    playCount: number
-    totalTime: number
-    publisher?: string
-}
-
-interface TopEpisode {
-    id: string
-    name: string
-    showName: string
-    playCount: number
-    totalTime: number
-    releaseDate?: string
-}
-
-interface DailyStats {
-    date: string
-    plays: number
-    minutes: number
-}
-
-interface TimeOfDayStat { hour: number; plays: number; minutes: number }
-interface DayOfWeekStat { dow: number; plays: number; minutes: number }
-
-// Removed platform distribution to reduce duplication across pages
-
-// Removed PodcastPlay interface (recent tab removed)
-
-// legacy SpotifyShow interface removed (unused after unification)
+import { usePodcastsData } from './hooks/usePodcastsData'
+import { PodcastsOverviewTab } from './tabs/PodcastsOverviewTab'
+import { PodcastsChartsTab } from './tabs/PodcastsChartsTab'
+import { PodcastsInsightsTab } from './tabs/PodcastsInsightsTab'
 
 const Podcasts: React.FC = () => {
     const { selectedProfile } = useProfile()
     const { t } = useLanguage()
     
-    const [loading, setLoading] = useState(false)
-    const [overviewStats, setOverviewStats] = useState<PodcastStats | null>(null)
-    const [topShows, setTopShows] = useState<TopShow[]>([])
-    const [topEpisodes, setTopEpisodes] = useState<TopEpisode[]>([])
-    const [dailyStats, setDailyStats] = useState<DailyStats[]>([])
-    // Pełna oś czasu (np. 365 dni) do wykresu timeline – niezależna od adaptacyjnego okna dla insightów
-    const [timelineStats, setTimelineStats] = useState<DailyStats[]>([])
-    const [timeOfDayStats, setTimeOfDayStats] = useState<TimeOfDayStat[]>([])
-    const [dayOfWeekStats, setDayOfWeekStats] = useState<DayOfWeekStat[]>([])
-    // const [platformStats, setPlatformStats] = useState<PlatformStats[]>([])
-    const [error, setError] = useState<string | null>(null)
-
-    // Colors for charts
-    // const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D']
-
-    useEffect(() => {
-        fetchData()
-    }, [selectedProfile])
-
-    const fetchData = async () => {
-        setLoading(true)
-        setError(null)
-
-        try {
-            await Promise.all([
-                fetchOverviewStats(),
-                fetchTopShows(),
-                fetchTopEpisodes(),
-                fetchDailyStats(),
-                fetchTimelineStats(),
-                fetchTimeOfDay(),
-                fetchDayOfWeek()
-            ])
-        } catch (err) {
-            console.error('Error fetching podcast data:', err)
-            setError('Failed to load podcast data')
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    const fetchOverviewStats = async () => {
-        try {
-            const params = new URLSearchParams()
-            params.append('profileId', selectedProfile || 'all')
-            const response = await fetch(`/api/podcasts/stats?${params}`)
-            const result: ApiResponse<PodcastStats> = await response.json()
-            
-            if (result.success) {
-                setOverviewStats(result.data)
-            }
-        } catch (error) {
-            console.error('Error fetching overview stats:', error)
-        }
-    }
-
-    const fetchTopShows = async () => {
-        try {
-            const params = new URLSearchParams({ 
-                limit: '10',
-                profileId: selectedProfile || 'all'
-            })
-            const response = await fetch(`/api/podcasts/top-shows?${params}`)
-            const result: ApiResponse<TopShow[]> = await response.json()
-            
-            if (result.success) {
-                setTopShows(result.data)
-            }
-        } catch (error) {
-            console.error('Error fetching top shows:', error)
-        }
-    }
-
-    const fetchTopEpisodes = async () => {
-        try {
-            const params = new URLSearchParams({ 
-                limit: '20',
-                profileId: selectedProfile || 'all'
-            })
-            const response = await fetch(`/api/podcasts/top-episodes?${params}`)
-            const result: ApiResponse<TopEpisode[]> = await response.json()
-            
-            if (result.success) {
-                setTopEpisodes(result.data)
-            }
-        } catch (error) {
-            console.error('Error fetching top episodes:', error)
-        }
-    }
-
-    const fetchDailyStats = async () => {
-        const windows = [30, 180, 365]
-        for (const days of windows) {
-            try {
-                const params = new URLSearchParams({ 
-                    days: days.toString(),
-                    profileId: selectedProfile || 'all'
-                })
-                const response = await fetch(`/api/podcasts/daily-stats?${params}`)
-                const result: ApiResponse<DailyStats[]> = await response.json()
-                if (result.success) {
-                    const sumPlays = (result.data || []).reduce((a, d) => a + (d.plays || 0), 0)
-                    // Jeśli mamy jakiekolwiek odtworzenia albo to ostatnie okno – użyj
-                    if (sumPlays > 0 || days === windows[windows.length - 1]) {
-                        setDailyStats(result.data)
-                        break
-                    }
-                }
-            } catch (err) {
-                console.error(`Error fetching daily stats (${days}d):`, err)
-                // jeżeli błąd i to ostatnia próba -> zostaw co jest
-                if (days === windows[windows.length - 1]) {
-                    setDailyStats([])
-                }
-            }
-        }
-    }
-
-    // Pełny zestaw (np. 365 dni) do timeline – zawsze szeroki zakres
-    const fetchTimelineStats = async () => {
-        try {
-            const params = new URLSearchParams()
-            params.append('profileId', selectedProfile || 'all')
-            const response = await fetch(`/api/podcasts/daily-stats-all?${params}`)
-            const result: ApiResponse<DailyStats[]> = await response.json()
-            if (result.success) {
-                // Posortuj dla pewności
-                const sorted = [...(result.data || [])].sort((a,b) => a.date.localeCompare(b.date))
-                setTimelineStats(sorted)
-            }
-        } catch (e) {
-            console.error('Error fetching timeline stats:', e)
-        }
-    }
-
-    const fetchTimeOfDay = async () => {
-        try {
-            const params = new URLSearchParams()
-            params.append('profileId', selectedProfile || 'all')
-            const response = await fetch(`/api/podcasts/time-of-day?${params}`)
-            const result: ApiResponse<TimeOfDayStat[]> = await response.json()
-            if (result.success) setTimeOfDayStats(result.data)
-        } catch (error) {
-            console.error('Error fetching time-of-day:', error)
-        }
-    }
-
-    const fetchDayOfWeek = async () => {
-        try {
-            const params = new URLSearchParams()
-            params.append('profileId', selectedProfile || 'all')
-            const response = await fetch(`/api/podcasts/day-of-week?${params}`)
-            const result: ApiResponse<DayOfWeekStat[]> = await response.json()
-            if (result.success) setDayOfWeekStats(result.data)
-        } catch (error) {
-            console.error('Error fetching day-of-week:', error)
-        }
-    }
-
-    // Removed platform stats fetch and legacy shows/episodes fetch for tabs; unified list handles its own data
-
-    // helpers removed with recent tab
+    const {
+        loading,
+        error,
+        overviewStats,
+        topShows,
+        topEpisodes,
+        dailyStats,
+        timelineStats,
+        timeOfDayStats,
+        dayOfWeekStats,
+    } = usePodcastsData(selectedProfile)
 
     if (loading) {
         return (
@@ -320,58 +126,7 @@ const Podcasts: React.FC = () => {
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-4">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                        {/* Top Shows */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>{t('topShows') || 'Top Shows'}</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-2">
-                                    {topShows.slice(0, 5).map((show, index) => (
-                                        <div key={show.id} className="flex items-center justify-between gap-2">
-                                            <div className="flex items-center space-x-2 min-w-0 flex-1">
-                                                <span className="text-sm font-medium text-muted-foreground flex-shrink-0">
-                                                    #{index + 1}
-                                                </span>
-                                                <span className="text-sm truncate" title={show.name}>{show.name}</span>
-                                            </div>
-                                            <span className="text-sm text-muted-foreground flex-shrink-0">
-                                                {show.playCount} plays
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Top Episodes */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>{t('topEpisodes') || 'Top Episodes'}</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-2">
-                                    {topEpisodes.slice(0, 5).map((episode, index) => (
-                                        <div key={episode.id} className="flex items-center justify-between gap-2">
-                                            <div className="flex items-center space-x-2 min-w-0 flex-1">
-                                                <span className="text-sm font-medium text-muted-foreground flex-shrink-0">
-                                                    #{index + 1}
-                                                </span>
-                                                <div className="flex flex-col min-w-0 flex-1">
-                                                    <span className="text-sm truncate" title={episode.name}>{episode.name}</span>
-                                                    <span className="text-xs text-muted-foreground truncate" title={episode.showName}>{episode.showName}</span>
-                                                </div>
-                                            </div>
-                                            <span className="text-sm text-muted-foreground flex-shrink-0">
-                                                {episode.playCount} plays
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
+                    <PodcastsOverviewTab topShows={topShows} topEpisodes={topEpisodes} />
                 </TabsContent>
 
                 <TabsContent value="shows" className="space-y-4">
@@ -379,155 +134,16 @@ const Podcasts: React.FC = () => {
                 </TabsContent>
 
                 <TabsContent value="charts" className="space-y-4">
-                    {/* Timeline (daily activity) */}
-                    <ListeningTimelineChart data={(timelineStats.length ? timelineStats : dailyStats)} />
-                    
-                    {/* Time of Day */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>{t('listeningByHour') || 'Listening by Hour'}</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="h-64">
-                                <ResponsiveContainer width="100%" height={256} minWidth={0}>
-                                    <BarChart data={timeOfDayStats}>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis dataKey="hour" tickFormatter={(v) => `${v}:00`} />
-                                        <YAxis yAxisId="plays" orientation="left" tickFormatter={(v)=> v} label={{ value: t('plays') || 'Plays', angle: -90, position: 'insideLeft' }} />
-                                        <YAxis yAxisId="minutes" orientation="right" tickFormatter={(v)=> Number(v).toFixed(0)} label={{ value: t('minutes') || 'Minutes', angle: 90, position: 'insideRight' }} />
-                                        <Tooltip formatter={((value: any, _name: string, item: any) => {
-                                            const isPlays = item?.dataKey === 'plays'
-                                            const val = isPlays ? value : Number(value).toFixed(1)
-                                            return [
-                                                `${val} ${isPlays ? (t('plays') || 'plays') : (t('minutes') || 'minutes')}`,
-                                                isPlays ? (t('totalPlays') || 'Plays') : (t('totalMinutes') || 'Minutes')
-                                            ]
-                                        }) as any} />
-                                        <Legend />
-                                        <Bar yAxisId="plays" name={t('totalPlays') || 'Plays'} dataKey="plays" fill="#8884d8" />
-                                        <Bar yAxisId="minutes" name={t('totalMinutes') || 'Minutes'} dataKey="minutes" fill="#82ca9d" />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Day of Week */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>{t('listeningByWeekday') || 'Listening by Weekday'}</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="h-64">
-                                <ResponsiveContainer width="100%" height={256} minWidth={0}>
-                                    <BarChart data={dayOfWeekStats.map(d => ({ ...d, label: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.dow] }))}>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis dataKey="label" />
-                                        <YAxis yAxisId="plays" orientation="left" tickFormatter={(v)=> v} label={{ value: t('plays') || 'Plays', angle: -90, position: 'insideLeft' }} />
-                                        <YAxis yAxisId="minutes" orientation="right" tickFormatter={(v)=> Number(v).toFixed(0)} label={{ value: t('minutes') || 'Minutes', angle: 90, position: 'insideRight' }} />
-                                        <Tooltip formatter={((value: any, _name: string, item: any) => {
-                                            const isPlays = item?.dataKey === 'plays'
-                                            const val = isPlays ? value : Number(value).toFixed(1)
-                                            return [
-                                                `${val} ${isPlays ? (t('plays') || 'plays') : (t('minutes') || 'minutes')}`,
-                                                isPlays ? (t('totalPlays') || 'Plays') : (t('totalMinutes') || 'Minutes')
-                                            ]
-                                        }) as any} />
-                                        <Legend />
-                                        <Bar yAxisId="plays" name={t('totalPlays') || 'Plays'} dataKey="plays" fill="#8884d8" />
-                                        <Bar yAxisId="minutes" name={t('totalMinutes') || 'Minutes'} dataKey="minutes" fill="#82ca9d" />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <PodcastsChartsTab
+                        timelineStats={timelineStats}
+                        dailyStats={dailyStats}
+                        timeOfDayStats={timeOfDayStats}
+                        dayOfWeekStats={dayOfWeekStats}
+                    />
                 </TabsContent>
+                
                 <TabsContent value="insights" className="space-y-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>{t('quickInsights') || 'Quick insights'}</CardTitle>
-                            <CardDescription>{t('podcastInsightsDescription') || 'Key takeaways from your podcast listening'}</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                                {(() => {
-                                    const days = dailyStats || []
-                                    if (!days.length) {
-                                        return (
-                                            <div className="col-span-full text-muted-foreground text-sm">
-                                                {t('noData') || 'No data to display'}
-                                            </div>
-                                        )
-                                    }
-                                    const totalDays = days.length
-                                    let longest = 0
-                                    let current = 0
-                                    let maxPlays = 0
-                                    let maxPlaysDate = '-'
-                                    let activeDays = 0
-                                    let maxMinutes = 0
-                                    for (const d of days) {
-                                        const p = Number(d.plays) || 0
-                                        const m = Number(d.minutes) || 0
-                                        const hasPlays = p > 0
-                                        if (hasPlays) {
-                                            current += 1
-                                            activeDays += 1
-                                        } else {
-                                            longest = Math.max(longest, current)
-                                            current = 0
-                                        }
-                                        if (p > maxPlays) {
-                                            maxPlays = p
-                                            maxPlaysDate = (d as any).date
-                                        }
-                                        if (m > maxMinutes) maxMinutes = m
-                                    }
-                                    longest = Math.max(longest, current)
-                                    const activePct = totalDays ? Math.round((activeDays / totalDays) * 100) : 0
-                                    const totalPlaysActive = days.filter(d => (d.plays || 0) > 0).reduce((a, d) => a + (d.plays || 0), 0)
-                                    const totalMinutesActive = days.filter(d => (d.minutes || 0) > 0).reduce((a, d) => a + (Number(d.minutes) || 0), 0)
-                                    const avgPlaysActive = activeDays ? Math.round(totalPlaysActive / activeDays) : 0
-                                    const avgMinutesActive = activeDays ? Math.round(totalMinutesActive / activeDays) : 0
-                                    if (totalPlaysActive === 0) {
-                                        return (
-                                            <div className="col-span-full text-muted-foreground text-sm">
-                                                {t('noData') || 'No data to display'}
-                                            </div>
-                                        )
-                                    }
-                                    return (
-                                        <>
-                                            <div className="space-y-1">
-                                                <div className="text-2xl font-bold text-primary">{longest}</div>
-                                                <div className="text-sm text-muted-foreground">{t('longestStreak') || 'Longest streak (days)'}</div>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <div className="text-2xl font-bold text-primary">{current}</div>
-                                                <div className="text-sm text-muted-foreground">{t('currentStreak') || 'Current streak (days)'}</div>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <div className="text-2xl font-bold text-primary">{activePct}%</div>
-                                                <div className="text-sm text-muted-foreground">{t('activeDaysRatio') || 'Active days (last period)'}</div>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <div className="text-2xl font-bold text-primary">{maxPlays}</div>
-                                                <div className="text-sm text-muted-foreground">{t('peakDayPlays') || `Peak day plays (${maxPlaysDate})`}</div>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <div className="text-2xl font-bold text-primary">{avgPlaysActive}</div>
-                                                <div className="text-sm text-muted-foreground">{t('avgPlaysActiveDay') || 'Avg plays per active day'}</div>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <div className="text-2xl font-bold text-primary">{avgMinutesActive}</div>
-                                                <div className="text-sm text-muted-foreground">{t('avgMinutesActiveDay') || 'Avg minutes per active day'}</div>
-                                            </div>
-                                        </>
-                                    )
-                                })()}
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <PodcastsInsightsTab dailyStats={dailyStats} />
                 </TabsContent>
             </Tabs>
         </div>
