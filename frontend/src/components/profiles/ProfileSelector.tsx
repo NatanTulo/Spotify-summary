@@ -32,7 +32,7 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
                 <div className="segmented">
                     <Button
                         className={`segmented-btn ${selectedProfileId === null ? 'segmented-btn-active' : ''}`}
-                        variant={selectedProfileId === null ? 'default' : 'outline'}
+                        variant={selectedProfileId === null ? 'default' : 'outline-solid'}
                         onClick={() => onProfileSelect(null)}
                         disabled={isLoading}
                     >
@@ -42,7 +42,7 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
                         <Button
                             key={profile._id}
                             className={`segmented-btn flex items-center gap-2 ${selectedProfileId === profile._id ? 'segmented-btn-active' : ''}`}
-                            variant={selectedProfileId === profile._id ? 'default' : 'outline'}
+                            variant={selectedProfileId === profile._id ? 'default' : 'outline-solid'}
                             onClick={() => onProfileSelect(profile._id)}
                             disabled={isLoading}
                         >

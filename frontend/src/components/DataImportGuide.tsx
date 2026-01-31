@@ -41,13 +41,13 @@ export const DataImportGuide = () => {
                 <CardContent className="space-y-4 sm:space-y-6">
                 {/* Krok 1 */}
                 <div className="flex gap-3 sm:gap-4">
-                    <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 font-semibold text-sm sm:text-base">
+                    <div className="shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 font-semibold text-sm sm:text-base">
                         1
                     </div>
                     <div className="space-y-1 sm:space-y-2 min-w-0">
                         <h4 className="font-medium text-sm sm:text-base">{t('step1Title')}</h4>
                         <ol className="text-xs sm:text-sm space-y-1 list-decimal list-inside ml-3 sm:ml-4 text-muted-foreground">
-                            <li>{t('step1GoTo')} <a href="https://www.spotify.com/account/privacy/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-words">Spotify Privacy Settings</a></li>
+                            <li>{t('step1GoTo')} <a href="https://www.spotify.com/account/privacy/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline wrap-break-word">Spotify Privacy Settings</a></li>
                             <li>{t('step1Login')}</li>
                             <li>{t('step1ScrollTo')}</li>
                             <li>{t('step1SelectExtended')}</li>
@@ -58,7 +58,7 @@ export const DataImportGuide = () => {
 
                 {/* Krok 2 */}
                 <div className="flex gap-3 sm:gap-4">
-                    <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center text-green-600 dark:text-green-400 font-semibold text-sm sm:text-base">
+                    <div className="shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center text-green-600 dark:text-green-400 font-semibold text-sm sm:text-base">
                         2
                     </div>
                     <div className="space-y-1 sm:space-y-2 min-w-0">
@@ -91,7 +91,7 @@ export const DataImportGuide = () => {
 
                 {/* Krok 3 */}
                 <div className="flex gap-3 sm:gap-4">
-                    <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center text-orange-600 dark:text-orange-400 font-semibold text-sm sm:text-base">
+                    <div className="shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center text-orange-600 dark:text-orange-400 font-semibold text-sm sm:text-base">
                         3
                     </div>
                     <div className="space-y-1 sm:space-y-2 min-w-0">
@@ -112,7 +112,7 @@ export const DataImportGuide = () => {
 
                 {/* Krok 4 */}
                 <div className="flex gap-3 sm:gap-4">
-                    <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center text-purple-600 dark:text-purple-400 font-semibold text-sm sm:text-base">
+                    <div className="shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center text-purple-600 dark:text-purple-400 font-semibold text-sm sm:text-base">
                         4
                     </div>
                     <div className="space-y-1 sm:space-y-2 min-w-0">

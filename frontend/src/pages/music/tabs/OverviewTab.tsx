@@ -22,12 +22,12 @@ export function OverviewTab({ topArtists, topTracks }: OverviewTabProps) {
                         {topArtists.slice(0, 5).map((artist, index) => (
                             <div key={artist.name} className="flex items-center justify-between gap-2">
                                 <div className="flex items-center space-x-2 min-w-0 flex-1">
-                                    <span className="text-sm font-medium text-muted-foreground flex-shrink-0">
+                                    <span className="text-sm font-medium text-muted-foreground shrink-0">
                                         #{index + 1}
                                     </span>
                                     <span className="text-sm truncate" title={artist.name}>{artist.name}</span>
                                 </div>
-                                <span className="text-sm text-muted-foreground flex-shrink-0">
+                                <span className="text-sm text-muted-foreground shrink-0">
                                     {artist.plays} plays
                                 </span>
                             </div>
@@ -53,7 +53,7 @@ export function OverviewTab({ topArtists, topTracks }: OverviewTabProps) {
                         {topTracks.slice(0, 5).map((track, index) => (
                             <div key={track.trackId} className="flex items-center justify-between gap-2">
                                 <div className="flex items-center space-x-2 min-w-0 flex-1">
-                                    <span className="text-sm font-medium text-muted-foreground flex-shrink-0">
+                                    <span className="text-sm font-medium text-muted-foreground shrink-0">
                                         #{index + 1}
                                     </span>
                                     <div className="flex flex-col min-w-0 flex-1">
@@ -61,7 +61,7 @@ export function OverviewTab({ topArtists, topTracks }: OverviewTabProps) {
                                         <span className="text-xs text-muted-foreground truncate" title={track.artistName}>{track.artistName}</span>
                                     </div>
                                 </div>
-                                <span className="text-sm text-muted-foreground flex-shrink-0">
+                                <span className="text-sm text-muted-foreground shrink-0">
                                     {track.totalPlays} plays
                                 </span>
                             </div>

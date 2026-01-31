@@ -43,7 +43,7 @@ const Layout = ({ children }: LayoutProps) => {
     return (
         <div className="min-h-screen bg-background">
             {/* Header */}
-            <header className="sticky top-0 z-40 border-b bg-card/60 backdrop-blur-xl supports-[backdrop-filter]:bg-card/60">
+            <header className="sticky top-0 z-40 border-b bg-card/60 backdrop-blur-xl supports-backdrop-filter:bg-card/60">
                 <div className="container mx-auto px-2 sm:px-4 py-2 sm:py-3">
                     <div className="relative flex items-center justify-between">
                         <div className="absolute inset-0 -z-10 pointer-events-none">
@@ -52,7 +52,7 @@ const Layout = ({ children }: LayoutProps) => {
                         </div>
                         <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
                             <div className="app-brand-glow flex items-center gap-1 sm:gap-2 relative min-w-0">
-                                <Music className="h-6 w-6 sm:h-8 sm:w-8 text-spotify-green drop-shadow-sm flex-shrink-0" />
+                                <Music className="h-6 w-6 sm:h-8 sm:w-8 text-spotify-green drop-shadow-xs shrink-0" />
                                 <h1 className="text-lg sm:text-xl md:text-2xl font-semibold md:font-bold tracking-tight text-foreground truncate">
                                     {t('appTitle')}
                                 </h1>
@@ -65,7 +65,7 @@ const Layout = ({ children }: LayoutProps) => {
                                     className={({ isActive }) =>
                                         `px-2 py-1.5 text-xs font-medium rounded-md transition-colors ${
                                             isActive
-                                                ? 'text-foreground bg-background/70 shadow-sm'
+                                                ? 'text-foreground bg-background/70 shadow-xs'
                                                 : 'text-muted-foreground hover:text-foreground'
                                         }`
                                     }
@@ -78,7 +78,7 @@ const Layout = ({ children }: LayoutProps) => {
                                     className={({ isActive }) =>
                                         `px-2 py-1.5 text-xs font-medium rounded-md transition-colors ${
                                             isActive
-                                                ? 'text-foreground bg-background/70 shadow-sm'
+                                                ? 'text-foreground bg-background/70 shadow-xs'
                                                 : 'text-muted-foreground hover:text-foreground'
                                         }`
                                     }
@@ -90,7 +90,7 @@ const Layout = ({ children }: LayoutProps) => {
                                     className={({ isActive }) =>
                                         `px-2 py-1.5 text-xs font-medium rounded-md transition-colors ${
                                             isActive
-                                                ? 'text-foreground bg-background/70 shadow-sm'
+                                                ? 'text-foreground bg-background/70 shadow-xs'
                                                 : 'text-muted-foreground hover:text-foreground'
                                         }`
                                     }
@@ -102,7 +102,7 @@ const Layout = ({ children }: LayoutProps) => {
                                     className={({ isActive }) =>
                                         `px-2 py-1.5 text-xs font-medium rounded-md transition-colors ${
                                             isActive
-                                                ? 'text-foreground bg-background/70 shadow-sm'
+                                                ? 'text-foreground bg-background/70 shadow-xs'
                                                 : 'text-muted-foreground hover:text-foreground'
                                         }`
                                     }
@@ -118,7 +118,7 @@ const Layout = ({ children }: LayoutProps) => {
                                     className={({ isActive }) =>
                                         `px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                                             isActive
-                                                ? 'text-foreground bg-background/70 shadow-sm'
+                                                ? 'text-foreground bg-background/70 shadow-xs'
                                                 : 'text-muted-foreground hover:text-foreground'
                                         }`
                                     }
@@ -131,7 +131,7 @@ const Layout = ({ children }: LayoutProps) => {
                                     className={({ isActive }) =>
                                         `px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                                             isActive
-                                                ? 'text-foreground bg-background/70 shadow-sm'
+                                                ? 'text-foreground bg-background/70 shadow-xs'
                                                 : 'text-muted-foreground hover:text-foreground'
                                         }`
                                     }
@@ -143,7 +143,7 @@ const Layout = ({ children }: LayoutProps) => {
                                     className={({ isActive }) =>
                                         `px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                                             isActive
-                                                ? 'text-foreground bg-background/70 shadow-sm'
+                                                ? 'text-foreground bg-background/70 shadow-xs'
                                                 : 'text-muted-foreground hover:text-foreground'
                                         }`
                                     }
@@ -155,7 +155,7 @@ const Layout = ({ children }: LayoutProps) => {
                                     className={({ isActive }) =>
                                         `px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                                             isActive
-                                                ? 'text-foreground bg-background/70 shadow-sm'
+                                                ? 'text-foreground bg-background/70 shadow-xs'
                                                 : 'text-muted-foreground hover:text-foreground'
                                         }`
                                     }
@@ -165,7 +165,7 @@ const Layout = ({ children }: LayoutProps) => {
                             </nav>
                         </div>
 
-                        <div className="flex items-center gap-1 sm:gap-2 md:gap-4 flex-shrink-0">
+                        <div className="flex items-center gap-1 sm:gap-2 md:gap-4 shrink-0">
                             {/* Wybór języka - ukryty na bardzo małych ekranach */}
                             <Button
                                 onClick={() => setLanguage(language === 'pl' ? 'en' : 'pl')}
@@ -206,7 +206,7 @@ const Layout = ({ children }: LayoutProps) => {
 
             {/* Profile Manager Modal */}
             {showProfileManager && (
-                <div className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-50">
+                <div className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 z-50">
                     <div className="glass max-w-4xl w-full max-h-[90vh] sm:max-h-[82vh] overflow-auto">
                         <div className="p-3 sm:p-6">
                             <div className="flex items-center justify-between mb-4 sm:mb-6">
@@ -243,7 +243,7 @@ const Layout = ({ children }: LayoutProps) => {
             </main>
 
             {/* Footer */}
-            <footer className="border-t bg-card/60 backdrop-blur mt-auto">
+            <footer className="border-t bg-card/60 backdrop-blur-sm mt-auto">
                 <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6">
                     <div className="text-center text-xs sm:text-sm text-muted-foreground">
                         <p>{t('appDescription')}</p>

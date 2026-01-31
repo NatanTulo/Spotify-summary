@@ -11,7 +11,7 @@ const Card = React.forwardRef<
         className={cn(
             [
                 // Base look
-                "rounded-xl border bg-card/60 backdrop-blur supports-[backdrop-filter]:bg-card/60 text-card-foreground",
+                "rounded-xl border bg-card/60 backdrop-blur-sm supports-backdrop-filter:bg-card/60 text-card-foreground",
                 // Light mode shadows
                 "shadow-[0_10px_30px_rgba(0,0,0,0.08)] hover:shadow-[0_16px_40px_rgba(0,0,0,0.12)]",
                 // Dark mode: deeper shadow + subtle ring/glow on hover

@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import { resolve } from 'path'
 import { fileURLToPath } from 'url'
 import { networkInterfaces } from 'os'
@@ -31,7 +32,7 @@ console.log(`🌐 Używając lokalnego IP dla proxy: ${localIP}`)
 
 // https://vitejs.dev/config/
 export default defineConfig({
-    plugins: [react()],
+    plugins: [react(), tailwindcss()],
     resolve: {
         alias: {
             "@": resolve(__dirname, "./src"),

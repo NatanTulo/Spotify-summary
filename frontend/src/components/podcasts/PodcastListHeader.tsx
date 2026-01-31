@@ -38,7 +38,7 @@ export function PodcastListHeader({
                             onChange={(e) => setSearch(e.target.value)}
                             onKeyDown={(e) => { if (e.key === 'Enter') onSearch() }}
                             placeholder={t('search') || 'Search shows'}
-                            className="border border-border bg-background text-foreground placeholder:text-muted-foreground rounded px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                            className="border border-border bg-background text-foreground placeholder:text-muted-foreground rounded px-3 py-1 text-sm focus:outline-hidden focus:ring-2 focus:ring-primary/40"
                         />
                     </div>
                     <Button onClick={onSearch} variant="secondary" className="px-3 py-1 text-xs text-foreground" title={t('filter') || 'Filter'}>
@@ -55,7 +55,7 @@ export function PodcastListHeader({
                     <select
                         value={sortBy}
                         onChange={(e) => onSortChange(e.target.value as SortKey)}
-                        className="border border-border bg-background text-foreground rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                        className="border border-border bg-background text-foreground rounded px-2 py-1 text-sm focus:outline-hidden focus:ring-2 focus:ring-primary/40"
                         title={t('sortBy') || 'Sort by'}
                     >
                         <option value="plays">{t('totalPlays') || 'Plays'}</option>
@@ -66,7 +66,7 @@ export function PodcastListHeader({
                     <select
                         value={String(limit)}
                         onChange={(e) => setLimit(parseInt(e.target.value, 10))}
-                        className="border border-border bg-background text-foreground rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                        className="border border-border bg-background text-foreground rounded px-2 py-1 text-sm focus:outline-hidden focus:ring-2 focus:ring-primary/40"
                         title={t('pageSize') || 'Page size'}
                     >
                         {[25, 50, 100].map(sz => (

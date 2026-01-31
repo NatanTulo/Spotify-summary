@@ -14,7 +14,7 @@ const Audiobooks = lazy(() => import('./pages/audiobooks/Audiobooks'))
 const LoadingSpinner = () => (
     <div className="flex items-center justify-center h-64">
         <div className="relative h-10 w-10">
-            <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-primary/60 via-spotify-green/60 to-chart-4/60 animate-pulse blur-[2px]" />
+            <div className="absolute inset-0 rounded-full bg-linear-to-tr from-primary/60 via-spotify-green/60 to-chart-4/60 animate-pulse blur-[2px]" />
             <div className="absolute inset-[2px] rounded-full bg-background border border-border" />
         </div>
     </div>

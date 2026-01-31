@@ -86,7 +86,7 @@ export const HeaderProfileSelector = ({
                         <Button
                             onClick={() => onProfileSelect(null)}
                             disabled={isLoading}
-                            variant={selectedProfile === null ? 'default' : 'outline'}
+                            variant={selectedProfile === null ? 'default' : 'outline-solid'}
                             size="sm"
                             className={`segmented-btn text-xs sm:text-sm px-2 sm:px-3 ${selectedProfile === null ? 'segmented-btn-active' : ''}`}
                         >
@@ -97,7 +97,7 @@ export const HeaderProfileSelector = ({
                                 key={profile._id}
                                 onClick={() => onProfileSelect(profile._id)}
                                 disabled={isLoading}
-                                variant={selectedProfile === profile._id ? 'default' : 'outline'}
+                                variant={selectedProfile === profile._id ? 'default' : 'outline-solid'}
                                 size="sm"
                                 className={`segmented-btn text-xs sm:text-sm px-2 sm:px-3 ${selectedProfile === profile._id ? 'segmented-btn-active' : ''}`}
                             >

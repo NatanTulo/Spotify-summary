@@ -13,7 +13,7 @@ const PlaysSummaryRow: React.FC<PlaysSummaryRowProps> = ({ musicPlays, podcastPl
   return (
     <div
       className={
-        `rounded-md border px-3 py-2 bg-white/70 dark:bg-white/5 backdrop-blur ${className}`
+        `rounded-md border px-3 py-2 bg-white/70 dark:bg-white/5 backdrop-blur-sm ${className}`
       }
     >
       <div className="w-full text-center text-[11px] sm:text-xs font-medium text-muted-foreground">

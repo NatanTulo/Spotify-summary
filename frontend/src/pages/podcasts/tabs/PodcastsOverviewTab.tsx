@@ -22,12 +22,12 @@ export function PodcastsOverviewTab({ topShows, topEpisodes }: PodcastsOverviewT
                         {topShows.slice(0, 5).map((show, index) => (
                             <div key={show.id} className="flex items-center justify-between gap-2">
                                 <div className="flex items-center space-x-2 min-w-0 flex-1">
-                                    <span className="text-sm font-medium text-muted-foreground flex-shrink-0">
+                                    <span className="text-sm font-medium text-muted-foreground shrink-0">
                                         #{index + 1}
                                     </span>
                                     <span className="text-sm truncate" title={show.name}>{show.name}</span>
                                 </div>
-                                <span className="text-sm text-muted-foreground flex-shrink-0">
+                                <span className="text-sm text-muted-foreground shrink-0">
                                     {show.playCount} plays
                                 </span>
                             </div>
@@ -46,7 +46,7 @@ export function PodcastsOverviewTab({ topShows, topEpisodes }: PodcastsOverviewT
                         {topEpisodes.slice(0, 5).map((episode, index) => (
                             <div key={episode.id} className="flex items-center justify-between gap-2">
                                 <div className="flex items-center space-x-2 min-w-0 flex-1">
-                                    <span className="text-sm font-medium text-muted-foreground flex-shrink-0">
+                                    <span className="text-sm font-medium text-muted-foreground shrink-0">
                                         #{index + 1}
                                     </span>
                                     <div className="flex flex-col min-w-0 flex-1">
@@ -54,7 +54,7 @@ export function PodcastsOverviewTab({ topShows, topEpisodes }: PodcastsOverviewT
                                         <span className="text-xs text-muted-foreground truncate" title={episode.showName}>{episode.showName}</span>
                                     </div>
                                 </div>
-                                <span className="text-sm text-muted-foreground flex-shrink-0">
+                                <span className="text-sm text-muted-foreground shrink-0">
                                     {episode.playCount} plays
                                 </span>
                             </div>

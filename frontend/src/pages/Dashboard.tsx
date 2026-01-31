@@ -165,7 +165,7 @@ const Dashboard = () => {
                             {topArtists.length > 0 ? (
                                 topArtists.map((artist, index) => (
                                     <div key={index} className="flex items-center space-x-3 sm:space-x-4">
-                                        <div className="flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs sm:text-sm font-bold">
+                                        <div className="shrink-0 w-6 h-6 sm:w-8 sm:h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs sm:text-sm font-bold">
                                             {index + 1}
                                         </div>
                                         <div className="flex-1 min-w-0">
@@ -202,7 +202,7 @@ const Dashboard = () => {
                             {topTracks.length > 0 ? (
                                 topTracks.map((track, index) => (
                                     <div key={index} className="flex items-center space-x-3 sm:space-x-4">
-                                        <div className="flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs sm:text-sm font-bold">
+                                        <div className="shrink-0 w-6 h-6 sm:w-8 sm:h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs sm:text-sm font-bold">
                                             {index + 1}
                                         </div>
                                         <div className="flex-1 min-w-0">
@@ -245,7 +245,7 @@ const Dashboard = () => {
                             {topShows.length > 0 ? (
                                 topShows.map((show, index) => (
                                     <div key={index} className="flex items-center space-x-3 sm:space-x-4">
-                                        <div className="flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs sm:text-sm font-bold">
+                                        <div className="shrink-0 w-6 h-6 sm:w-8 sm:h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs sm:text-sm font-bold">
                                             {index + 1}
                                         </div>
                                         <div className="flex-1 min-w-0">
@@ -282,7 +282,7 @@ const Dashboard = () => {
                             {topEpisodes.length > 0 ? (
                                 topEpisodes.map((episode, index) => (
                                     <div key={index} className="flex items-center space-x-3 sm:space-x-4">
-                                        <div className="flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs sm:text-sm font-bold">
+                                        <div className="shrink-0 w-6 h-6 sm:w-8 sm:h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs sm:text-sm font-bold">
                                             {index + 1}
                                         </div>
                                         <div className="flex-1 min-w-0">
