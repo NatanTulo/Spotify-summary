@@ -1,5 +1,7 @@
 {
   "tracks": "Lista utworów",
+  "albumsList": "Lista albumów",
+  "noAlbums": "Nie znaleziono albumów",
   "analytics": "Analityka",
   "music": "Muzyka",
   "podcasts": "Podcasty",

@@ -78,7 +78,7 @@ export class Play extends Model {
         type: DataType.STRING(45),
         allowNull: true
     })
-    ipAddress?: string
+    ipAddr?: string
 
     @Column({
         type: DataType.TEXT,

@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { BarChart3, PieChart, TrendingUp, Music, Percent } from 'lucide-react'
+import { BarChart3, PieChart, TrendingUp, Music, Percent, Disc } from 'lucide-react'
 import { useProfile } from '../../context/ProfileContext'
 import { useLanguage } from '../../context/LanguageContext'
 import { useAnalyticsData } from './hooks/useAnalyticsData'
@@ -9,6 +9,7 @@ import { useTracksData } from './hooks/useTracksData'
 import { OverviewTab } from './tabs/OverviewTab'
 import { ChartsTab } from './tabs/ChartsTab'
 import { TracksTab } from './tabs/TracksTab'
+import { AlbumsTab } from './tabs/AlbumsTab'
 import { InsightsTab } from './tabs/InsightsTab'
 
 export default function Analytics() {
@@ -74,10 +75,14 @@ export default function Analytics() {
 
             {/* Tabs */}
             <Tabs defaultValue="tracks" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
                     <TabsTrigger value="tracks" className="flex items-center justify-center space-x-1 sm:space-x-2">
                         <Music className="h-3 w-3 sm:h-4 sm:w-4" />
                         <span className="text-xs sm:text-sm">{t('tracksList')}</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="albums" className="flex items-center justify-center space-x-1 sm:space-x-2">
+                        <Disc className="h-3 w-3 sm:h-4 sm:w-4" />
+                        <span className="text-xs sm:text-sm">{t('albumsList')}</span>
                     </TabsTrigger>
                     <TabsTrigger value="overview" className="flex items-center justify-center space-x-1 sm:space-x-2">
                         <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -144,6 +149,11 @@ export default function Analytics() {
                             fetchTracks(1)
                         }}
                     />
+                </TabsContent>
+
+                {/* Albums Tab */}
+                <TabsContent value="albums">
+                    <AlbumsTab selectedProfile={selectedProfile} />
                 </TabsContent>
 
                 {/* Insights Tab */}

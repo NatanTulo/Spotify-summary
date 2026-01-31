@@ -153,7 +153,7 @@ export class MusicImporter {
             username: record.username || null,
             platform: record.platform || null,
             country: record.conn_country || null,
-            ipAddress: record.ip_addr || null,
+            ipAddr: record.ip_addr || null,
             userAgent: record.user_agent_decrypted || null,
             reasonStart: record.reason_start || null,
             reasonEnd: record.reason_end || null,

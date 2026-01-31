@@ -1,5 +1,7 @@
 {
   "tracks": "Tracks List",
+  "albumsList": "Albums List",
+  "noAlbums": "No albums found",
   "analytics": "Analytics",
   "music": "Music",
   "podcasts": "Podcasts",
