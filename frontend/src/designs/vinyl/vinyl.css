@@ -464,3 +464,104 @@
     gap: 1rem;
   }
 }
+
+/* New vinyl disc container */
+.vinyl-disc-container {
+  position: relative;
+}
+
+.vinyl-disc.spinning {
+  animation: spin-slow 4s linear infinite;
+}
+
+.vinyl-grooves {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: repeating-radial-gradient(
+    circle at center,
+    transparent,
+    transparent 2px,
+    rgba(255, 255, 255, 0.03) 3px
+  );
+}
+
+.vinyl-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 35%;
+  height: 35%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ff6b35, #e55a2a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1a0f07;
+  font-size: 1.5rem;
+}
+
+/* Vinyl logo disc */
+.vinyl-logo-disc {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at center,
+    #1a1a1a 0%,
+    #333 50%,
+    #1a1a1a 100%
+  );
+  border: 2px solid #ff6b35;
+  animation: spin-slow 6s linear infinite;
+}
+
+/* Page and hero */
+.vinyl-page {
+  position: relative;
+  z-index: 10;
+}
+
+.vinyl-hero {
+  position: relative;
+}
+
+/* Aged card variant */
+.vinyl-card-aged {
+  background: linear-gradient(
+    145deg,
+    rgba(45, 30, 15, 0.8) 0%,
+    rgba(20, 10, 5, 0.9) 100%
+  );
+}
+
+/* Button */
+.vinyl-btn {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #ff6b35, #e55a2a);
+  color: #1a0f07;
+  font-family: "Playfair Display", serif;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.vinyl-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(255, 107, 53, 0.3);
+}
+
+/* Track large variant */
+.vinyl-track-large {
+  padding: 1.25rem;
+  background: rgba(255, 107, 53, 0.03);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.vinyl-track-meta {
+  text-align: right;
+}

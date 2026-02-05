@@ -1,30 +1,23 @@
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useProfile } from '../../hooks/useProfile';
-import { useOverviewStats, useTopArtists, useYearlyStats, useTracks, useTimeOfDay } from '../../hooks/useApi';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ScatterChart, Scatter, ZAxis } from 'recharts';
+import { useOverviewStats, useTracks, useTrackDetail, useTrackTimeline, useAlbums, useTopArtists } from '../../hooks/useApi';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import './cosmos.css';
 
-function StarField() {
-  const stars = Array.from({ length: 100 }).map((_, i) => ({
-    id: i,
-    left: Math.random() * 100,
-    top: Math.random() * 100,
-    size: ['small', 'medium', 'large'][Math.floor(Math.random() * 3)] as 'small' | 'medium' | 'large',
-    delay: Math.random() * 3,
-    duration: 2 + Math.random() * 4,
-  }));
-
+function Stars() {
   return (
     <div className="cosmos-stars">
-      {stars.map((star) => (
+      {Array.from({ length: 100 }).map((_, i) => (
         <div
-          key={star.id}
-          className={`star ${star.size}`}
+          key={i}
+          className="star"
           style={{
-            left: `${star.left}%`,
-            top: `${star.top}%`,
-            animationDelay: `${star.delay}s`,
-            animationDuration: `${star.duration}s`,
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+            animationDelay: `${Math.random() * 3}s`,
+            width: `${1 + Math.random() * 2}px`,
+            height: `${1 + Math.random() * 2}px`,
           }}
         />
       ))}
@@ -39,8 +32,8 @@ function CosmosNav() {
   return (
     <nav className="cosmos-nav">
       <div className="cosmos-logo">
-        <div className="cosmos-logo-orbit" />
-        <span>STELLAR DATA</span>
+        <span className="cosmos-logo-orbit" />
+        <span>COSMOS</span>
       </div>
       
       <ul className="cosmos-nav-links">
@@ -49,23 +42,23 @@ function CosmosNav() {
             to="/5" 
             className={`cosmos-nav-link ${location.pathname === '/5' ? 'active' : ''}`}
           >
-            Command
+            Mission Control
           </Link>
         </li>
         <li>
           <Link 
-            to="/5/exploration" 
-            className={`cosmos-nav-link ${location.pathname === '/5/exploration' ? 'active' : ''}`}
+            to="/5/explore" 
+            className={`cosmos-nav-link ${location.pathname === '/5/explore' ? 'active' : ''}`}
           >
-            Exploration
+            Explore Tracks
           </Link>
         </li>
         <li>
           <Link 
-            to="/5/telemetry" 
-            className={`cosmos-nav-link ${location.pathname === '/5/telemetry' ? 'active' : ''}`}
+            to="/5/albums" 
+            className={`cosmos-nav-link ${location.pathname === '/5/albums' ? 'active' : ''}`}
           >
-            Telemetry
+            Album Galaxy
           </Link>
         </li>
       </ul>
@@ -76,7 +69,7 @@ function CosmosNav() {
           onChange={(e) => setSelectedProfileId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
           className="cosmos-select"
         >
-          <option value="all">All Sectors</option>
+          <option value="all">All Stations</option>
           {profiles.map((p) => (
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}
@@ -98,174 +91,366 @@ function CosmosNav() {
   );
 }
 
-function StatCard({ value, label }: { value: string | number; label: string }) {
-  return (
-    <div className="cosmos-card text-center">
-      <div className="cosmos-stat-value">{value}</div>
-      <div className="cosmos-stat-label">{label}</div>
-    </div>
-  );
-}
-
 function formatNumber(num: number): string {
-  if (num >= 1000000) return (num / 1000000).toFixed(2) + ' M';
-  if (num >= 1000) return (num / 1000).toFixed(1) + ' K';
-  return num.toLocaleString();
+  if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M';
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+  return num.toString();
 }
 
 function formatMinutes(minutes: number): string {
   const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-  if (days > 0) {
+  if (hours >= 24) {
+    const days = Math.floor(hours / 24);
     return `${days}d ${hours % 24}h`;
   }
   return `${hours}h ${Math.round(minutes % 60)}m`;
 }
 
-function CosmosDashboard() {
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return 'Unknown';
+  return new Date(dateStr).toLocaleDateString('en-US', { 
+    year: 'numeric', 
+    month: 'short', 
+    day: 'numeric' 
+  });
+}
+
+function CosmosMissionControl() {
   const { selectedProfileId } = useProfile();
   const { data: overview, isLoading } = useOverviewStats(selectedProfileId);
-  const { data: topArtists, isLoading: loadingArtists } = useTopArtists(selectedProfileId, 5);
-  const { data: yearly } = useYearlyStats(selectedProfileId);
+  const { data: topArtists } = useTopArtists(selectedProfileId, 5);
+  const { data: tracksData } = useTracks({
+    profileId: selectedProfileId,
+    limit: 5,
+    sortBy: 'totalPlays',
+    sortOrder: 'DESC',
+  });
 
   if (isLoading) {
     return (
       <div className="cosmos-loading">
-        <div className="cosmos-loading-sun" />
+        <div className="cosmos-loading-planet" />
       </div>
     );
   }
 
   return (
-    <div className="p-8">
+    <div className="cosmos-page p-8">
       {/* Hero */}
-      <div className="flex items-center justify-between mb-12">
-        <div>
-          <h1 className="font-audiowide text-4xl text-white mb-4 tracking-wider">
-            Mission <span className="text-cosmos-gold">Control</span>
-          </h1>
-          <p className="text-white/50 tracking-wide">
-            Audio telemetry from across the galaxy
-          </p>
+      <div className="cosmos-hero text-center mb-12">
+        <h1 className="font-audiowide text-4xl text-white mb-4 tracking-wider">
+          Mission <span className="text-cosmos-gold">Control</span>
+        </h1>
+        <p className="text-white/50 max-w-xl mx-auto">
+          Your deep space exploration of musical data begins here
+        </p>
+      </div>
+
+      {/* Mission Stats */}
+      <div className="cosmos-stats-panel mb-12">
+        <div className="cosmos-stat">
+          <div className="cosmos-stat-icon">🌟</div>
+          <div className="cosmos-stat-value">{formatNumber(overview?.totalPlays || 0)}</div>
+          <div className="cosmos-stat-label">Total Transmissions</div>
         </div>
-        
-        {/* Orbit visualization */}
-        <div className="cosmos-orbit-container">
-          <div className="cosmos-orbit" />
-          <div className="cosmos-orbit" />
-          <div className="cosmos-orbit" />
-          <div className="cosmos-orbit" />
-          <div className="cosmos-sun" />
+        <div className="cosmos-stat">
+          <div className="cosmos-stat-icon">⏱️</div>
+          <div className="cosmos-stat-value">{formatMinutes(overview?.totalMinutes || 0)}</div>
+          <div className="cosmos-stat-label">Flight Time</div>
+        </div>
+        <div className="cosmos-stat">
+          <div className="cosmos-stat-icon">🎵</div>
+          <div className="cosmos-stat-value">{formatNumber(overview?.uniqueTracks || 0)}</div>
+          <div className="cosmos-stat-label">Signals Detected</div>
+        </div>
+        <div className="cosmos-stat">
+          <div className="cosmos-stat-icon">🌌</div>
+          <div className="cosmos-stat-value">{formatNumber(overview?.uniqueArtists || 0)}</div>
+          <div className="cosmos-stat-label">Star Systems</div>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="cosmos-grid cosmos-grid-4 mb-12">
-        <StatCard value={formatNumber(overview?.totalPlays || 0)} label="Transmissions" />
-        <StatCard value={formatMinutes(overview?.totalMinutes || 0)} label="Flight Time" />
-        <StatCard value={formatNumber(overview?.uniqueTracks || 0)} label="Signals" />
-        <StatCard value={formatNumber(overview?.uniqueArtists || 0)} label="Sources" />
-      </div>
-
-      <div className="cosmos-grid cosmos-grid-2 gap-8">
-        {/* Top Artists */}
+      <div className="grid grid-cols-2 gap-8">
+        {/* Top Celestial Bodies (Artists) */}
         <div className="cosmos-card">
-          <h2 className="cosmos-section-title">Primary Sources</h2>
-          {loadingArtists ? (
-            <div className="cosmos-loading"><div className="cosmos-loading-sun" /></div>
-          ) : (
-            <div>
-              {topArtists?.map((artist, index) => (
-                <div key={artist.id} className="cosmos-track">
-                  <div className="cosmos-track-rank">{index + 1}</div>
-                  <div className="cosmos-track-info">
-                    <div className="cosmos-track-name">{artist.name}</div>
-                    <div className="cosmos-track-artist">{formatMinutes(artist.minutes)} contact</div>
+          <h2 className="cosmos-section-title">Brightest Stars</h2>
+          <p className="text-white/40 text-sm mb-4">Your most played artists</p>
+          {topArtists && topArtists.length > 0 ? (
+            <div className="space-y-3">
+              {topArtists.map((artist, i) => (
+                <div key={artist.id} className="cosmos-artist">
+                  <div className="cosmos-artist-rank">{i + 1}</div>
+                  <div className="cosmos-artist-orbit">
+                    <div 
+                      className="cosmos-artist-planet" 
+                      style={{ 
+                        width: `${20 + (5 - i) * 4}px`,
+                        height: `${20 + (5 - i) * 4}px`,
+                      }}
+                    />
                   </div>
-                  <div className="cosmos-track-plays">{formatNumber(artist.plays)}</div>
+                  <div className="flex-1">
+                    <div className="cosmos-artist-name">{artist.name}</div>
+                    <div className="text-white/40 text-sm">{formatNumber(artist.plays)} plays</div>
+                  </div>
                 </div>
               ))}
             </div>
+          ) : (
+            <p className="text-white/30">No data available</p>
           )}
         </div>
 
-        {/* Yearly Chart */}
+        {/* Top Signals (Tracks) */}
         <div className="cosmos-card">
-          <h2 className="cosmos-section-title">Temporal Analysis</h2>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={yearly || []}>
-                <defs>
-                  <linearGradient id="cosmosGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#ffd700" stopOpacity={0.5} />
-                    <stop offset="100%" stopColor="#4a1f6e" stopOpacity={0.1} />
-                  </linearGradient>
-                </defs>
-                <XAxis 
-                  dataKey="year" 
-                  stroke="rgba(248, 248, 255, 0.3)"
-                  tick={{ fill: 'rgba(248, 248, 255, 0.5)', fontFamily: 'IBM Plex Sans', fontSize: 11 }}
-                />
-                <YAxis 
-                  stroke="rgba(248, 248, 255, 0.3)"
-                  tick={{ fill: 'rgba(248, 248, 255, 0.5)', fontFamily: 'IBM Plex Sans', fontSize: 11 }}
-                  tickFormatter={(v) => formatNumber(v)}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    background: 'rgba(11, 12, 26, 0.95)', 
-                    border: '1px solid rgba(255, 215, 0, 0.3)',
-                    borderRadius: '8px',
-                    color: '#ffd700',
-                    fontFamily: 'IBM Plex Sans',
-                  }}
-                  formatter={(value: number) => [formatNumber(value), 'Signals']}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="plays" 
-                  stroke="#ffd700"
-                  strokeWidth={2}
-                  fill="url(#cosmosGrad)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+          <h2 className="cosmos-section-title">Top Signals</h2>
+          <p className="text-white/40 text-sm mb-4">Click to explore track in detail</p>
+          {tracksData?.data && tracksData.data.length > 0 ? (
+            <div className="space-y-3">
+              {tracksData.data.map((track, i) => (
+                <Link 
+                  key={track.id} 
+                  to={`/5/explore?track=${track.id}`}
+                  className="cosmos-track block hover:bg-white/5 rounded-lg transition-colors"
+                >
+                  <div className="cosmos-track-rank">{i + 1}</div>
+                  <div className="flex-1">
+                    <div className="cosmos-track-name">{track.name || track.trackName}</div>
+                    <div className="cosmos-track-artist">{track.artistName}</div>
+                  </div>
+                  <div className="cosmos-track-plays">{track.totalPlays}x</div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="text-white/30">No data available</p>
+          )}
+          <Link to="/5/explore" className="cosmos-btn mt-4 inline-block">
+            Explore All Tracks →
+          </Link>
         </div>
       </div>
     </div>
   );
 }
 
-function CosmosExploration() {
+function CosmosExplore() {
   const { selectedProfileId } = useProfile();
-  const { data: tracksData, isLoading } = useTracks({ 
-    profileId: selectedProfileId, 
-    limit: 12, 
-    sortBy: 'totalPlays', 
-    sortOrder: 'DESC' 
+  const [selectedTrackId, setSelectedTrackId] = useState<number | null>(null);
+  const [search, setSearch] = useState('');
+  
+  const { data: tracksData, isLoading } = useTracks({
+    profileId: selectedProfileId,
+    limit: 20,
+    search: search || undefined,
+    sortBy: 'totalPlays',
+    sortOrder: 'DESC',
   });
 
-  const tracks = tracksData?.data || [];
+  const { data: trackDetail } = useTrackDetail(selectedTrackId || 0, selectedProfileId);
+  const { data: trackTimeline } = useTrackTimeline(selectedTrackId || 0, selectedProfileId);
+
+  // Get track ID from URL if present
+  const location = useLocation();
+  const urlParams = new URLSearchParams(location.search);
+  const urlTrackId = urlParams.get('track');
+  if (urlTrackId && !selectedTrackId) {
+    setSelectedTrackId(Number(urlTrackId));
+  }
 
   return (
-    <div className="p-8">
-      <h1 className="cosmos-section-title text-2xl mb-8">Signal Archive</h1>
-      
-      {isLoading ? (
-        <div className="cosmos-loading"><div className="cosmos-loading-sun" /></div>
-      ) : (
-        <div className="cosmos-grid cosmos-grid-2">
-          {tracks.map((track, index) => (
-            <div key={track.id} className="cosmos-card flex items-center gap-4">
-              <div className="cosmos-track-rank text-lg">{index + 1}</div>
-              <div className="flex-1">
-                <div className="font-semibold text-white mb-1">{track.name || track.trackName}</div>
-                <div className="text-sm text-white/50">{track.artistName}</div>
+    <div className="cosmos-page p-8">
+      <div className="mb-8">
+        <h1 className="font-audiowide text-3xl text-white mb-2">
+          🔭 Track Explorer
+        </h1>
+        <p className="text-white/50">
+          Deep dive into individual track data and play history
+        </p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-8">
+        {/* Track List */}
+        <div className="cosmos-card">
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder="Search tracks..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="cosmos-search"
+            />
+          </div>
+          
+          {isLoading ? (
+            <div className="cosmos-loading-small" />
+          ) : (
+            <div className="space-y-2 max-h-[500px] overflow-y-auto">
+              {tracksData?.data?.map((track) => (
+                <button
+                  key={track.id}
+                  onClick={() => setSelectedTrackId(track.id)}
+                  className={`cosmos-track-btn w-full text-left ${selectedTrackId === track.id ? 'active' : ''}`}
+                >
+                  <div className="cosmos-track-btn-name">{track.name || track.trackName}</div>
+                  <div className="cosmos-track-btn-artist">{track.artistName}</div>
+                  <div className="cosmos-track-btn-plays">{track.totalPlays}x</div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Track Detail */}
+        <div className="col-span-2">
+          {selectedTrackId && trackDetail ? (
+            <div className="cosmos-card cosmos-card-detail">
+              <div className="flex items-start justify-between mb-6">
+                <div>
+                  <h2 className="font-audiowide text-2xl text-white mb-1">{trackDetail.name}</h2>
+                  <p className="text-cosmos-gold">{trackDetail.album?.artist?.name}</p>
+                  <p className="text-white/40">{trackDetail.album?.name}</p>
+                </div>
+                <div className="text-right">
+                  <div className="cosmos-detail-stat">
+                    <span className="text-3xl font-bold text-cosmos-gold">{trackDetail.stats?.totalPlays}</span>
+                    <span className="text-white/50 ml-2">plays</span>
+                  </div>
+                </div>
               </div>
-              <div className="text-right">
-                <div className="cosmos-track-plays text-lg">{formatNumber(track.totalPlays)}</div>
-                <div className="text-xs text-white/40">transmissions</div>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-4 gap-4 mb-6">
+                <div className="cosmos-mini-stat">
+                  <div className="cosmos-mini-stat-value">{formatMinutes(trackDetail.stats?.totalMinutes || 0)}</div>
+                  <div className="cosmos-mini-stat-label">Total Time</div>
+                </div>
+                <div className="cosmos-mini-stat">
+                  <div className="cosmos-mini-stat-value">{(trackDetail.stats?.skipPercentage || 0).toFixed(0)}%</div>
+                  <div className="cosmos-mini-stat-label">Skip Rate</div>
+                </div>
+                <div className="cosmos-mini-stat">
+                  <div className="cosmos-mini-stat-value">{formatDate(trackDetail.stats?.firstPlay)}</div>
+                  <div className="cosmos-mini-stat-label">First Play</div>
+                </div>
+                <div className="cosmos-mini-stat">
+                  <div className="cosmos-mini-stat-value">{formatDate(trackDetail.stats?.lastPlay)}</div>
+                  <div className="cosmos-mini-stat-label">Last Play</div>
+                </div>
+              </div>
+
+              {/* Timeline Chart */}
+              {trackTimeline?.data && trackTimeline.data.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="cosmos-section-title text-sm mb-4">Play Timeline</h3>
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={trackTimeline.data.slice(-60)}>
+                        <defs>
+                          <linearGradient id="cosmosGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#ffd700" stopOpacity={0.4} />
+                            <stop offset="100%" stopColor="#4a1f6e" stopOpacity={0.1} />
+                          </linearGradient>
+                        </defs>
+                        <XAxis 
+                          dataKey="date" 
+                          stroke="rgba(255,255,255,0.2)"
+                          tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }}
+                          interval="preserveStartEnd"
+                        />
+                        <YAxis 
+                          stroke="rgba(255,255,255,0.2)"
+                          tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }}
+                        />
+                        <Tooltip 
+                          contentStyle={{ 
+                            background: 'rgba(11,12,26,0.95)', 
+                            border: '1px solid rgba(255,215,0,0.3)',
+                            borderRadius: '8px',
+                            color: '#fff',
+                          }}
+                        />
+                        <Area 
+                          type="monotone" 
+                          dataKey="plays" 
+                          stroke="#ffd700"
+                          strokeWidth={2}
+                          fill="url(#cosmosGrad)"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+
+              {/* Recent Plays */}
+              {trackDetail.recentPlays && trackDetail.recentPlays.length > 0 && (
+                <div>
+                  <h3 className="cosmos-section-title text-sm mb-4">Recent Transmissions</h3>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {trackDetail.recentPlays.slice(0, 10).map((play) => (
+                      <div key={play.id} className="cosmos-play-event">
+                        <div className="cosmos-play-date">{formatDate(play.playedAt)}</div>
+                        <div className="cosmos-play-platform">{play.platform}</div>
+                        <div className="cosmos-play-country">{play.country}</div>
+                        <div className={`cosmos-play-status ${play.skipped ? 'skipped' : 'complete'}`}>
+                          {play.skipped ? 'Skipped' : 'Complete'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="cosmos-card text-center py-16">
+              <div className="text-6xl mb-4">🔭</div>
+              <h2 className="font-audiowide text-xl text-white mb-2">Select a Track</h2>
+              <p className="text-white/50">
+                Choose a track from the list to explore its detailed data
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CosmosAlbums() {
+  const { selectedProfileId } = useProfile();
+  const { data: albumsData, isLoading } = useAlbums({
+    profileId: selectedProfileId,
+    limit: 30,
+    sortBy: 'plays',
+    sortOrder: 'DESC',
+  });
+
+  return (
+    <div className="cosmos-page p-8">
+      <div className="mb-8">
+        <h1 className="font-audiowide text-3xl text-white mb-2">
+          🌌 Album Galaxy
+        </h1>
+        <p className="text-white/50">
+          Explore your collection by album
+        </p>
+      </div>
+
+      {isLoading ? (
+        <div className="cosmos-loading"><div className="cosmos-loading-planet" /></div>
+      ) : (
+        <div className="cosmos-albums-grid">
+          {albumsData?.data?.map((album, i) => (
+            <div key={album.id} className="cosmos-album-card">
+              <div className="cosmos-album-art">
+                <span className="text-2xl">💿</span>
+              </div>
+              <div className="cosmos-album-rank">{i + 1}</div>
+              <div className="cosmos-album-name">{album.name}</div>
+              <div className="cosmos-album-artist">{album.artist}</div>
+              <div className="cosmos-album-stats">
+                {formatNumber(album.plays)} plays • {formatMinutes(album.minutes)}
               </div>
             </div>
           ))}
@@ -275,127 +460,19 @@ function CosmosExploration() {
   );
 }
 
-function CosmosTelemetry() {
-  const { selectedProfileId } = useProfile();
-  const { data: timeOfDay, isLoading } = useTimeOfDay(selectedProfileId);
-  const { data: topArtists } = useTopArtists(selectedProfileId, 8);
-
-  const radarData = topArtists?.map((artist) => ({
-    name: artist.name.length > 10 ? artist.name.substring(0, 10) + '...' : artist.name,
-    value: artist.plays,
-  })) || [];
-
-  const hourlyData = timeOfDay?.map((item) => ({
-    hour: `${String(item.hour).padStart(2, '0')}:00`,
-    plays: item.plays,
-  })) || [];
-
-  return (
-    <div className="p-8">
-      <h1 className="cosmos-section-title text-2xl mb-8">Telemetry Data</h1>
-      
-      <div className="cosmos-grid cosmos-grid-2 gap-8">
-        {/* Radar Chart - Artist Constellation */}
-        <div className="cosmos-card">
-          <h2 className="cosmos-section-title">Source Constellation</h2>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <RadarChart data={radarData}>
-                <PolarGrid stroke="rgba(255, 215, 0, 0.2)" />
-                <PolarAngleAxis 
-                  dataKey="name" 
-                  tick={{ fill: 'rgba(248, 248, 255, 0.6)', fontSize: 10 }}
-                />
-                <PolarRadiusAxis 
-                  angle={30} 
-                  domain={[0, 'auto']}
-                  tick={{ fill: 'rgba(248, 248, 255, 0.4)', fontSize: 9 }}
-                />
-                <Radar 
-                  name="Plays" 
-                  dataKey="value" 
-                  stroke="#ffd700" 
-                  fill="#ffd700" 
-                  fillOpacity={0.3}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    background: 'rgba(11, 12, 26, 0.95)', 
-                    border: '1px solid rgba(255, 215, 0, 0.3)',
-                    borderRadius: '8px',
-                    color: '#ffd700',
-                  }}
-                />
-              </RadarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Timeline */}
-        <div className="cosmos-card">
-          <h2 className="cosmos-section-title">Temporal Distribution</h2>
-          {isLoading ? (
-            <div className="cosmos-loading"><div className="cosmos-loading-sun" /></div>
-          ) : (
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={hourlyData}>
-                  <defs>
-                    <linearGradient id="telemetryGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#ffd700" stopOpacity={0.6} />
-                      <stop offset="50%" stopColor="#4a1f6e" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="#0b0c1a" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis 
-                    dataKey="hour" 
-                    stroke="rgba(248, 248, 255, 0.2)"
-                    tick={{ fill: 'rgba(248, 248, 255, 0.4)', fontSize: 9 }}
-                    interval={3}
-                  />
-                  <YAxis 
-                    stroke="rgba(248, 248, 255, 0.2)"
-                    tick={{ fill: 'rgba(248, 248, 255, 0.4)', fontSize: 10 }}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      background: 'rgba(11, 12, 26, 0.95)', 
-                      border: '1px solid rgba(255, 215, 0, 0.3)',
-                      borderRadius: '8px',
-                      color: '#ffd700',
-                    }}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="plays" 
-                    stroke="#ffd700"
-                    strokeWidth={2}
-                    fill="url(#telemetryGrad)"
-                    dot={{ fill: '#ffd700', r: 3 }}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function CosmosApp() {
   const location = useLocation();
   
   return (
     <div className="cosmos-app">
-      <StarField />
-      <div className="cosmos-nebula" />
+      <div className="cosmos-bg" />
+      <Stars />
       <div className="cosmos-content">
         <CosmosNav />
         
-        {location.pathname === '/5' && <CosmosDashboard />}
-        {location.pathname === '/5/exploration' && <CosmosExploration />}
-        {location.pathname === '/5/telemetry' && <CosmosTelemetry />}
+        {location.pathname === '/5' && <CosmosMissionControl />}
+        {location.pathname === '/5/explore' && <CosmosExplore />}
+        {location.pathname === '/5/albums' && <CosmosAlbums />}
       </div>
     </div>
   );

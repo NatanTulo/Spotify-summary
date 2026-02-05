@@ -523,3 +523,354 @@
   stroke-linecap: round;
   filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.5));
 }
+
+/* Page and Hero */
+.cosmos-page {
+  position: relative;
+  z-index: 10;
+}
+
+.cosmos-hero {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.cosmos-bg {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse at 30% 20%,
+      rgba(74, 31, 110, 0.4) 0%,
+      transparent 40%
+    ),
+    radial-gradient(
+      ellipse at 70% 70%,
+      rgba(255, 215, 0, 0.1) 0%,
+      transparent 40%
+    );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Stats panel */
+.cosmos-stats-panel {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.cosmos-stat {
+  text-align: center;
+  padding: 1.5rem;
+  background: rgba(11, 12, 26, 0.8);
+  border: 1px solid rgba(255, 215, 0, 0.15);
+  border-radius: 12px;
+}
+
+.cosmos-stat-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Artist styles */
+.cosmos-artist {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.cosmos-artist:hover {
+  background: rgba(255, 215, 0, 0.05);
+}
+
+.cosmos-artist-rank {
+  font-family: "Audiowide", cursive;
+  color: #ffd700;
+  width: 24px;
+}
+
+.cosmos-artist-orbit {
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cosmos-artist-planet {
+  background: linear-gradient(135deg, #ffd700, #ff8c00);
+  border-radius: 50%;
+}
+
+.cosmos-artist-name {
+  color: #f8f8ff;
+  font-weight: 600;
+}
+
+/* Button */
+.cosmos-btn {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  color: #ffd700;
+  font-family: "Audiowide", cursive;
+  font-size: 0.75rem;
+  text-decoration: none;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.cosmos-btn:hover {
+  background: rgba(255, 215, 0, 0.1);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+}
+
+/* Search */
+.cosmos-search {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: rgba(11, 12, 26, 0.9);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 8px;
+  color: #f8f8ff;
+  font-family: "IBM Plex Sans", sans-serif;
+  transition: border-color 0.2s;
+}
+
+.cosmos-search:focus {
+  outline: none;
+  border-color: #ffd700;
+}
+
+.cosmos-search::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* Track button */
+.cosmos-track-btn {
+  display: block;
+  padding: 0.75rem;
+  border: 1px solid rgba(255, 215, 0, 0.1);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  transition: all 0.2s;
+  background: transparent;
+  cursor: pointer;
+}
+
+.cosmos-track-btn:hover {
+  background: rgba(255, 215, 0, 0.05);
+  border-color: rgba(255, 215, 0, 0.2);
+}
+
+.cosmos-track-btn.active {
+  background: rgba(255, 215, 0, 0.1);
+  border-color: #ffd700;
+}
+
+.cosmos-track-btn-name {
+  color: #f8f8ff;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.cosmos-track-btn-artist {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
+}
+
+.cosmos-track-btn-plays {
+  color: #ffd700;
+  font-family: "Audiowide", cursive;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+/* Detail card */
+.cosmos-card-detail {
+  background: rgba(11, 12, 26, 0.95);
+}
+
+.cosmos-detail-stat {
+  display: flex;
+  align-items: baseline;
+}
+
+/* Mini stat */
+.cosmos-mini-stat {
+  text-align: center;
+  padding: 1rem;
+  background: rgba(255, 215, 0, 0.03);
+  border-radius: 8px;
+}
+
+.cosmos-mini-stat-value {
+  font-family: "Audiowide", cursive;
+  color: #ffd700;
+  font-size: 1rem;
+}
+
+.cosmos-mini-stat-label {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 0.25rem;
+}
+
+/* Play event */
+.cosmos-play-event {
+  display: grid;
+  grid-template-columns: 1fr 80px 50px 80px;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+  font-size: 0.8rem;
+}
+
+.cosmos-play-date {
+  color: rgba(255, 255, 255, 0.6);
+}
+.cosmos-play-platform {
+  color: rgba(255, 255, 255, 0.4);
+}
+.cosmos-play-country {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.cosmos-play-status {
+  text-align: right;
+}
+
+.cosmos-play-status.complete {
+  color: #4ade80;
+}
+.cosmos-play-status.skipped {
+  color: #ff6b6b;
+}
+
+/* Loading small */
+.cosmos-loading-small {
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(255, 215, 0, 0.2);
+  border-top-color: #ffd700;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 2rem auto;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Loading planet */
+.cosmos-loading-planet {
+  width: 40px;
+  height: 40px;
+  background: radial-gradient(circle, #ffd700, #ff8c00);
+  border-radius: 50%;
+  animation: pulse 1.5s ease-in-out infinite;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+}
+
+/* Album card */
+.cosmos-album-card {
+  background: rgba(11, 12, 26, 0.8);
+  border: 1px solid rgba(255, 215, 0, 0.15);
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.cosmos-album-card:hover {
+  border-color: rgba(255, 215, 0, 0.3);
+  transform: translateY(-4px);
+}
+
+.cosmos-album-art {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(
+    135deg,
+    rgba(74, 31, 110, 0.6),
+    rgba(255, 215, 0, 0.2)
+  );
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+
+.cosmos-album-rank {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  font-family: "Audiowide", cursive;
+  font-size: 0.75rem;
+  color: #ffd700;
+  background: rgba(11, 12, 26, 0.9);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.cosmos-album-name {
+  font-weight: 600;
+  color: #f8f8ff;
+  margin-bottom: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.cosmos-album-artist {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.cosmos-album-stats {
+  color: #ffd700;
+  font-size: 0.75rem;
+}
+
+/* Albums grid */
+.cosmos-albums-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 1024px) {
+  .cosmos-albums-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .cosmos-stats-panel {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .cosmos-albums-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .cosmos-stats-panel {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Gold text color */
+.text-cosmos-gold {
+  color: #ffd700;
+}

@@ -515,3 +515,70 @@
   border-radius: 16px;
   padding: 1rem;
 }
+
+/* Clock visualization */
+.aurora-clock {
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+/* Day bar */
+.aurora-day-bar {
+  width: 24px;
+  border-radius: 12px;
+  transition: height 0.3s ease;
+}
+
+/* Period card */
+.aurora-period-card {
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 16px;
+  margin-bottom: 0.5rem;
+}
+
+/* Progress bar */
+.aurora-progress-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.aurora-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea, #f093fb);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* Gradient text */
+.gradient-text {
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Aurora colors */
+.text-aurora-end {
+  color: #f093fb;
+}
+.text-aurora-start {
+  color: #667eea;
+}
+.bg-gradient-to-r {
+  background: linear-gradient(90deg, var(--tw-gradient-stops));
+}
+.from-aurora-start {
+  --tw-gradient-from: #667eea;
+  --tw-gradient-stops:
+    var(--tw-gradient-from), var(--tw-gradient-to, #667eea00);
+}
+.via-aurora-mid {
+  --tw-gradient-stops:
+    var(--tw-gradient-from), #764ba2, var(--tw-gradient-to, #764ba200);
+}
+.to-aurora-end {
+  --tw-gradient-to: #f093fb;
+}

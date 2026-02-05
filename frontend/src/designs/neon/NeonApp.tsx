@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useProfile } from '../../hooks/useProfile';
-import { useOverviewStats, useTopArtists, useYearlyStats, useTracks, useTimeOfDay } from '../../hooks/useApi';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, RadarChart, Radar, PolarGrid, PolarAngleAxis } from 'recharts';
+import { useOverviewStats, useMostSkippedTracks, useTracksByPlatform, useCountryStats, useTracks } from '../../hooks/useApi';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import './neon.css';
 
 function NeonNav() {
@@ -10,7 +10,10 @@ function NeonNav() {
   
   return (
     <nav className="neon-nav">
-      <div className="neon-logo">NEON_STATS</div>
+      <div className="neon-logo">
+        <span className="neon-logo-icon">◢◤</span>
+        <span className="glitch" data-text="ANALYTICS">ANALYTICS</span>
+      </div>
       
       <ul className="neon-nav-links">
         <li>
@@ -18,23 +21,23 @@ function NeonNav() {
             to="/2" 
             className={`neon-nav-link ${location.pathname === '/2' ? 'active' : ''}`}
           >
-            Dashboard
+            DASHBOARD
           </Link>
         </li>
         <li>
           <Link 
-            to="/2/tracks" 
-            className={`neon-nav-link ${location.pathname === '/2/tracks' ? 'active' : ''}`}
+            to="/2/skip-radar" 
+            className={`neon-nav-link ${location.pathname === '/2/skip-radar' ? 'active' : ''}`}
           >
-            Tracks
+            SKIP_RADAR
           </Link>
         </li>
         <li>
           <Link 
-            to="/2/analytics" 
-            className={`neon-nav-link ${location.pathname === '/2/analytics' ? 'active' : ''}`}
+            to="/2/platforms" 
+            className={`neon-nav-link ${location.pathname === '/2/platforms' ? 'active' : ''}`}
           >
-            Analytics
+            PLATFORMS
           </Link>
         </li>
       </ul>
@@ -45,9 +48,9 @@ function NeonNav() {
           onChange={(e) => setSelectedProfileId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
           className="neon-select"
         >
-          <option value="all">&gt; ALL_PROFILES</option>
+          <option value="all">ALL_USERS</option>
           {profiles.map((p) => (
-            <option key={p.id} value={p.id}>&gt; {p.name.toUpperCase()}</option>
+            <option key={p.id} value={p.id}>{p.name.toUpperCase()}</option>
           ))}
         </select>
         
@@ -67,56 +70,24 @@ function NeonNav() {
   );
 }
 
-function StatCard({ value, label, color = 'cyan' }: { value: string | number; label: string; color?: 'cyan' | 'pink' | 'purple' }) {
-  const gradients = {
-    cyan: 'linear-gradient(180deg, #05d9e8 0%, #7b2dff 100%)',
-    pink: 'linear-gradient(180deg, #ff2a6d 0%, #7b2dff 100%)',
-    purple: 'linear-gradient(180deg, #7b2dff 0%, #05d9e8 100%)',
-  };
-  
-  return (
-    <div className="neon-card scanlines">
-      <div className="text-center py-4">
-        <div 
-          className="neon-stat-value"
-          style={{ background: gradients[color], WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
-        >
-          {value}
-        </div>
-        <div className="neon-stat-label">{label}</div>
-      </div>
-    </div>
-  );
-}
-
 function formatNumber(num: number): string {
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+  if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M';
   if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
   return num.toString();
 }
 
-function formatMinutes(minutes: number): string {
-  const hours = Math.floor(minutes / 60);
-  if (hours >= 24) {
-    const days = Math.floor(hours / 24);
-    return `${days}D:${String(hours % 24).padStart(2, '0')}H`;
-  }
-  return `${hours}H:${String(Math.round(minutes % 60)).padStart(2, '0')}M`;
+function formatPercent(num: number): string {
+  return num.toFixed(1) + '%';
 }
 
 function NeonDashboard() {
   const { selectedProfileId } = useProfile();
-  const { data: overview, isLoading: loadingOverview } = useOverviewStats(selectedProfileId);
-  const { data: topArtists, isLoading: loadingArtists } = useTopArtists(selectedProfileId, 5);
-  const { data: yearly } = useYearlyStats(selectedProfileId);
-  const { data: tracksData } = useTracks({ 
-    profileId: selectedProfileId, 
-    limit: 5, 
-    sortBy: 'totalPlays', 
-    sortOrder: 'DESC' 
-  });
+  const { data: overview, isLoading } = useOverviewStats(selectedProfileId);
+  const { data: skipped } = useMostSkippedTracks(selectedProfileId, 5);
+  const { data: platforms } = useTracksByPlatform(selectedProfileId);
+  const { data: countries } = useCountryStats(selectedProfileId);
 
-  if (loadingOverview) {
+  if (isLoading) {
     return (
       <div className="neon-loading">
         <div className="neon-loading-bar" />
@@ -124,219 +95,317 @@ function NeonDashboard() {
     );
   }
 
-  const topTracks = tracksData?.data || [];
+  const COLORS = ['#ff2a6d', '#05d9e8', '#d1f7ff', '#01012b', '#ff2a6d'];
 
   return (
-    <div className="p-8">
-      {/* Hero */}
-      <div className="mb-12">
-        <h1 
-          className="glitch font-orbitron text-5xl font-black text-white mb-4"
-          data-text="SYSTEM_ONLINE"
-        >
-          SYSTEM_ONLINE
-        </h1>
-        <p className="text-white/50 font-jetbrains">
-          &gt; Analyzing {formatNumber(overview?.totalPlays || 0)} audio streams...
-        </p>
+    <div className="neon-page p-8">
+      {/* Terminal Header */}
+      <div className="neon-terminal mb-8">
+        <div className="neon-terminal-header">
+          <span className="neon-terminal-dot" />
+          <span className="neon-terminal-dot" />
+          <span className="neon-terminal-dot" />
+          <span className="ml-4 text-white/50">system_analytics.exe</span>
+        </div>
+        <div className="neon-terminal-body">
+          <p className="text-neon-cyan">{'>'} INITIALIZING ANALYTICS ENGINE...</p>
+          <p className="text-neon-pink">{'>'} LOADED {formatNumber(overview?.totalPlays || 0)} DATA POINTS</p>
+          <p className="text-white/70">{'>'} SYSTEM_STATUS: <span className="text-neon-cyan">ONLINE</span></p>
+        </div>
       </div>
 
-      {/* Stats grid */}
-      <div className="neon-grid neon-grid-4 mb-12">
-        <StatCard value={formatNumber(overview?.totalPlays || 0)} label="TOTAL_PLAYS" color="cyan" />
-        <StatCard value={formatMinutes(overview?.totalMinutes || 0)} label="TIME_PLAYED" color="pink" />
-        <StatCard value={formatNumber(overview?.uniqueTracks || 0)} label="UNIQUE_TRACKS" color="purple" />
-        <StatCard value={formatNumber(overview?.uniqueArtists || 0)} label="ARTISTS_DETECTED" color="cyan" />
+      {/* Stats Grid */}
+      <div className="grid grid-cols-4 gap-4 mb-8">
+        <div className="neon-stat-card">
+          <div className="neon-stat-value">{formatNumber(overview?.totalPlays || 0)}</div>
+          <div className="neon-stat-label">TOTAL_PLAYS</div>
+        </div>
+        <div className="neon-stat-card neon-stat-card-cyan">
+          <div className="neon-stat-value">{formatNumber(overview?.uniqueTracks || 0)}</div>
+          <div className="neon-stat-label">UNIQUE_TRACKS</div>
+        </div>
+        <div className="neon-stat-card">
+          <div className="neon-stat-value">{formatNumber(overview?.uniqueArtists || 0)}</div>
+          <div className="neon-stat-label">ARTISTS</div>
+        </div>
+        <div className="neon-stat-card neon-stat-card-cyan">
+          <div className="neon-stat-value">{overview?.topCountry || 'N/A'}</div>
+          <div className="neon-stat-label">TOP_REGION</div>
+        </div>
       </div>
 
-      <div className="neon-grid neon-grid-2 mb-12">
-        {/* Top Artists */}
+      <div className="grid grid-cols-2 gap-8">
+        {/* Skip Analysis Preview */}
         <div className="neon-card">
-          <h2 className="neon-section-title">TOP_ARTISTS</h2>
-          {loadingArtists ? (
-            <div className="neon-loading"><div className="neon-loading-bar" /></div>
-          ) : (
-            <div>
-              {topArtists?.map((artist, index) => (
-                <div key={artist.id} className="neon-track">
-                  <div className="neon-track-number">[{String(index + 1).padStart(2, '0')}]</div>
-                  <div className="neon-track-info">
-                    <div className="neon-track-name">{artist.name}</div>
-                    <div className="neon-track-artist">{formatMinutes(artist.minutes)} runtime</div>
+          <h2 className="neon-section-title">⚠ SKIP_ANALYSIS</h2>
+          <p className="text-white/40 text-sm mb-4">Tracks with highest skip rates</p>
+          {skipped && skipped.length > 0 ? (
+            <div className="space-y-2">
+              {skipped.slice(0, 5).map((track, i) => (
+                <div key={track.id} className="neon-track">
+                  <div className="neon-track-rank">{String(i + 1).padStart(2, '0')}</div>
+                  <div className="flex-1">
+                    <div className="neon-track-name">{track.name || track.trackName}</div>
+                    <div className="neon-track-artist">{track.artistName}</div>
                   </div>
-                  <div className="neon-track-plays">{formatNumber(artist.plays)}</div>
+                  <div className="neon-skip-badge">
+                    {formatPercent(track.skipPercentage || 0)}
+                  </div>
                 </div>
               ))}
+              <Link to="/2/skip-radar" className="neon-btn mt-4 inline-block">
+                VIEW_FULL_ANALYSIS →
+              </Link>
             </div>
+          ) : (
+            <p className="text-white/30">NO_DATA_AVAILABLE</p>
           )}
         </div>
 
-        {/* Yearly Chart */}
+        {/* Platform Distribution */}
         <div className="neon-card">
-          <h2 className="neon-section-title">YEARLY_DATA</h2>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={yearly || []}>
-                <XAxis 
-                  dataKey="year" 
-                  stroke="#05d9e8" 
-                  strokeOpacity={0.3}
-                  tick={{ fill: '#05d9e8', opacity: 0.6, fontSize: 10 }}
-                  axisLine={{ stroke: '#05d9e8', strokeOpacity: 0.2 }}
-                />
-                <YAxis 
-                  stroke="#05d9e8" 
-                  strokeOpacity={0.3}
-                  tick={{ fill: '#05d9e8', opacity: 0.6, fontSize: 10 }}
-                  axisLine={{ stroke: '#05d9e8', strokeOpacity: 0.2 }}
-                  tickFormatter={(v) => formatNumber(v)}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    background: '#0a0a0f', 
-                    border: '1px solid rgba(5, 217, 232, 0.3)',
-                    color: '#05d9e8',
-                    fontFamily: 'JetBrains Mono'
-                  }}
-                  formatter={(value: number) => [formatNumber(value), 'PLAYS']}
-                />
-                <Bar 
-                  dataKey="plays" 
-                  fill="url(#neonGradient)"
-                />
-                <defs>
-                  <linearGradient id="neonGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#ff2a6d" />
-                    <stop offset="100%" stopColor="#7b2dff" />
-                  </linearGradient>
-                </defs>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-
-      {/* Top Tracks */}
-      <div className="neon-card">
-        <h2 className="neon-section-title">TOP_TRACKS</h2>
-        <div>
-          {topTracks.map((track, index) => (
-            <div key={track.id} className="neon-track">
-              <div className="neon-track-number">[{String(index + 1).padStart(2, '0')}]</div>
-              <div className="neon-track-info">
-                <div className="neon-track-name">{track.name || track.trackName}</div>
-                <div className="neon-track-artist">{track.artistName}</div>
-              </div>
-              <div className="neon-track-plays">{formatNumber(track.totalPlays)} plays</div>
+          <h2 className="neon-section-title">📱 PLATFORM_MATRIX</h2>
+          <p className="text-white/40 text-sm mb-4">Device usage distribution</p>
+          {platforms && platforms.length > 0 ? (
+            <div className="h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={platforms.slice(0, 5)}
+                    dataKey="plays"
+                    nameKey="platform"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={40}
+                    outerRadius={70}
+                    label={({ platform }) => platform}
+                  >
+                    {platforms.slice(0, 5).map((_, index) => (
+                      <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ 
+                      background: '#0a0a0f', 
+                      border: '1px solid #ff2a6d',
+                      color: '#fff',
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
             </div>
-          ))}
+          ) : (
+            <p className="text-white/30">NO_DATA_AVAILABLE</p>
+          )}
+        </div>
+
+        {/* Country Stats */}
+        <div className="neon-card col-span-2">
+          <h2 className="neon-section-title">🌍 GEO_DISTRIBUTION</h2>
+          <p className="text-white/40 text-sm mb-4">Listening activity by region</p>
+          {countries && countries.length > 0 ? (
+            <div className="grid grid-cols-5 gap-4">
+              {countries.slice(0, 10).map((country, i) => (
+                <div key={country.country} className="neon-country-card">
+                  <div className="neon-country-code">{country.country}</div>
+                  <div className="neon-country-plays">{formatNumber(country.plays)}</div>
+                  <div className="neon-country-bar">
+                    <div 
+                      className="neon-country-bar-fill"
+                      style={{ 
+                        width: `${(country.plays / countries[0].plays) * 100}%`,
+                        background: i % 2 === 0 ? '#ff2a6d' : '#05d9e8'
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-white/30">NO_GEO_DATA_AVAILABLE</p>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function NeonTracks() {
+function NeonSkipRadar() {
   const { selectedProfileId } = useProfile();
-  const { data: tracksData, isLoading } = useTracks({ 
-    profileId: selectedProfileId, 
-    limit: 20, 
-    sortBy: 'totalPlays', 
-    sortOrder: 'DESC' 
+  const { data: skipped, isLoading } = useMostSkippedTracks(selectedProfileId, 20);
+  const { data: completed } = useTracks({
+    profileId: selectedProfileId,
+    limit: 10,
+    sortBy: 'totalPlays',
+    sortOrder: 'DESC',
   });
 
-  const tracks = tracksData?.data || [];
+  // Find tracks with low skip rate (completed often)
+  const completedTracks = completed?.data?.filter(t => (t.skipPercentage || 0) < 10) || [];
 
   return (
-    <div className="p-8">
-      <h1 className="neon-section-title text-2xl mb-8">AUDIO_DATABASE</h1>
-      
+    <div className="neon-page p-8">
+      <div className="mb-8">
+        <h1 className="glitch text-3xl font-bold text-white mb-2" data-text="SKIP_RADAR">
+          SKIP_RADAR
+        </h1>
+        <p className="text-white/50">
+          {'>'} Analyzing track completion rates and skip patterns
+        </p>
+      </div>
+
       {isLoading ? (
         <div className="neon-loading"><div className="neon-loading-bar" /></div>
       ) : (
-        <div className="neon-card">
-          {tracks.map((track, index) => (
-            <div key={track.id} className="neon-track">
-              <div className="neon-track-number">[{String(index + 1).padStart(2, '0')}]</div>
-              <div className="neon-track-info">
-                <div className="neon-track-name">{track.name || track.trackName}</div>
-                <div className="neon-track-artist">
-                  {track.artistName} :: {track.albumName}
+        <div className="grid grid-cols-2 gap-8">
+          {/* Most Skipped */}
+          <div className="neon-card">
+            <h2 className="neon-section-title text-neon-pink">⚠ MOST_SKIPPED</h2>
+            <p className="text-white/40 text-sm mb-4">Tracks you often skip</p>
+            <div className="space-y-2">
+              {skipped?.map((track, i) => (
+                <div key={track.id} className="neon-track">
+                  <div className="neon-track-rank text-neon-pink">{String(i + 1).padStart(2, '0')}</div>
+                  <div className="flex-1">
+                    <div className="neon-track-name">{track.name || track.trackName}</div>
+                    <div className="neon-track-artist">{track.artistName}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="neon-skip-badge">{formatPercent(track.skipPercentage || 0)}</div>
+                    <div className="text-white/30 text-xs">{track.totalPlays} plays</div>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="neon-progress w-32">
-                  <div 
-                    className="neon-progress-fill" 
-                    style={{ width: `${Math.min(100, (track.totalPlays / 100) * 100)}%` }}
-                  />
-                </div>
-                <div className="neon-track-plays">{formatNumber(track.totalPlays)}</div>
-              </div>
+              ))}
             </div>
-          ))}
+          </div>
+
+          {/* Completed Tracks */}
+          <div className="neon-card">
+            <h2 className="neon-section-title text-neon-cyan">✓ ALWAYS_COMPLETED</h2>
+            <p className="text-white/40 text-sm mb-4">Tracks you listen to fully</p>
+            <div className="space-y-2">
+              {completedTracks.slice(0, 10).map((track, i) => (
+                <div key={track.id} className="neon-track">
+                  <div className="neon-track-rank text-neon-cyan">{String(i + 1).padStart(2, '0')}</div>
+                  <div className="flex-1">
+                    <div className="neon-track-name">{track.name || track.trackName}</div>
+                    <div className="neon-track-artist">{track.artistName}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-neon-cyan">{formatPercent(100 - (track.skipPercentage || 0))}</div>
+                    <div className="text-white/30 text-xs">completion rate</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-function NeonAnalytics() {
+function NeonPlatforms() {
   const { selectedProfileId } = useProfile();
-  const { data: timeOfDay, isLoading } = useTimeOfDay(selectedProfileId);
+  const { data: platforms, isLoading } = useTracksByPlatform(selectedProfileId);
+  const { data: countries } = useCountryStats(selectedProfileId);
 
-  const formattedData = timeOfDay?.map((item) => ({
-    hour: `${String(item.hour).padStart(2, '0')}:00`,
-    plays: item.plays,
-  })) || [];
+  const COLORS = ['#ff2a6d', '#05d9e8', '#d1f7ff', '#01012b', '#ff2a6d', '#05d9e8'];
 
   return (
-    <div className="p-8">
-      <h1 className="neon-section-title text-2xl mb-8">ANALYTICS_ENGINE</h1>
-      
+    <div className="neon-page p-8">
+      <div className="mb-8">
+        <h1 className="glitch text-3xl font-bold text-white mb-2" data-text="PLATFORM_MATRIX">
+          PLATFORM_MATRIX
+        </h1>
+        <p className="text-white/50">
+          {'>'} Device and geographic analytics
+        </p>
+      </div>
+
       {isLoading ? (
         <div className="neon-loading"><div className="neon-loading-bar" /></div>
       ) : (
-        <div className="neon-card">
-          <h2 className="neon-section-title">TIME_DISTRIBUTION</h2>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={formattedData}>
-                <defs>
-                  <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#ff2a6d" stopOpacity={0.8} />
-                    <stop offset="100%" stopColor="#7b2dff" stopOpacity={0.1} />
-                  </linearGradient>
-                </defs>
-                <XAxis 
-                  dataKey="hour" 
-                  stroke="#05d9e8" 
-                  strokeOpacity={0.3}
-                  tick={{ fill: '#05d9e8', opacity: 0.6, fontSize: 9 }}
-                  interval={2}
-                />
-                <YAxis 
-                  stroke="#05d9e8" 
-                  strokeOpacity={0.3}
-                  tick={{ fill: '#05d9e8', opacity: 0.6, fontSize: 10 }}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    background: '#0a0a0f', 
-                    border: '1px solid rgba(5, 217, 232, 0.3)',
-                    color: '#05d9e8',
-                    fontFamily: 'JetBrains Mono'
-                  }}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="plays" 
-                  stroke="#ff2a6d"
-                  strokeWidth={2}
-                  fill="url(#areaGradient)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+        <div className="grid grid-cols-2 gap-8">
+          {/* Platform Chart */}
+          <div className="neon-card">
+            <h2 className="neon-section-title">📱 DEVICE_BREAKDOWN</h2>
+            {platforms && platforms.length > 0 ? (
+              <>
+                <div className="h-64 mt-4">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={platforms} layout="vertical">
+                      <XAxis type="number" stroke="#fff" tick={{ fill: '#fff' }} />
+                      <YAxis 
+                        type="category" 
+                        dataKey="platform" 
+                        stroke="#fff" 
+                        tick={{ fill: '#fff', fontSize: 11 }}
+                        width={100}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          background: '#0a0a0f', 
+                          border: '1px solid #ff2a6d',
+                          color: '#fff',
+                        }}
+                      />
+                      <Bar dataKey="plays">
+                        {platforms.map((_, index) => (
+                          <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="mt-4 space-y-2">
+                  {platforms.map((p, i) => (
+                    <div key={p.platform} className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded" style={{ background: COLORS[i % COLORS.length] }} />
+                        <span className="text-white/70">{p.platform}</span>
+                      </div>
+                      <span className="font-mono text-white">{formatNumber(p.plays)}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="text-white/30">NO_PLATFORM_DATA</p>
+            )}
+          </div>
+
+          {/* Country Rankings */}
+          <div className="neon-card">
+            <h2 className="neon-section-title">🌍 REGION_RANKINGS</h2>
+            {countries && countries.length > 0 ? (
+              <div className="space-y-3 mt-4">
+                {countries.slice(0, 8).map((country, i) => (
+                  <div key={country.country} className="flex items-center gap-4">
+                    <div className="neon-track-rank" style={{ color: COLORS[i % COLORS.length] }}>
+                      {String(i + 1).padStart(2, '0')}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-mono text-white">{country.country}</span>
+                        <span className="text-white/50">{formatNumber(country.plays)} plays</span>
+                      </div>
+                      <div className="neon-progress-bar">
+                        <div 
+                          className="neon-progress-fill"
+                          style={{ 
+                            width: `${(country.plays / countries[0].plays) * 100}%`,
+                            background: COLORS[i % COLORS.length]
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-white/30">NO_GEO_DATA</p>
+            )}
           </div>
         </div>
       )}
@@ -349,12 +418,14 @@ export default function NeonApp() {
   
   return (
     <div className="neon-app">
+      <div className="neon-grid-bg" />
+      <div className="neon-scanlines" />
       <div className="neon-content">
         <NeonNav />
         
         {location.pathname === '/2' && <NeonDashboard />}
-        {location.pathname === '/2/tracks' && <NeonTracks />}
-        {location.pathname === '/2/analytics' && <NeonAnalytics />}
+        {location.pathname === '/2/skip-radar' && <NeonSkipRadar />}
+        {location.pathname === '/2/platforms' && <NeonPlatforms />}
       </div>
     </div>
   );

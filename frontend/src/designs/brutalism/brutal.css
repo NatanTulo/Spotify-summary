@@ -462,3 +462,281 @@
 .brutal-offset-3 {
   transform: rotate(-1deg);
 }
+
+/* Page and Hero */
+.brutal-page {
+  position: relative;
+  z-index: 10;
+}
+
+.brutal-hero {
+  margin-bottom: 2rem;
+}
+
+.brutal-title {
+  font-family: "Space Mono", monospace;
+  font-size: 3rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+/* Ratio bar */
+.brutal-ratio-bar {
+  display: flex;
+  height: 48px;
+  border: 3px solid #1a1a1a;
+  overflow: hidden;
+}
+
+.brutal-ratio-music {
+  background: #ffe135;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Space Mono", monospace;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.brutal-ratio-podcast {
+  background: #ff3366;
+  color: #fffdf7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Space Mono", monospace;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+/* Show card */
+.brutal-show-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-bottom: 2px solid #1a1a1a;
+}
+
+.brutal-show-rank {
+  font-family: "Space Mono", monospace;
+  font-size: 1.5rem;
+  font-weight: 700;
+  width: 40px;
+}
+
+.brutal-show-name {
+  font-family: "Space Mono", monospace;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.brutal-show-publisher {
+  font-size: 0.8rem;
+  opacity: 0.6;
+}
+
+.brutal-show-plays {
+  font-weight: 700;
+}
+
+.brutal-show-time {
+  font-size: 0.8rem;
+  opacity: 0.6;
+}
+
+/* Button */
+.brutal-btn {
+  display: inline-block;
+  font-family: "Space Mono", monospace;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.75rem 1.5rem;
+  background: #ffe135;
+  border: 3px solid #1a1a1a;
+  color: #1a1a1a;
+  text-decoration: none;
+  box-shadow: 4px 4px 0 #1a1a1a;
+  transition: all 0.1s ease;
+}
+
+.brutal-btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #1a1a1a;
+}
+
+.brutal-btn-dark {
+  background: #1a1a1a;
+  color: #fffdf7;
+}
+
+/* Podcast pink card */
+.brutal-card-pink {
+  background: #ffb6c1;
+}
+
+/* Shows grid */
+.brutal-shows-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.brutal-show-tile {
+  padding: 1rem;
+  border: 2px solid #1a1a1a;
+  background: #fffdf7;
+}
+
+.brutal-show-tile-number {
+  font-family: "Space Mono", monospace;
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.brutal-show-tile-name {
+  font-family: "Space Mono", monospace;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+}
+
+.brutal-show-tile-stats {
+  font-size: 0.75rem;
+  opacity: 0.6;
+  margin-top: 0.25rem;
+}
+
+/* Episode card */
+.brutal-episode-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-bottom: 2px solid #1a1a1a;
+}
+
+.brutal-episode-rank {
+  font-family: "Space Mono", monospace;
+  font-weight: 700;
+}
+
+.brutal-episode-name {
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.brutal-episode-show {
+  font-size: 0.75rem;
+  opacity: 0.6;
+}
+
+.brutal-episode-plays {
+  font-family: "Space Mono", monospace;
+  font-weight: 700;
+  background: #1a1a1a;
+  color: #fffdf7;
+  padding: 0.25rem 0.5rem;
+}
+
+/* Empty state */
+.brutal-empty {
+  text-align: center;
+  padding: 2rem;
+  font-family: "Space Mono", monospace;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* Stat cards */
+.brutal-stat-card {
+  text-align: center;
+  padding: 1.5rem;
+  border: 3px solid #1a1a1a;
+  background: #fffdf7;
+}
+
+.brutal-stat-card-yellow {
+  background: #ffe135;
+}
+.brutal-stat-card-pink {
+  background: #ffb6c1;
+}
+
+.brutal-stat-card .brutal-stat-value {
+  font-size: 2rem;
+}
+
+/* Book cards */
+.brutal-book-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-bottom: 2px solid #1a1a1a;
+}
+
+.brutal-book-rank {
+  font-family: "Space Mono", monospace;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.brutal-book-name {
+  font-family: "Space Mono", monospace;
+  font-weight: 700;
+}
+
+.brutal-book-author {
+  font-size: 0.8rem;
+  opacity: 0.6;
+}
+
+/* Books grid */
+.brutal-books-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.brutal-book-tile {
+  padding: 1.5rem;
+  border: 3px solid #1a1a1a;
+  text-align: center;
+  background: #fffdf7;
+  box-shadow: 4px 4px 0 #1a1a1a;
+}
+
+.brutal-book-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.brutal-book-tile-name {
+  font-family: "Space Mono", monospace;
+  font-weight: 700;
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+}
+
+.brutal-book-tile-author {
+  font-size: 0.75rem;
+  opacity: 0.6;
+}
+
+/* Loading box text style */
+.brutal-loading-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Space Mono", monospace;
+  font-weight: 700;
+  font-size: 0.75rem;
+  width: auto;
+  height: auto;
+  padding: 1rem;
+  animation: none;
+}

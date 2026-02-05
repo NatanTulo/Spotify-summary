@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useProfile } from '../../hooks/useProfile';
-import { useOverviewStats, useTopArtists, useYearlyStats, useTracks, useTimeOfDay } from '../../hooks/useApi';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import { useOverviewStats, useTimeOfDay, useDayOfWeek, useTimeline, useTopArtists } from '../../hooks/useApi';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
 import './aurora.css';
 
 function Particles() {
@@ -30,7 +30,7 @@ function AuroraNav() {
     <nav className="aurora-nav">
       <div className="aurora-logo">
         <div className="aurora-logo-blob" />
-        <span>Fluid Stats</span>
+        <span>Harmony</span>
       </div>
       
       <ul className="aurora-nav-links">
@@ -44,18 +44,18 @@ function AuroraNav() {
         </li>
         <li>
           <Link 
-            to="/3/library" 
-            className={`aurora-nav-link ${location.pathname === '/3/library' ? 'active' : ''}`}
+            to="/3/rhythm" 
+            className={`aurora-nav-link ${location.pathname === '/3/rhythm' ? 'active' : ''}`}
           >
-            Library
+            Daily Rhythm
           </Link>
         </li>
         <li>
           <Link 
-            to="/3/insights" 
-            className={`aurora-nav-link ${location.pathname === '/3/insights' ? 'active' : ''}`}
+            to="/3/weekly" 
+            className={`aurora-nav-link ${location.pathname === '/3/weekly' ? 'active' : ''}`}
           >
-            Insights
+            Week Flow
           </Link>
         </li>
       </ul>
@@ -88,15 +88,6 @@ function AuroraNav() {
   );
 }
 
-function StatCard({ value, label }: { value: string | number; label: string }) {
-  return (
-    <div className="aurora-card text-center">
-      <div className="aurora-stat-value">{value}</div>
-      <div className="aurora-stat-label">{label}</div>
-    </div>
-  );
-}
-
 function formatNumber(num: number): string {
   if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
   if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
@@ -107,18 +98,103 @@ function formatMinutes(minutes: number): string {
   const hours = Math.floor(minutes / 60);
   if (hours >= 24) {
     const days = Math.floor(hours / 24);
-    return `${days} days`;
+    return `${days}d ${hours % 24}h`;
   }
   return `${hours}h ${Math.round(minutes % 60)}m`;
 }
 
-function AuroraDashboard() {
-  const { selectedProfileId } = useProfile();
-  const { data: overview, isLoading: loadingOverview } = useOverviewStats(selectedProfileId);
-  const { data: topArtists, isLoading: loadingArtists } = useTopArtists(selectedProfileId, 5);
-  const { data: yearly } = useYearlyStats(selectedProfileId);
+// Circular clock visualization
+function DailyRhythmClock({ data }: { data: { hour: number; plays: number }[] }) {
+  const maxPlays = Math.max(...data.map(d => d.plays), 1);
+  
+  return (
+    <div className="aurora-clock">
+      <svg viewBox="0 0 200 200" className="w-full h-full">
+        {/* Clock face */}
+        <circle cx="100" cy="100" r="90" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+        <circle cx="100" cy="100" r="70" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+        <circle cx="100" cy="100" r="50" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+        
+        {/* Hour markers */}
+        {[0, 3, 6, 9, 12, 15, 18, 21].map(hour => {
+          const angle = (hour / 24) * 360 - 90;
+          const x = 100 + 95 * Math.cos((angle * Math.PI) / 180);
+          const y = 100 + 95 * Math.sin((angle * Math.PI) / 180);
+          return (
+            <text
+              key={hour}
+              x={x}
+              y={y}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fill="rgba(255,255,255,0.4)"
+              fontSize="10"
+            >
+              {hour}:00
+            </text>
+          );
+        })}
+        
+        {/* Data bars */}
+        {data.map((item, i) => {
+          const angle = (item.hour / 24) * 360 - 90;
+          const intensity = item.plays / maxPlays;
+          const innerR = 30;
+          const outerR = innerR + intensity * 50;
+          
+          const x1 = 100 + innerR * Math.cos((angle * Math.PI) / 180);
+          const y1 = 100 + innerR * Math.sin((angle * Math.PI) / 180);
+          const x2 = 100 + outerR * Math.cos((angle * Math.PI) / 180);
+          const y2 = 100 + outerR * Math.sin((angle * Math.PI) / 180);
+          
+          return (
+            <line
+              key={i}
+              x1={x1}
+              y1={y1}
+              x2={x2}
+              y2={y2}
+              stroke={`url(#auroraGrad${i % 3})`}
+              strokeWidth="6"
+              strokeLinecap="round"
+              opacity={0.6 + intensity * 0.4}
+            />
+          );
+        })}
+        
+        {/* Gradients */}
+        <defs>
+          <linearGradient id="auroraGrad0" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#667eea" />
+            <stop offset="100%" stopColor="#f093fb" />
+          </linearGradient>
+          <linearGradient id="auroraGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#764ba2" />
+            <stop offset="100%" stopColor="#667eea" />
+          </linearGradient>
+          <linearGradient id="auroraGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#f093fb" />
+            <stop offset="100%" stopColor="#764ba2" />
+          </linearGradient>
+        </defs>
+        
+        {/* Center */}
+        <circle cx="100" cy="100" r="25" fill="rgba(102, 126, 234, 0.2)" />
+        <text x="100" y="100" textAnchor="middle" dominantBaseline="middle" fill="#f8f8ff" fontSize="10">
+          24h
+        </text>
+      </svg>
+    </div>
+  );
+}
 
-  if (loadingOverview) {
+function AuroraOverview() {
+  const { selectedProfileId } = useProfile();
+  const { data: overview, isLoading } = useOverviewStats(selectedProfileId);
+  const { data: timeOfDay } = useTimeOfDay(selectedProfileId);
+  const { data: dayOfWeek } = useDayOfWeek(selectedProfileId);
+
+  if (isLoading) {
     return (
       <div className="aurora-loading">
         <div className="aurora-loading-blob" />
@@ -126,192 +202,328 @@ function AuroraDashboard() {
     );
   }
 
-  const COLORS = ['#667eea', '#764ba2', '#f093fb', '#a8c0ff', '#d4a5ff'];
+  // Find peak listening times
+  const peakHour = timeOfDay?.reduce((max, curr) => curr.plays > max.plays ? curr : max, timeOfDay[0]);
+  const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const peakDay = dayOfWeek?.reduce((max, curr) => curr.plays > max.plays ? curr : max, dayOfWeek[0]);
 
   return (
     <div className="p-8">
       {/* Hero */}
-      <div className="flex items-center justify-between mb-12">
-        <div>
-          <h1 className="font-outfit text-5xl font-bold text-white mb-4">
-            Your Sound <span className="gradient-text bg-gradient-to-r from-aurora-start via-aurora-mid to-aurora-end">Flow</span>
-          </h1>
-          <p className="text-white/50 text-lg">
-            Dive into the rhythm of your listening journey
-          </p>
-        </div>
-        <div className="aurora-blob-container">
-          <div className="aurora-blob" />
-          <div className="aurora-blob" />
-          <div className="aurora-blob" />
-          <div className="relative z-10 font-outfit text-2xl font-bold text-white text-center">
-            {formatNumber(overview?.totalPlays || 0)}
-            <div className="text-sm font-normal text-white/50">plays</div>
-          </div>
-        </div>
+      <div className="text-center mb-12">
+        <h1 className="font-outfit text-5xl font-bold text-white mb-4">
+          Your Listening <span className="bg-gradient-to-r from-aurora-start via-aurora-mid to-aurora-end bg-clip-text text-transparent">Harmony</span>
+        </h1>
+        <p className="text-white/50 text-lg max-w-xl mx-auto">
+          Discover the rhythm of your music consumption and find balance in your listening habits
+        </p>
       </div>
 
       {/* Stats */}
       <div className="aurora-grid aurora-grid-4 mb-12">
-        <StatCard value={formatNumber(overview?.totalPlays || 0)} label="Total Plays" />
-        <StatCard value={formatMinutes(overview?.totalMinutes || 0)} label="Listened" />
-        <StatCard value={formatNumber(overview?.uniqueTracks || 0)} label="Tracks" />
-        <StatCard value={formatNumber(overview?.uniqueArtists || 0)} label="Artists" />
+        <div className="aurora-card text-center">
+          <div className="aurora-stat-value">{formatNumber(overview?.totalPlays || 0)}</div>
+          <div className="aurora-stat-label">Total Plays</div>
+        </div>
+        <div className="aurora-card text-center">
+          <div className="aurora-stat-value">{formatMinutes(overview?.totalMinutes || 0)}</div>
+          <div className="aurora-stat-label">Time Listening</div>
+        </div>
+        <div className="aurora-card text-center">
+          <div className="aurora-stat-value">{peakHour ? `${peakHour.hour}:00` : '-'}</div>
+          <div className="aurora-stat-label">Peak Hour</div>
+        </div>
+        <div className="aurora-card text-center">
+          <div className="aurora-stat-value">{peakDay ? DAYS[peakDay.dow].slice(0, 3) : '-'}</div>
+          <div className="aurora-stat-label">Most Active Day</div>
+        </div>
       </div>
 
       <div className="aurora-grid aurora-grid-2 gap-8">
-        {/* Top Artists */}
+        {/* Daily Rhythm Preview */}
         <div className="aurora-card">
-          <h2 className="aurora-section-title">Top Artists</h2>
-          {loadingArtists ? (
-            <div className="aurora-loading"><div className="aurora-loading-blob" /></div>
-          ) : (
-            <div>
-              {topArtists?.map((artist, index) => (
-                <div key={artist.id} className="aurora-track">
-                  <div className="aurora-track-number">{index + 1}</div>
-                  <div className="aurora-track-info">
-                    <div className="aurora-track-name">{artist.name}</div>
-                    <div className="aurora-track-artist">{formatMinutes(artist.minutes)}</div>
-                  </div>
-                  <div className="aurora-track-plays">{formatNumber(artist.plays)}</div>
-                </div>
-              ))}
+          <h2 className="aurora-section-title">Daily Rhythm</h2>
+          <p className="text-white/40 text-sm mb-4">When you listen throughout the day</p>
+          {timeOfDay && (
+            <div className="h-48">
+              <DailyRhythmClock data={timeOfDay} />
             </div>
           )}
+          <Link to="/3/rhythm" className="text-aurora-end hover:text-aurora-start transition-colors text-sm mt-4 inline-block">
+            Explore full analysis →
+          </Link>
         </div>
 
-        {/* Yearly Chart */}
+        {/* Week Flow Preview */}
         <div className="aurora-card">
-          <h2 className="aurora-section-title">Through the Years</h2>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={yearly || []}>
-                <defs>
-                  <linearGradient id="auroraGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#f093fb" stopOpacity={0.6} />
-                    <stop offset="50%" stopColor="#764ba2" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="#667eea" stopOpacity={0.1} />
-                  </linearGradient>
-                </defs>
-                <XAxis 
-                  dataKey="year" 
-                  stroke="rgba(248,248,255,0.3)"
-                  tick={{ fill: 'rgba(248,248,255,0.5)', fontSize: 12 }}
-                />
-                <YAxis 
-                  stroke="rgba(248,248,255,0.3)"
-                  tick={{ fill: 'rgba(248,248,255,0.5)', fontSize: 12 }}
-                  tickFormatter={(v) => formatNumber(v)}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    background: 'rgba(26,26,46,0.9)', 
-                    border: '1px solid rgba(255,255,255,0.15)',
-                    borderRadius: '12px',
-                    color: '#f8f8ff',
-                    backdropFilter: 'blur(10px)',
-                  }}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="plays" 
-                  stroke="#f093fb"
-                  strokeWidth={2}
-                  fill="url(#auroraGrad)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+          <h2 className="aurora-section-title">Week Flow</h2>
+          <p className="text-white/40 text-sm mb-4">Your weekly listening pattern</p>
+          {dayOfWeek && (
+            <div className="grid grid-cols-7 gap-2">
+              {DAYS.map((day, i) => {
+                const data = dayOfWeek.find(d => d.dow === i);
+                const maxPlays = Math.max(...dayOfWeek.map(d => d.plays), 1);
+                const intensity = data ? data.plays / maxPlays : 0;
+                return (
+                  <div key={day} className="text-center">
+                    <div 
+                      className="aurora-day-bar mx-auto"
+                      style={{ 
+                        height: `${20 + intensity * 80}px`,
+                        background: `linear-gradient(180deg, rgba(102,126,234,${0.3 + intensity * 0.7}) 0%, rgba(240,147,251,${0.3 + intensity * 0.7}) 100%)`
+                      }}
+                    />
+                    <div className="text-white/40 text-xs mt-2">{day.slice(0, 2)}</div>
+                    <div className="text-white/70 text-xs">{formatNumber(data?.plays || 0)}</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <Link to="/3/weekly" className="text-aurora-end hover:text-aurora-start transition-colors text-sm mt-4 inline-block">
+            See detailed breakdown →
+          </Link>
         </div>
       </div>
     </div>
   );
 }
 
-function AuroraLibrary() {
+function AuroraDailyRhythm() {
   const { selectedProfileId } = useProfile();
-  const { data: tracksData, isLoading } = useTracks({ 
-    profileId: selectedProfileId, 
-    limit: 15, 
-    sortBy: 'totalPlays', 
-    sortOrder: 'DESC' 
-  });
+  const { data: timeOfDay, isLoading } = useTimeOfDay(selectedProfileId);
 
-  const tracks = tracksData?.data || [];
+  // Group hours into periods
+  const periods = [
+    { name: 'Night Owl', hours: [0, 1, 2, 3, 4, 5], emoji: '🌙' },
+    { name: 'Early Bird', hours: [6, 7, 8, 9, 10, 11], emoji: '🌅' },
+    { name: 'Afternoon', hours: [12, 13, 14, 15, 16, 17], emoji: '☀️' },
+    { name: 'Evening', hours: [18, 19, 20, 21, 22, 23], emoji: '🌆' },
+  ];
+
+  const periodStats = periods.map(period => ({
+    ...period,
+    plays: timeOfDay?.filter(h => period.hours.includes(h.hour)).reduce((sum, h) => sum + h.plays, 0) || 0,
+    minutes: timeOfDay?.filter(h => period.hours.includes(h.hour)).reduce((sum, h) => sum + h.totalMinutes, 0) || 0,
+  }));
+
+  const dominantPeriod = periodStats.reduce((max, curr) => curr.plays > max.plays ? curr : max, periodStats[0]);
 
   return (
     <div className="p-8">
-      <h1 className="aurora-section-title text-3xl mb-8">Your Library</h1>
-      
+      <div className="mb-8">
+        <h1 className="font-outfit text-4xl font-bold text-white mb-2">
+          🕐 Your Daily Rhythm
+        </h1>
+        <p className="text-white/50">
+          Discover how your listening flows throughout the day
+        </p>
+      </div>
+
       {isLoading ? (
         <div className="aurora-loading"><div className="aurora-loading-blob" /></div>
       ) : (
-        <div className="aurora-card">
-          {tracks.map((track, index) => (
-            <div key={track.id} className="aurora-track">
-              <div className="aurora-track-number">{index + 1}</div>
-              <div className="aurora-track-info">
-                <div className="aurora-track-name">{track.name || track.trackName}</div>
-                <div className="aurora-track-artist">
-                  {track.artistName} • {track.albumName}
-                </div>
+        <>
+          {/* Dominant Period Card */}
+          <div className="aurora-card mb-8 text-center py-8">
+            <div className="text-6xl mb-4">{dominantPeriod.emoji}</div>
+            <h2 className="font-outfit text-2xl font-bold text-white mb-2">
+              You're a <span className="text-aurora-end">{dominantPeriod.name}</span> listener
+            </h2>
+            <p className="text-white/50">
+              Most of your listening happens during {dominantPeriod.name.toLowerCase()} hours
+            </p>
+          </div>
+
+          <div className="aurora-grid aurora-grid-2 gap-8">
+            {/* 24h Clock */}
+            <div className="aurora-card">
+              <h2 className="aurora-section-title">24-Hour Wheel</h2>
+              <div className="h-72">
+                {timeOfDay && <DailyRhythmClock data={timeOfDay} />}
               </div>
-              <div className="aurora-track-plays">{formatNumber(track.totalPlays)} plays</div>
             </div>
-          ))}
-        </div>
+
+            {/* Period Breakdown */}
+            <div className="aurora-card">
+              <h2 className="aurora-section-title">Time Periods</h2>
+              <div className="space-y-4 mt-4">
+                {periodStats.map((period) => (
+                  <div key={period.name} className="aurora-period-card">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{period.emoji}</span>
+                      <div className="flex-1">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="font-outfit font-semibold text-white">{period.name}</span>
+                          <span className="text-aurora-end">{formatNumber(period.plays)} plays</span>
+                        </div>
+                        <div className="aurora-progress-bar">
+                          <div 
+                            className="aurora-progress-fill"
+                            style={{ width: `${(period.plays / (periodStats[0].plays || 1)) * 100}%` }}
+                          />
+                        </div>
+                        <div className="text-white/40 text-xs mt-1">
+                          {formatMinutes(period.minutes)} listened
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Hourly Chart */}
+            <div className="aurora-card col-span-2">
+              <h2 className="aurora-section-title">Hour by Hour</h2>
+              <div className="h-64 mt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={timeOfDay?.map(h => ({ hour: `${h.hour}:00`, plays: h.plays })) || []}>
+                    <defs>
+                      <linearGradient id="auroraFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#f093fb" stopOpacity={0.6} />
+                        <stop offset="100%" stopColor="#667eea" stopOpacity={0.1} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis 
+                      dataKey="hour" 
+                      stroke="rgba(255,255,255,0.2)"
+                      tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }}
+                      interval={3}
+                    />
+                    <YAxis 
+                      stroke="rgba(255,255,255,0.2)"
+                      tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        background: 'rgba(26,26,46,0.95)', 
+                        border: '1px solid rgba(240,147,251,0.3)',
+                        borderRadius: '12px',
+                        color: '#f8f8ff',
+                      }}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="plays" 
+                      stroke="#f093fb"
+                      strokeWidth={2}
+                      fill="url(#auroraFill)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
 }
 
-function AuroraInsights() {
+function AuroraWeekly() {
   const { selectedProfileId } = useProfile();
-  const { data: timeOfDay, isLoading } = useTimeOfDay(selectedProfileId);
-  const { data: topArtists } = useTopArtists(selectedProfileId, 6);
+  const { data: dayOfWeek, isLoading } = useDayOfWeek(selectedProfileId);
+  const { data: timeline } = useTimeline(selectedProfileId, 'week');
 
-  const formattedTime = timeOfDay?.map((item) => ({
-    hour: `${item.hour}h`,
-    plays: item.plays,
-  })) || [];
-
-  const COLORS = ['#667eea', '#764ba2', '#f093fb', '#a8c0ff', '#d4a5ff', '#8c9eff'];
+  const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const maxPlays = Math.max(...(dayOfWeek?.map(d => d.plays) || [1]));
 
   return (
     <div className="p-8">
-      <h1 className="aurora-section-title text-3xl mb-8">Deep Insights</h1>
-      
-      <div className="aurora-grid aurora-grid-2 gap-8">
-        {/* Time of Day */}
-        <div className="aurora-card">
-          <h2 className="aurora-section-title">Listening Rhythm</h2>
-          {isLoading ? (
-            <div className="aurora-loading"><div className="aurora-loading-blob" /></div>
-          ) : (
-            <div className="h-64">
+      <div className="mb-8">
+        <h1 className="font-outfit text-4xl font-bold text-white mb-2">
+          📅 Your Week Flow
+        </h1>
+        <p className="text-white/50">
+          How your listening habits change throughout the week
+        </p>
+      </div>
+
+      {isLoading ? (
+        <div className="aurora-loading"><div className="aurora-loading-blob" /></div>
+      ) : (
+        <div className="aurora-grid aurora-grid-2 gap-8">
+          {/* Radar Chart */}
+          <div className="aurora-card">
+            <h2 className="aurora-section-title">Weekly Pattern</h2>
+            <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={formattedTime}>
+                <RadarChart data={dayOfWeek?.map(d => ({ day: DAYS[d.dow].slice(0, 3), plays: d.plays })) || []}>
+                  <PolarGrid stroke="rgba(255,255,255,0.1)" />
+                  <PolarAngleAxis dataKey="day" tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 12 }} />
+                  <PolarRadiusAxis tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10 }} />
+                  <Radar 
+                    dataKey="plays" 
+                    stroke="#f093fb" 
+                    fill="#667eea" 
+                    fillOpacity={0.4}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      background: 'rgba(26,26,46,0.95)', 
+                      border: '1px solid rgba(240,147,251,0.3)',
+                      borderRadius: '12px',
+                      color: '#f8f8ff',
+                    }}
+                  />
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Day Cards */}
+          <div className="aurora-card">
+            <h2 className="aurora-section-title">Day Breakdown</h2>
+            <div className="space-y-3 mt-4">
+              {dayOfWeek?.sort((a, b) => b.plays - a.plays).map((day, i) => (
+                <div key={day.dow} className="flex items-center gap-4">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center" 
+                       style={{ background: i === 0 ? 'linear-gradient(135deg, #667eea, #f093fb)' : 'rgba(255,255,255,0.1)' }}>
+                    {i + 1}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex justify-between items-center">
+                      <span className="font-outfit font-semibold text-white">{DAYS[day.dow]}</span>
+                      <span className="text-aurora-end">{formatNumber(day.plays)}</span>
+                    </div>
+                    <div className="aurora-progress-bar mt-1">
+                      <div 
+                        className="aurora-progress-fill"
+                        style={{ width: `${(day.plays / maxPlays) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Weekly Timeline */}
+          <div className="aurora-card col-span-2">
+            <h2 className="aurora-section-title">Recent Weeks</h2>
+            <div className="h-48 mt-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={timeline?.slice(-12) || []}>
                   <defs>
-                    <linearGradient id="timeGrad" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="weeklyGrad" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#667eea" stopOpacity={0.6} />
                       <stop offset="100%" stopColor="#f093fb" stopOpacity={0.1} />
                     </linearGradient>
                   </defs>
                   <XAxis 
-                    dataKey="hour" 
-                    stroke="rgba(248,248,255,0.3)"
-                    tick={{ fill: 'rgba(248,248,255,0.5)', fontSize: 10 }}
-                    interval={3}
+                    dataKey="period" 
+                    stroke="rgba(255,255,255,0.2)"
+                    tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }}
                   />
                   <YAxis 
-                    stroke="rgba(248,248,255,0.3)"
-                    tick={{ fill: 'rgba(248,248,255,0.5)', fontSize: 10 }}
+                    stroke="rgba(255,255,255,0.2)"
+                    tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }}
                   />
                   <Tooltip 
                     contentStyle={{ 
-                      background: 'rgba(26,26,46,0.9)', 
-                      border: '1px solid rgba(255,255,255,0.15)',
+                      background: 'rgba(26,26,46,0.95)', 
+                      border: '1px solid rgba(102,126,234,0.3)',
                       borderRadius: '12px',
                       color: '#f8f8ff',
                     }}
@@ -321,54 +533,14 @@ function AuroraInsights() {
                     dataKey="plays" 
                     stroke="#667eea"
                     strokeWidth={2}
-                    fill="url(#timeGrad)"
+                    fill="url(#weeklyGrad)"
                   />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
-          )}
-        </div>
-
-        {/* Artist Distribution */}
-        <div className="aurora-card">
-          <h2 className="aurora-section-title">Artist Mix</h2>
-          <div className="h-64 flex items-center justify-center">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={topArtists?.map(a => ({ name: a.name, value: a.plays })) || []}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {topArtists?.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    background: 'rgba(26,26,46,0.9)', 
-                    border: '1px solid rgba(255,255,255,0.15)',
-                    borderRadius: '12px',
-                    color: '#f8f8ff',
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="flex flex-wrap gap-2 justify-center mt-4">
-            {topArtists?.slice(0, 4).map((artist, i) => (
-              <div key={artist.id} className="flex items-center gap-2 text-sm">
-                <div className="w-3 h-3 rounded-full" style={{ background: COLORS[i] }} />
-                <span className="text-white/70">{artist.name}</span>
-              </div>
-            ))}
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -383,9 +555,9 @@ export default function AuroraApp() {
       <div className="aurora-content">
         <AuroraNav />
         
-        {location.pathname === '/3' && <AuroraDashboard />}
-        {location.pathname === '/3/library' && <AuroraLibrary />}
-        {location.pathname === '/3/insights' && <AuroraInsights />}
+        {location.pathname === '/3' && <AuroraOverview />}
+        {location.pathname === '/3/rhythm' && <AuroraDailyRhythm />}
+        {location.pathname === '/3/weekly' && <AuroraWeekly />}
       </div>
     </div>
   );

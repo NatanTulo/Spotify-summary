@@ -1,7 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useProfile } from '../../hooks/useProfile';
-import { useOverviewStats, useTopArtists, useYearlyStats, useTracks, useDayOfWeek } from '../../hooks/useApi';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { usePodcastStats, usePodcastShows, useTopPodcastShows, useTopPodcastEpisodes, useAudiobooks, useOverviewStats } from '../../hooks/useApi';
 import './brutal.css';
 
 function BrutalNav() {
@@ -11,8 +10,8 @@ function BrutalNav() {
   return (
     <nav className="brutal-nav">
       <div className="brutal-logo">
-        <div className="brutal-logo-box"><span>♫</span></div>
-        <span>LOUD STATS</span>
+        <span className="brutal-logo-box">B</span>
+        <span>BRUTAL</span>
       </div>
       
       <ul className="brutal-nav-links">
@@ -21,23 +20,23 @@ function BrutalNav() {
             to="/4" 
             className={`brutal-nav-link ${location.pathname === '/4' ? 'active' : ''}`}
           >
-            Home
+            OVERVIEW
           </Link>
         </li>
         <li>
           <Link 
-            to="/4/charts" 
-            className={`brutal-nav-link ${location.pathname === '/4/charts' ? 'active' : ''}`}
+            to="/4/podcasts" 
+            className={`brutal-nav-link ${location.pathname === '/4/podcasts' ? 'active' : ''}`}
           >
-            Charts
+            PODCASTS
           </Link>
         </li>
         <li>
           <Link 
-            to="/4/collection" 
-            className={`brutal-nav-link ${location.pathname === '/4/collection' ? 'active' : ''}`}
+            to="/4/audiobooks" 
+            className={`brutal-nav-link ${location.pathname === '/4/audiobooks' ? 'active' : ''}`}
           >
-            Collection
+            AUDIOBOOKS
           </Link>
         </li>
       </ul>
@@ -80,257 +79,279 @@ function formatMinutes(minutes: number): string {
   const hours = Math.floor(minutes / 60);
   if (hours >= 24) {
     const days = Math.floor(hours / 24);
-    return `${days}D`;
+    return `${days}d ${hours % 24}h`;
   }
-  return `${hours}H`;
+  return `${hours}h ${Math.round(minutes % 60)}m`;
 }
 
-function BrutalDashboard() {
+function formatMs(ms: number): string {
+  return formatMinutes(ms / 60000);
+}
+
+function BrutalOverview() {
   const { selectedProfileId } = useProfile();
   const { data: overview, isLoading } = useOverviewStats(selectedProfileId);
-  const { data: topArtists, isLoading: loadingArtists } = useTopArtists(selectedProfileId, 5);
-  const { data: tracksData } = useTracks({ 
-    profileId: selectedProfileId, 
-    limit: 5, 
-    sortBy: 'totalPlays', 
-    sortOrder: 'DESC' 
-  });
+  const { data: podcastStats } = usePodcastStats(selectedProfileId);
+  const { data: topShows } = useTopPodcastShows(selectedProfileId, 3);
+  const { data: audiobooks } = useAudiobooks(selectedProfileId, { limit: 3 });
 
   if (isLoading) {
     return (
       <div className="brutal-loading">
-        <div className="brutal-loading-box" />
+        <div className="brutal-loading-box">LOADING...</div>
       </div>
     );
   }
 
-  const topTracks = tracksData?.data || [];
+  const musicMinutes = overview?.totalMinutes || 0;
+  const podcastMinutes = podcastStats?.totalPodcastMinutes || 0;
+  const totalMinutes = musicMinutes + podcastMinutes;
+  const podcastRatio = totalMinutes > 0 ? (podcastMinutes / totalMinutes) * 100 : 0;
 
   return (
-    <div className="p-8">
+    <div className="brutal-page p-8">
       {/* Hero */}
-      <div className="mb-12">
-        <h1 className="brutal-section-title text-4xl mb-6" style={{ transform: 'rotate(-2deg)' }}>
-          YOUR MUSIC IS LOUD
+      <div className="brutal-hero mb-8">
+        <h1 className="brutal-title" style={{ transform: 'rotate(-2deg)' }}>
+          YOUR AUDIO CONTENT
         </h1>
+        <p className="text-xl mt-4">
+          Music, podcasts, and audiobooks — all in one place
+        </p>
       </div>
 
-      {/* Stats */}
-      <div className="brutal-grid brutal-grid-4 mb-12">
-        <div className="brutal-card brutal-card-yellow brutal-offset-1">
-          <div className="brutal-stat-value">{formatNumber(overview?.totalPlays || 0)}</div>
-          <div className="brutal-stat-label">PLAYS</div>
-        </div>
-        <div className="brutal-card brutal-card-red brutal-offset-2">
-          <div className="brutal-stat-value">{formatMinutes(overview?.totalMinutes || 0)}</div>
-          <div className="brutal-stat-label">LISTENED</div>
-        </div>
-        <div className="brutal-card brutal-offset-3">
-          <div className="brutal-stat-value">{formatNumber(overview?.uniqueTracks || 0)}</div>
-          <div className="brutal-stat-label">TRACKS</div>
-        </div>
-        <div className="brutal-card brutal-card-black">
-          <div className="brutal-stat-value">{formatNumber(overview?.uniqueArtists || 0)}</div>
-          <div className="brutal-stat-label">ARTISTS</div>
-        </div>
-      </div>
-
-      <div className="brutal-grid brutal-grid-2 gap-8">
-        {/* Top Artists */}
-        <div className="brutal-card">
-          <div className="brutal-badge brutal-badge-red mb-4">TOP ARTISTS</div>
-          {loadingArtists ? (
-            <div className="brutal-loading"><div className="brutal-loading-box" /></div>
-          ) : (
-            <div>
-              {topArtists?.map((artist, index) => (
-                <div key={artist.id} className="brutal-track">
-                  <div className="brutal-track-number">{index + 1}</div>
-                  <div className="brutal-track-info">
-                    <div className="brutal-track-name">{artist.name}</div>
-                    <div className="brutal-track-artist">{formatMinutes(artist.minutes)} played</div>
-                  </div>
-                  <div className="brutal-track-plays">{formatNumber(artist.plays)}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Top Tracks */}
-        <div className="brutal-card brutal-card-yellow">
-          <div className="brutal-badge mb-4">TOP TRACKS</div>
-          <div>
-            {topTracks.map((track, index) => (
-              <div key={track.id} className="brutal-track">
-                <div className="brutal-track-number">{index + 1}</div>
-                <div className="brutal-track-info">
-                  <div className="brutal-track-name">{track.name || track.trackName}</div>
-                  <div className="brutal-track-artist">{track.artistName}</div>
-                </div>
-                <div className="brutal-track-plays" style={{ background: '#1a1a1a' }}>
-                  {formatNumber(track.totalPlays)}
-                </div>
+      {/* Content Ratio */}
+      <div className="brutal-card brutal-card-yellow mb-8">
+        <h2 className="brutal-section-title">CONTENT BALANCE</h2>
+        <div className="flex items-center gap-8 mt-4">
+          <div className="flex-1">
+            <div className="brutal-ratio-bar">
+              <div 
+                className="brutal-ratio-music"
+                style={{ width: `${100 - podcastRatio}%` }}
+              >
+                MUSIC {(100 - podcastRatio).toFixed(0)}%
               </div>
-            ))}
+              <div 
+                className="brutal-ratio-podcast"
+                style={{ width: `${podcastRatio}%` }}
+              >
+                {podcastRatio > 15 && `PODCASTS ${podcastRatio.toFixed(0)}%`}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-4 mt-6">
+          <div className="text-center">
+            <div className="brutal-stat-value">{formatNumber(overview?.totalPlays || 0)}</div>
+            <div className="brutal-stat-label">MUSIC PLAYS</div>
+          </div>
+          <div className="text-center">
+            <div className="brutal-stat-value">{formatNumber(podcastStats?.totalPodcastPlays || 0)}</div>
+            <div className="brutal-stat-label">PODCAST PLAYS</div>
+          </div>
+          <div className="text-center">
+            <div className="brutal-stat-value">{formatNumber(podcastStats?.uniqueShows || 0)}</div>
+            <div className="brutal-stat-label">SHOWS</div>
           </div>
         </div>
       </div>
 
-      {/* Marquee */}
-      <div className="brutal-marquee mt-12">
-        <div className="brutal-marquee-content">
-          {[...Array(10)].map((_, i) => (
-            <span key={i} className="mx-8">
-              ★ {formatNumber(overview?.totalPlays || 0)} PLAYS ★ {formatNumber(overview?.uniqueTracks || 0)} TRACKS ★ {formatNumber(overview?.uniqueArtists || 0)} ARTISTS
-            </span>
-          ))}
+      <div className="grid grid-cols-2 gap-8">
+        {/* Top Podcasts */}
+        <div className="brutal-card">
+          <h2 className="brutal-section-title">🎙️ TOP PODCASTS</h2>
+          {topShows && topShows.length > 0 ? (
+            <div className="space-y-3 mt-4">
+              {topShows.map((show, i) => (
+                <div key={show.id} className="brutal-show-card">
+                  <div className="brutal-show-rank">{i + 1}</div>
+                  <div className="flex-1">
+                    <div className="brutal-show-name">{show.name}</div>
+                    <div className="brutal-show-publisher">{show.publisher}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="brutal-show-plays">{show.playCount} eps</div>
+                    <div className="brutal-show-time">{formatMs(show.totalMs)}</div>
+                  </div>
+                </div>
+              ))}
+              <Link to="/4/podcasts" className="brutal-btn mt-4 inline-block">
+                SEE ALL PODCASTS →
+              </Link>
+            </div>
+          ) : (
+            <div className="brutal-empty">
+              <p>NO PODCASTS FOUND</p>
+              <p className="text-sm mt-2">Start listening to podcasts on Spotify!</p>
+            </div>
+          )}
+        </div>
+
+        {/* Audiobooks */}
+        <div className="brutal-card brutal-card-pink">
+          <h2 className="brutal-section-title">📚 AUDIOBOOKS</h2>
+          {audiobooks?.audiobooks && audiobooks.audiobooks.length > 0 ? (
+            <div className="space-y-3 mt-4">
+              {audiobooks.audiobooks.map((book, i) => (
+                <div key={book.id} className="brutal-book-card">
+                  <div className="brutal-book-rank">{i + 1}</div>
+                  <div className="flex-1">
+                    <div className="brutal-book-name">{book.name}</div>
+                    <div className="brutal-book-author">{book.author}</div>
+                  </div>
+                </div>
+              ))}
+              <Link to="/4/audiobooks" className="brutal-btn brutal-btn-dark mt-4 inline-block">
+                SEE ALL AUDIOBOOKS →
+              </Link>
+            </div>
+          ) : (
+            <div className="brutal-empty">
+              <p>NO AUDIOBOOKS YET</p>
+              <p className="text-sm mt-2">Discover audiobooks on Spotify!</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function BrutalCharts() {
+function BrutalPodcasts() {
   const { selectedProfileId } = useProfile();
-  const { data: yearly, isLoading } = useYearlyStats(selectedProfileId);
-  const { data: dayOfWeek } = useDayOfWeek(selectedProfileId);
-
-  const COLORS = ['#ff3366', '#ffe135', '#1a1a1a', '#ff3366', '#ffe135', '#1a1a1a', '#ff3366'];
-  const DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-
-  const dowData = dayOfWeek?.map((d) => ({
-    day: DAYS[d.dow],
-    plays: d.plays,
-  })) || [];
+  const { data: podcastStats, isLoading } = usePodcastStats(selectedProfileId);
+  const { data: shows } = usePodcastShows(selectedProfileId, { limit: 50, sortBy: 'plays', order: 'desc' });
+  const { data: topEpisodes } = useTopPodcastEpisodes(selectedProfileId, 10);
 
   return (
-    <div className="p-8">
-      <h1 className="brutal-section-title mb-8">THE NUMBERS</h1>
-      
-      <div className="brutal-grid brutal-grid-2 gap-8">
-        {isLoading ? (
-          <div className="brutal-loading"><div className="brutal-loading-box" /></div>
-        ) : (
-          <>
+    <div className="brutal-page p-8">
+      <div className="brutal-hero mb-8">
+        <h1 className="brutal-title" style={{ transform: 'rotate(-1deg)' }}>
+          🎙️ PODCAST LIBRARY
+        </h1>
+      </div>
+
+      {isLoading ? (
+        <div className="brutal-loading"><div className="brutal-loading-box">LOADING...</div></div>
+      ) : (
+        <>
+          {/* Stats Row */}
+          <div className="grid grid-cols-4 gap-4 mb-8">
+            <div className="brutal-stat-card">
+              <div className="brutal-stat-value">{formatNumber(podcastStats?.totalPodcastPlays || 0)}</div>
+              <div className="brutal-stat-label">TOTAL PLAYS</div>
+            </div>
+            <div className="brutal-stat-card brutal-stat-card-yellow">
+              <div className="brutal-stat-value">{formatMinutes(podcastStats?.totalPodcastMinutes || 0)}</div>
+              <div className="brutal-stat-label">TIME LISTENED</div>
+            </div>
+            <div className="brutal-stat-card">
+              <div className="brutal-stat-value">{podcastStats?.uniqueShows || 0}</div>
+              <div className="brutal-stat-label">SHOWS</div>
+            </div>
+            <div className="brutal-stat-card brutal-stat-card-pink">
+              <div className="brutal-stat-value">{podcastStats?.uniqueEpisodes || 0}</div>
+              <div className="brutal-stat-label">EPISODES</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-8">
+            {/* Shows Grid */}
             <div className="brutal-card">
-              <div className="brutal-badge brutal-badge-yellow mb-4">YEARLY</div>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={yearly || []}>
-                    <XAxis 
-                      dataKey="year" 
-                      stroke="#1a1a1a"
-                      strokeWidth={2}
-                      tick={{ fill: '#1a1a1a', fontFamily: 'Space Mono', fontWeight: 700 }}
-                    />
-                    <YAxis 
-                      stroke="#1a1a1a"
-                      strokeWidth={2}
-                      tick={{ fill: '#1a1a1a', fontFamily: 'Space Mono', fontWeight: 700 }}
-                      tickFormatter={(v) => formatNumber(v)}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        background: '#fffdf7', 
-                        border: '3px solid #1a1a1a',
-                        boxShadow: '4px 4px 0 #1a1a1a',
-                        fontFamily: 'Space Mono',
-                        fontWeight: 700,
-                      }}
-                      formatter={(value: number) => [formatNumber(value), 'PLAYS']}
-                    />
-                    <Bar dataKey="plays">
-                      {yearly?.map((_, index) => (
-                        <Cell key={index} fill={index % 2 === 0 ? '#ff3366' : '#ffe135'} stroke="#1a1a1a" strokeWidth={2} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+              <h2 className="brutal-section-title">ALL SHOWS</h2>
+              {shows?.shows && shows.shows.length > 0 ? (
+                <div className="brutal-shows-grid mt-4">
+                  {shows.shows.map((show, i) => (
+                    <div key={show.id} className="brutal-show-tile">
+                      <div className="brutal-show-tile-number">{i + 1}</div>
+                      <div className="brutal-show-tile-name">{show.name}</div>
+                      <div className="brutal-show-tile-stats">
+                        {show.playCount} eps • {formatMs(show.totalMs)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="brutal-empty">NO SHOWS FOUND</div>
+              )}
             </div>
 
-            <div className="brutal-card brutal-card-black">
-              <div className="brutal-badge mb-4">DAY OF WEEK</div>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={dowData}>
-                    <XAxis 
-                      dataKey="day" 
-                      stroke="#fffdf7"
-                      strokeWidth={2}
-                      tick={{ fill: '#fffdf7', fontFamily: 'Space Mono', fontWeight: 700, fontSize: 10 }}
-                    />
-                    <YAxis 
-                      stroke="#fffdf7"
-                      strokeWidth={2}
-                      tick={{ fill: '#fffdf7', fontFamily: 'Space Mono', fontWeight: 700, fontSize: 10 }}
-                      tickFormatter={(v) => formatNumber(v)}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        background: '#1a1a1a', 
-                        border: '3px solid #fffdf7',
-                        color: '#fffdf7',
-                        fontFamily: 'Space Mono',
-                        fontWeight: 700,
-                      }}
-                    />
-                    <Bar dataKey="plays">
-                      {dowData.map((_, index) => (
-                        <Cell key={index} fill={COLORS[index]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+            {/* Top Episodes */}
+            <div className="brutal-card brutal-card-yellow">
+              <h2 className="brutal-section-title">TOP EPISODES</h2>
+              {topEpisodes && topEpisodes.length > 0 ? (
+                <div className="space-y-2 mt-4">
+                  {topEpisodes.map((ep, i) => (
+                    <div key={ep.id} className="brutal-episode-card">
+                      <div className="brutal-episode-rank">{String(i + 1).padStart(2, '0')}</div>
+                      <div className="flex-1">
+                        <div className="brutal-episode-name">{ep.name}</div>
+                        <div className="brutal-episode-show">{ep.showName}</div>
+                      </div>
+                      <div className="brutal-episode-plays">{ep.playCount}x</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="brutal-empty">NO EPISODES FOUND</div>
+              )}
             </div>
-          </>
-        )}
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
-function BrutalCollection() {
+function BrutalAudiobooks() {
   const { selectedProfileId } = useProfile();
-  const { data: tracksData, isLoading } = useTracks({ 
-    profileId: selectedProfileId, 
-    limit: 15, 
-    sortBy: 'totalPlays', 
-    sortOrder: 'DESC' 
-  });
-
-  const tracks = tracksData?.data || [];
+  const { data: audiobooks, isLoading } = useAudiobooks(selectedProfileId, { limit: 50 });
 
   return (
-    <div className="p-8">
-      <h1 className="brutal-section-title mb-8">COLLECTION</h1>
-      
+    <div className="brutal-page p-8">
+      <div className="brutal-hero mb-8">
+        <h1 className="brutal-title" style={{ transform: 'rotate(1deg)' }}>
+          📚 AUDIOBOOK SHELF
+        </h1>
+      </div>
+
       {isLoading ? (
-        <div className="brutal-loading"><div className="brutal-loading-box" /></div>
-      ) : (
-        <div className="brutal-card">
-          {tracks.map((track, index) => (
-            <div key={track.id} className="brutal-track">
-              <div className="brutal-track-number">{String(index + 1).padStart(2, '0')}</div>
-              <div className="brutal-track-info">
-                <div className="brutal-track-name">{track.name || track.trackName}</div>
-                <div className="brutal-track-artist">
-                  {track.artistName} — {track.albumName}
-                </div>
+        <div className="brutal-loading"><div className="brutal-loading-box">LOADING...</div></div>
+      ) : audiobooks?.audiobooks && audiobooks.audiobooks.length > 0 ? (
+        <>
+          {/* Stats */}
+          <div className="brutal-card brutal-card-pink mb-8">
+            <div className="grid grid-cols-2 gap-8 text-center">
+              <div>
+                <div className="brutal-stat-value text-4xl">{audiobooks.pagination.total}</div>
+                <div className="brutal-stat-label">AUDIOBOOKS</div>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="brutal-progress w-24">
-                  <div 
-                    className="brutal-progress-fill" 
-                    style={{ width: `${Math.min(100, (track.totalPlays / 100) * 100)}%` }}
-                  />
-                </div>
-                <div className="brutal-track-plays">{formatNumber(track.totalPlays)}</div>
+              <div>
+                <div className="brutal-stat-value text-4xl">📚</div>
+                <div className="brutal-stat-label">IN YOUR LIBRARY</div>
               </div>
             </div>
-          ))}
+          </div>
+
+          {/* Books Grid */}
+          <div className="brutal-books-grid">
+            {audiobooks.audiobooks.map((book) => (
+              <div key={book.id} className="brutal-book-tile">
+                <div className="brutal-book-icon">📖</div>
+                <div className="brutal-book-tile-name">{book.name}</div>
+                <div className="brutal-book-tile-author">{book.author}</div>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
+        <div className="brutal-card text-center py-16">
+          <div className="text-6xl mb-4">📚</div>
+          <h2 className="brutal-section-title mb-4">NO AUDIOBOOKS YET</h2>
+          <p className="text-lg">
+            Start exploring audiobooks on Spotify to see them here!
+          </p>
         </div>
       )}
     </div>
@@ -342,13 +363,11 @@ export default function BrutalApp() {
   
   return (
     <div className="brutal-app">
-      <div className="brutal-content">
-        <BrutalNav />
-        
-        {location.pathname === '/4' && <BrutalDashboard />}
-        {location.pathname === '/4/charts' && <BrutalCharts />}
-        {location.pathname === '/4/collection' && <BrutalCollection />}
-      </div>
+      <BrutalNav />
+      
+      {location.pathname === '/4' && <BrutalOverview />}
+      {location.pathname === '/4/podcasts' && <BrutalPodcasts />}
+      {location.pathname === '/4/audiobooks' && <BrutalAudiobooks />}
     </div>
   );
 }

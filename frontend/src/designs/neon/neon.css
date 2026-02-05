@@ -560,9 +560,186 @@
   transition: width 0.3s ease;
 }
 
-/* Data visualization styling */
 .neon-chart {
   background: rgba(10, 10, 15, 0.5);
   border: 1px solid rgba(5, 217, 232, 0.1);
   padding: 1rem;
+}
+
+/* Neon page */
+.neon-page {
+  position: relative;
+  z-index: 10;
+}
+
+.neon-grid-bg {
+  position: fixed;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(5, 217, 232, 0.03) 1px, transparent 1px),
+    linear-gradient(rgba(5, 217, 232, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
+}
+
+.neon-scanlines {
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.05) 2px,
+    rgba(0, 0, 0, 0.05) 4px
+  );
+  pointer-events: none;
+}
+
+.neon-content {
+  position: relative;
+  z-index: 10;
+}
+
+/* Terminal styles */
+.neon-terminal {
+  background: rgba(10, 10, 15, 0.95);
+  border: 1px solid rgba(5, 217, 232, 0.3);
+  font-family: "JetBrains Mono", monospace;
+}
+
+.neon-terminal-header {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: rgba(5, 217, 232, 0.1);
+  border-bottom: 1px solid rgba(5, 217, 232, 0.2);
+}
+
+.neon-terminal-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ff2a6d;
+  margin-right: 6px;
+}
+
+.neon-terminal-dot:nth-child(2) {
+  background: #ffd700;
+}
+.neon-terminal-dot:nth-child(3) {
+  background: #05d9e8;
+}
+
+.neon-terminal-body {
+  padding: 1rem;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+/* Stat cards */
+.neon-stat-card {
+  background: rgba(10, 10, 15, 0.9);
+  border: 1px solid rgba(255, 42, 109, 0.3);
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.neon-stat-card-cyan {
+  border-color: rgba(5, 217, 232, 0.3);
+}
+
+.neon-stat-card .neon-stat-value {
+  font-size: 2rem;
+}
+
+/* Logo */
+.neon-logo-icon {
+  margin-right: 0.5rem;
+  color: #05d9e8;
+}
+
+/* Track rank and skip badge */
+.neon-track-rank {
+  font-family: "Orbitron", sans-serif;
+  font-size: 0.85rem;
+  color: #7b2dff;
+  width: 30px;
+}
+
+.neon-skip-badge {
+  background: rgba(255, 42, 109, 0.2);
+  border: 1px solid rgba(255, 42, 109, 0.4);
+  color: #ff2a6d;
+  padding: 0.25rem 0.5rem;
+  font-family: "Orbitron", sans-serif;
+  font-size: 0.75rem;
+}
+
+/* Country cards */
+.neon-country-card {
+  text-align: center;
+  padding: 0.75rem;
+  background: rgba(5, 217, 232, 0.05);
+  border: 1px solid rgba(5, 217, 232, 0.2);
+}
+
+.neon-country-code {
+  font-family: "Orbitron", sans-serif;
+  font-size: 1.25rem;
+  color: #05d9e8;
+  margin-bottom: 0.25rem;
+}
+
+.neon-country-plays {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.neon-country-bar {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  margin-top: 0.5rem;
+}
+
+.neon-country-bar-fill {
+  height: 100%;
+}
+
+/* Progress bar */
+.neon-progress-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.neon-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff2a6d, #05d9e8);
+}
+
+/* Button */
+.neon-btn {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: 1px solid #05d9e8;
+  color: #05d9e8;
+  font-family: "Orbitron", sans-serif;
+  font-size: 0.75rem;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  transition: all 0.2s ease;
+}
+
+.neon-btn:hover {
+  background: rgba(5, 217, 232, 0.1);
+  box-shadow: 0 0 15px rgba(5, 217, 232, 0.3);
+}
+
+/* Pink/cyan text colors */
+.text-neon-pink {
+  color: #ff2a6d;
+}
+.text-neon-cyan {
+  color: #05d9e8;
 }
