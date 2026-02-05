@@ -38,81 +38,57 @@ Nowoczesna aplikacja webowa do analizy danych ze Spotify GDPR Export z pełnym s
 - **HTTP Client:** Axios 1.10 z interceptorami i error handling
 - **Caching:** In-memory cache z TTL, timeline prefetching, TanStack Query cache
 
-## 🚀 Szybka instalacja (nowy komputer)
+## 🚀 Szybka instalacja
 
-### 1. Wymagania systemowe
+### 1. Wymagania
 
-```bash
-# Sprawdź czy masz zainstalowane:
-node --version    # Potrzebne: 18+ (testowane z 22.17)
-psql --version    # Potrzebne: PostgreSQL 14+ (testowane z 16.9)
-```
-
-**Jeśli nie masz:**
-
-- **Node.js**: https://nodejs.org (wersja LTS)
+- **pnpm**: https://pnpm.io/installation (automatycznie zainstaluje Node.js)
 - **PostgreSQL**: https://www.postgresql.org/download/
 
 ### 2. Konfiguracja PostgreSQL
 
-**Ubuntu/Debian:**
+**Windows (PowerShell):**
+
+```powershell
+# Utwórz bazę danych (podaj hasło ustawione podczas instalacji PostgreSQL)
+& "C:\Program Files\PostgreSQL\18\bin\createdb.exe" -U postgres spotify_analytics
+```
+
+**Linux/macOS:**
 
 ```bash
-sudo apt update
-sudo apt install postgresql postgresql-contrib
-sudo systemctl start postgresql
-sudo systemctl enable postgresql
-
-# Utwórz bazę danych
 sudo -u postgres createdb spotify_analytics
-sudo -u postgres psql spotify_analytics
 ```
 
-**Windows:**
-
-1. Zainstaluj PostgreSQL z oficjalnej strony
-2. Zapamiętaj hasło dla użytkownika `postgres`
-3. Otwórz pgAdmin lub cmd:
-
-```sql
-createdb -U postgres spotify_analytics
-```
-
-### 3. Konfiguracja .pgpass
-
-Aby uniknąć wprowadzania hasła za każdym razem, utwórz plik `.pgpass`:
-
-**Linux/Mac:**
+### 3. Instalacja i uruchomienie
 
 ```bash
-# Utwórz plik .pgpass w katalogu domowym
-echo "localhost:5432:spotify_analytics:postgres:TWOJE_HASŁO" > ~/.pgpass
-chmod 600 ~/.pgpass
-```
+# Klonowanie projektu
+git clone https://github.com/NatanTulo/Spotify-summary
+cd spotify-summary
 
-**Windows:**
+# Instalacja Node.js przez pnpm (jeśli nie masz)
+pnpm env use --global lts
 
-```batch
-# Utwórz plik %APPDATA%\postgresql\pgpass.conf
-echo localhost:5432:spotify_analytics:postgres:TWOJE_HASŁO > %APPDATA%\postgresql\pgpass.conf
-```
-
-### 4. Instalacja projektu
-
-```bash
-# Klonowanie/pobranie projektu
-git clone <repo-url>
-cd spotify-analytics
-
-# Instalacja wszystkich zależności
+# Instalacja zależności
 pnpm install
+cd backend && pnpm install && cd ..
+cd frontend && pnpm install && cd ..
 
-# Test połączenia z bazą
-pnpm run dev:server
-# Powinno pokazać: "Database connected successfully"
+# Konfiguracja backendu - skopiuj .env.example do .env i ustaw hasło PostgreSQL
+cp backend/.env.example backend/.env
+# Edytuj backend/.env: DATABASE_URL=postgresql://postgres:TWOJE_HASŁO@localhost:5432/spotify_analytics
+
+# Uruchomienie
+pnpm run dev
 ```
 
-### 5. Przygotowanie danych Spotify
+Aplikacja dostępna pod:
+
+- **Frontend:** http://localhost:3000
+- **Backend API:** http://localhost:5000
+
+### 4. Przygotowanie danych Spotify
 
 1. **Pobierz dane GDPR ze Spotify:**
    - Przejdź do https://www.spotify.com/account/privacy/
