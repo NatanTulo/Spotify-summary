@@ -1,0 +1,464 @@
+/* Design 4: Neo Brutalism - Bold/Editorial */
+
+.brutal-app {
+  min-height: 100vh;
+  background: #fffdf7;
+  color: #1a1a1a;
+  font-family: "Work Sans", sans-serif;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Background pattern */
+.brutal-app::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(
+      circle at 20% 80%,
+      rgba(255, 225, 53, 0.3) 0%,
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 80% 20%,
+      rgba(255, 51, 102, 0.2) 0%,
+      transparent 30%
+    );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.brutal-content {
+  position: relative;
+  z-index: 10;
+}
+
+/* Navigation */
+.brutal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 3rem;
+  border-bottom: 4px solid #1a1a1a;
+  background: #fffdf7;
+}
+
+.brutal-logo {
+  font-family: "Space Mono", monospace;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.brutal-logo-box {
+  width: 40px;
+  height: 40px;
+  background: #ffe135;
+  border: 3px solid #1a1a1a;
+  transform: rotate(-5deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 4px 4px 0 #1a1a1a;
+}
+
+.brutal-logo-box span {
+  transform: rotate(5deg);
+  font-size: 1.25rem;
+}
+
+.brutal-nav-links {
+  display: flex;
+  gap: 0.5rem;
+  list-style: none;
+}
+
+.brutal-nav-link {
+  font-family: "Space Mono", monospace;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #1a1a1a;
+  text-decoration: none;
+  padding: 0.75rem 1.5rem;
+  border: 3px solid transparent;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.brutal-nav-link:hover {
+  background: #ffe135;
+  border-color: #1a1a1a;
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0 #1a1a1a;
+}
+
+.brutal-nav-link.active {
+  background: #ff3366;
+  color: #fffdf7;
+  border-color: #1a1a1a;
+  box-shadow: 4px 4px 0 #1a1a1a;
+}
+
+/* Brutal card */
+.brutal-card {
+  background: #fffdf7;
+  border: 4px solid #1a1a1a;
+  padding: 2rem;
+  box-shadow: 8px 8px 0 #1a1a1a;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.brutal-card:hover {
+  transform: translate(-4px, -4px);
+  box-shadow: 12px 12px 0 #1a1a1a;
+}
+
+.brutal-card-yellow {
+  background: #ffe135;
+}
+
+.brutal-card-red {
+  background: #ff3366;
+  color: #fffdf7;
+}
+
+.brutal-card-black {
+  background: #1a1a1a;
+  color: #fffdf7;
+}
+
+/* Stats */
+.brutal-stat-value {
+  font-family: "Space Mono", monospace;
+  font-size: 4rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.brutal-stat-label {
+  font-family: "Space Mono", monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.7;
+}
+
+/* Section titles */
+.brutal-section-title {
+  font-family: "Space Mono", monospace;
+  font-size: 2rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  margin-bottom: 1.5rem;
+  display: inline-block;
+  background: #ffe135;
+  padding: 0.5rem 1rem;
+  border: 3px solid #1a1a1a;
+  box-shadow: 4px 4px 0 #1a1a1a;
+  transform: rotate(-1deg);
+}
+
+/* Track list */
+.brutal-track {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-bottom: 2px solid #1a1a1a;
+  transition: all 0.1s ease;
+}
+
+.brutal-track:hover {
+  background: #ffe135;
+  padding-left: 1.5rem;
+}
+
+.brutal-track:last-child {
+  border-bottom: none;
+}
+
+.brutal-track-number {
+  font-family: "Space Mono", monospace;
+  font-size: 1.5rem;
+  font-weight: 700;
+  width: 50px;
+  text-align: center;
+}
+
+.brutal-track-info {
+  flex: 1;
+}
+
+.brutal-track-name {
+  font-family: "Space Mono", monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+}
+
+.brutal-track-artist {
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.brutal-track-plays {
+  font-family: "Space Mono", monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  background: #ff3366;
+  color: #fffdf7;
+  padding: 0.5rem 1rem;
+  border: 2px solid #1a1a1a;
+}
+
+/* Select */
+.brutal-select {
+  background: #fffdf7;
+  border: 3px solid #1a1a1a;
+  color: #1a1a1a;
+  padding: 0.75rem 2rem 0.75rem 1rem;
+  font-family: "Space Mono", monospace;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 4px 4px 0 #1a1a1a;
+  transition: all 0.15s ease;
+}
+
+.brutal-select:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #1a1a1a;
+}
+
+.brutal-select:focus {
+  outline: none;
+  background: #ffe135;
+}
+
+/* Design switcher */
+.brutal-design-switcher {
+  display: flex;
+  gap: 0;
+}
+
+.brutal-design-btn {
+  width: 36px;
+  height: 36px;
+  background: #fffdf7;
+  border: 3px solid #1a1a1a;
+  color: #1a1a1a;
+  font-family: "Space Mono", monospace;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  margin-left: -3px;
+}
+
+.brutal-design-btn:first-child {
+  margin-left: 0;
+}
+
+.brutal-design-btn:hover {
+  background: #ffe135;
+  z-index: 1;
+}
+
+.brutal-design-btn.active {
+  background: #1a1a1a;
+  color: #fffdf7;
+  z-index: 2;
+}
+
+/* Loading */
+.brutal-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+}
+
+.brutal-loading-box {
+  width: 50px;
+  height: 50px;
+  background: #ffe135;
+  border: 3px solid #1a1a1a;
+  animation: brutal-spin 0.6s steps(4) infinite;
+}
+
+@keyframes brutal-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Grid */
+.brutal-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.brutal-grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.brutal-grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.brutal-grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+/* Stacked layout effect */
+.brutal-stack {
+  position: relative;
+}
+
+.brutal-stack::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: -8px;
+  bottom: -8px;
+  background: #1a1a1a;
+  z-index: -1;
+}
+
+/* Progress bar */
+.brutal-progress {
+  height: 24px;
+  background: #fffdf7;
+  border: 3px solid #1a1a1a;
+  position: relative;
+}
+
+.brutal-progress-fill {
+  height: 100%;
+  background: repeating-linear-gradient(
+    45deg,
+    #ff3366,
+    #ff3366 10px,
+    #ffe135 10px,
+    #ffe135 20px
+  );
+  transition: width 0.3s ease;
+}
+
+/* Badge */
+.brutal-badge {
+  display: inline-block;
+  font-family: "Space Mono", monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.25rem 0.75rem;
+  border: 2px solid #1a1a1a;
+  background: #fffdf7;
+}
+
+.brutal-badge-red {
+  background: #ff3366;
+  color: #fffdf7;
+}
+
+.brutal-badge-yellow {
+  background: #ffe135;
+}
+
+/* Chart container */
+.brutal-chart {
+  background: #fffdf7;
+  border: 3px solid #1a1a1a;
+  padding: 1rem;
+}
+
+/* Marquee effect */
+.brutal-marquee {
+  overflow: hidden;
+  white-space: nowrap;
+  border-top: 3px solid #1a1a1a;
+  border-bottom: 3px solid #1a1a1a;
+  background: #ffe135;
+  padding: 0.5rem 0;
+}
+
+.brutal-marquee-content {
+  display: inline-block;
+  animation: marquee 20s linear infinite;
+  font-family: "Space Mono", monospace;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@media (max-width: 1024px) {
+  .brutal-grid-4,
+  .brutal-grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .brutal-grid-4,
+  .brutal-grid-3,
+  .brutal-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .brutal-nav {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .brutal-nav-links {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .brutal-stat-value {
+    font-size: 2.5rem;
+  }
+}
+
+/* Offset elements */
+.brutal-offset-1 {
+  transform: rotate(-2deg);
+}
+
+.brutal-offset-2 {
+  transform: rotate(1deg);
+}
+
+.brutal-offset-3 {
+  transform: rotate(-1deg);
+}

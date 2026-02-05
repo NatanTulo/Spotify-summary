@@ -1,0 +1,568 @@
+/* Design 2: Neon Underground - Cyberpunk/Synthwave */
+
+.neon-app {
+  min-height: 100vh;
+  background: #0a0a0f;
+  color: #f8f8f8;
+  font-family: "JetBrains Mono", monospace;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Grid background */
+.neon-app::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    linear-gradient(90deg, rgba(5, 217, 232, 0.03) 1px, transparent 1px),
+    linear-gradient(rgba(5, 217, 232, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Horizon glow */
+.neon-app::after {
+  content: "";
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: linear-gradient(
+    to top,
+    rgba(255, 42, 109, 0.1) 0%,
+    rgba(123, 45, 255, 0.05) 50%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+.neon-content {
+  position: relative;
+  z-index: 10;
+}
+
+/* Navigation */
+.neon-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 3rem;
+  border-bottom: 1px solid rgba(5, 217, 232, 0.2);
+  background: rgba(10, 10, 15, 0.8);
+  backdrop-filter: blur(10px);
+}
+
+.neon-logo {
+  font-family: "Orbitron", sans-serif;
+  font-size: 1.5rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  background: linear-gradient(90deg, #ff2a6d, #05d9e8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 30px rgba(255, 42, 109, 0.5);
+  position: relative;
+}
+
+.neon-logo::before {
+  content: "NEON_STATS";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  background: linear-gradient(90deg, #05d9e8, #7b2dff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  opacity: 0.5;
+  z-index: -1;
+}
+
+.neon-nav-links {
+  display: flex;
+  gap: 3rem;
+  list-style: none;
+}
+
+.neon-nav-link {
+  font-family: "Orbitron", sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: rgba(248, 248, 248, 0.6);
+  text-decoration: none;
+  position: relative;
+  padding: 0.5rem 0;
+  transition: all 0.3s ease;
+}
+
+.neon-nav-link::before {
+  content: "[";
+  margin-right: 4px;
+  color: #05d9e8;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.neon-nav-link::after {
+  content: "]";
+  margin-left: 4px;
+  color: #05d9e8;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.neon-nav-link:hover,
+.neon-nav-link.active {
+  color: #05d9e8;
+  text-shadow: 0 0 10px rgba(5, 217, 232, 0.5);
+}
+
+.neon-nav-link:hover::before,
+.neon-nav-link:hover::after,
+.neon-nav-link.active::before,
+.neon-nav-link.active::after {
+  opacity: 1;
+}
+
+/* Glitch text effect */
+.glitch {
+  position: relative;
+  animation: glitch-skew 4s infinite linear alternate-reverse;
+}
+
+.glitch::before,
+.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.glitch::before {
+  left: 2px;
+  text-shadow: -2px 0 #ff2a6d;
+  clip: rect(24px, 550px, 90px, 0);
+  animation: glitch-anim-1 2s infinite linear alternate-reverse;
+}
+
+.glitch::after {
+  left: -2px;
+  text-shadow: 2px 0 #05d9e8;
+  clip: rect(85px, 550px, 140px, 0);
+  animation: glitch-anim-2 2s infinite linear alternate-reverse;
+}
+
+@keyframes glitch-skew {
+  0% {
+    transform: skew(0deg);
+  }
+  20% {
+    transform: skew(-0.5deg);
+  }
+  40% {
+    transform: skew(0.5deg);
+  }
+  60% {
+    transform: skew(0deg);
+  }
+  80% {
+    transform: skew(-0.3deg);
+  }
+  100% {
+    transform: skew(0deg);
+  }
+}
+
+@keyframes glitch-anim-1 {
+  0% {
+    clip: rect(42px, 9999px, 44px, 0);
+  }
+  10% {
+    clip: rect(12px, 9999px, 59px, 0);
+  }
+  20% {
+    clip: rect(48px, 9999px, 29px, 0);
+  }
+  30% {
+    clip: rect(42px, 9999px, 73px, 0);
+  }
+  40% {
+    clip: rect(25px, 9999px, 61px, 0);
+  }
+  50% {
+    clip: rect(14px, 9999px, 98px, 0);
+  }
+  60% {
+    clip: rect(72px, 9999px, 52px, 0);
+  }
+  70% {
+    clip: rect(34px, 9999px, 30px, 0);
+  }
+  80% {
+    clip: rect(66px, 9999px, 16px, 0);
+  }
+  90% {
+    clip: rect(91px, 9999px, 86px, 0);
+  }
+  100% {
+    clip: rect(38px, 9999px, 74px, 0);
+  }
+}
+
+@keyframes glitch-anim-2 {
+  0% {
+    clip: rect(79px, 9999px, 67px, 0);
+  }
+  10% {
+    clip: rect(9px, 9999px, 27px, 0);
+  }
+  20% {
+    clip: rect(68px, 9999px, 99px, 0);
+  }
+  30% {
+    clip: rect(10px, 9999px, 43px, 0);
+  }
+  40% {
+    clip: rect(85px, 9999px, 92px, 0);
+  }
+  50% {
+    clip: rect(21px, 9999px, 65px, 0);
+  }
+  60% {
+    clip: rect(52px, 9999px, 19px, 0);
+  }
+  70% {
+    clip: rect(33px, 9999px, 78px, 0);
+  }
+  80% {
+    clip: rect(89px, 9999px, 45px, 0);
+  }
+  90% {
+    clip: rect(12px, 9999px, 68px, 0);
+  }
+  100% {
+    clip: rect(56px, 9999px, 34px, 0);
+  }
+}
+
+/* Neon card */
+.neon-card {
+  background: rgba(10, 10, 15, 0.9);
+  border: 1px solid rgba(5, 217, 232, 0.2);
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.neon-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #05d9e8, transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.neon-card:hover {
+  border-color: rgba(5, 217, 232, 0.5);
+  box-shadow:
+    0 0 20px rgba(5, 217, 232, 0.2),
+    inset 0 0 20px rgba(5, 217, 232, 0.05);
+}
+
+.neon-card:hover::before {
+  opacity: 1;
+}
+
+/* Corner accents */
+.neon-card::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  border-bottom: 2px solid #ff2a6d;
+  border-right: 2px solid #ff2a6d;
+}
+
+/* Stats */
+.neon-stat-value {
+  font-family: "Orbitron", sans-serif;
+  font-size: 2.5rem;
+  font-weight: 900;
+  background: linear-gradient(180deg, #05d9e8 0%, #7b2dff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 30px rgba(5, 217, 232, 0.3);
+}
+
+.neon-stat-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: rgba(248, 248, 248, 0.5);
+  margin-top: 0.5rem;
+}
+
+/* Scanlines overlay */
+.scanlines {
+  position: relative;
+}
+
+.scanlines::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.1) 2px,
+    rgba(0, 0, 0, 0.1) 4px
+  );
+  pointer-events: none;
+  opacity: 0.3;
+}
+
+/* Track list */
+.neon-track {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 42, 109, 0.1);
+  transition: all 0.2s ease;
+}
+
+.neon-track:hover {
+  background: rgba(255, 42, 109, 0.05);
+  border-left: 3px solid #ff2a6d;
+  padding-left: calc(1rem - 3px);
+}
+
+.neon-track-number {
+  font-family: "Orbitron", sans-serif;
+  font-size: 0.9rem;
+  color: #7b2dff;
+  width: 40px;
+  text-align: center;
+}
+
+.neon-track-info {
+  flex: 1;
+}
+
+.neon-track-name {
+  font-family: "Orbitron", sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #f8f8f8;
+  margin-bottom: 0.25rem;
+}
+
+.neon-track-artist {
+  font-size: 0.75rem;
+  color: rgba(248, 248, 248, 0.5);
+}
+
+.neon-track-plays {
+  font-family: "Orbitron", sans-serif;
+  font-size: 0.85rem;
+  color: #05d9e8;
+  text-shadow: 0 0 10px rgba(5, 217, 232, 0.3);
+}
+
+/* Section titles */
+.neon-section-title {
+  font-family: "Orbitron", sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: #ff2a6d;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.neon-section-title::before {
+  content: "//";
+  color: #05d9e8;
+}
+
+/* Select styling */
+.neon-select {
+  background: rgba(10, 10, 15, 0.9);
+  border: 1px solid rgba(5, 217, 232, 0.3);
+  color: #05d9e8;
+  padding: 0.5rem 1rem;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.neon-select:hover {
+  border-color: #05d9e8;
+  box-shadow: 0 0 10px rgba(5, 217, 232, 0.3);
+}
+
+.neon-select:focus {
+  outline: none;
+  border-color: #ff2a6d;
+}
+
+.neon-select option {
+  background: #0a0a0f;
+}
+
+/* Design switcher */
+.neon-design-switcher {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.neon-design-btn {
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid rgba(5, 217, 232, 0.3);
+  color: rgba(248, 248, 248, 0.5);
+  font-family: "Orbitron", sans-serif;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.neon-design-btn:hover {
+  border-color: #ff2a6d;
+  color: #ff2a6d;
+  box-shadow: 0 0 10px rgba(255, 42, 109, 0.3);
+}
+
+.neon-design-btn.active {
+  background: #ff2a6d;
+  border-color: #ff2a6d;
+  color: #0a0a0f;
+}
+
+/* Loading */
+.neon-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+}
+
+.neon-loading-bar {
+  width: 200px;
+  height: 4px;
+  background: rgba(5, 217, 232, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.neon-loading-bar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #05d9e8,
+    #ff2a6d,
+    transparent
+  );
+  animation: loading-slide 1.5s infinite;
+}
+
+@keyframes loading-slide {
+  to {
+    left: 100%;
+  }
+}
+
+/* Grid */
+.neon-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.neon-grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.neon-grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+@media (max-width: 1024px) {
+  .neon-grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .neon-grid-4,
+  .neon-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .neon-nav {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .neon-nav-links {
+    gap: 1.5rem;
+  }
+}
+
+/* Progress bar */
+.neon-progress {
+  height: 8px;
+  background: rgba(10, 10, 15, 0.9);
+  border: 1px solid rgba(5, 217, 232, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.neon-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7b2dff, #ff2a6d);
+  box-shadow: 0 0 10px rgba(255, 42, 109, 0.5);
+  transition: width 0.3s ease;
+}
+
+/* Data visualization styling */
+.neon-chart {
+  background: rgba(10, 10, 15, 0.5);
+  border: 1px solid rgba(5, 217, 232, 0.1);
+  padding: 1rem;
+}

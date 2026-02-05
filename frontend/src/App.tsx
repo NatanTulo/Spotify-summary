@@ -1,44 +1,44 @@
-import { Routes, Route } from 'react-router-dom'
-import { lazy, Suspense } from 'react'
-import Layout from './components/Layout'
-import { LanguageProvider } from './context/LanguageContext'
-import { ErrorBoundary } from './components/common/ErrorBoundary'
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { ProfileProvider } from './hooks/useProfile';
 
-// Lazy load głównych stron dla code-splitting
-const Dashboard = lazy(() => import('./pages/Dashboard'))
-const MusicAnalytics = lazy(() => import('./pages/music/Analytics'))
-const Podcasts = lazy(() => import('./pages/podcasts/Podcasts'))
-const Audiobooks = lazy(() => import('./pages/audiobooks/Audiobooks'))
+// Lazy load design modules
+import { lazy, Suspense } from 'react';
 
-// Loading component
-const LoadingSpinner = () => (
-    <div className="flex items-center justify-center h-64">
-        <div className="relative h-10 w-10">
-            <div className="absolute inset-0 rounded-full bg-linear-to-tr from-primary/60 via-spotify-green/60 to-chart-4/60 animate-pulse blur-[2px]" />
-            <div className="absolute inset-[2px] rounded-full bg-background border border-border" />
-        </div>
+const VinylApp = lazy(() => import('./designs/vinyl/VinylApp'));
+const NeonApp = lazy(() => import('./designs/neon/NeonApp'));
+const AuroraApp = lazy(() => import('./designs/aurora/AuroraApp'));
+const BrutalApp = lazy(() => import('./designs/brutalism/BrutalApp'));
+const CosmosApp = lazy(() => import('./designs/cosmos/CosmosApp'));
+
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-900">
+      <div className="text-white text-xl animate-pulse">Loading...</div>
     </div>
-)
-
-function App() {
-    return (
-        <ErrorBoundary>
-            <LanguageProvider>
-                <Layout>
-                    <Suspense fallback={<LoadingSpinner />}>
-                        <Routes>
-                            <Route path="/" element={<Dashboard />} />
-                            <Route path="/dashboard" element={<Dashboard />} />
-                            <Route path="/music" element={<MusicAnalytics />} />
-                            <Route path="/analytics" element={<MusicAnalytics />} />
-                            <Route path="/podcasts" element={<Podcasts />} />
-                            <Route path="/audiobooks" element={<Audiobooks />} />
-                        </Routes>
-                    </Suspense>
-                </Layout>
-            </LanguageProvider>
-        </ErrorBoundary>
-    )
+  );
 }
 
-export default App
+function App() {
+  return (
+    <ProfileProvider>
+      <Suspense fallback={<LoadingFallback />}>
+        <Routes>
+          {/* Redirect root to first design */}
+          <Route path="/" element={<Navigate to="/1" replace />} />
+          
+          {/* 5 Unique Designs */}
+          <Route path="/1/*" element={<VinylApp />} />
+          <Route path="/2/*" element={<NeonApp />} />
+          <Route path="/3/*" element={<AuroraApp />} />
+          <Route path="/4/*" element={<BrutalApp />} />
+          <Route path="/5/*" element={<CosmosApp />} />
+          
+          {/* 404 fallback */}
+          <Route path="*" element={<Navigate to="/1" replace />} />
+        </Routes>
+      </Suspense>
+    </ProfileProvider>
+  );
+}
+
+export default App;
