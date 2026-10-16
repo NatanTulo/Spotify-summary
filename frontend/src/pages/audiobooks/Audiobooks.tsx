@@ -1,3 +1,4 @@
+import { apiFetch } from '../../lib/api'
 import React, { useState, useEffect } from 'react'
 import { useLanguage } from '../../context/LanguageContext'
 import { useProfile } from '../../context/ProfileContext'
@@ -45,7 +46,7 @@ const Audiobooks: React.FC = () => {
 
         try {
             const profileParam = selectedProfile || 'all'
-            const response = await fetch(`/api/audiobooks/${profileParam}`)
+            const response = await apiFetch(`/api/audiobooks/${profileParam}`)
             if (!response.ok) {
                 if (response.status >= 500) {
                     throw new Error('CONNECTION_ERROR')
@@ -79,7 +80,7 @@ const Audiobooks: React.FC = () => {
 
         try {
             const profileParam = selectedProfile || 'all'
-            const response = await fetch(`/api/audiobooks/${profileParam}/audiobook/${audiobookId}/plays`)
+            const response = await apiFetch(`/api/audiobooks/${profileParam}/audiobook/${audiobookId}/plays`)
             if (!response.ok) {
                 throw new Error('Failed to fetch audiobook plays')
             }

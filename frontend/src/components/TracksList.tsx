@@ -1,3 +1,4 @@
+import { apiFetch } from '../lib/api'
 import { useState, Fragment, useEffect, useCallback, useMemo } from "react";
 import { Play, Settings2 } from "lucide-react";
 import {
@@ -95,7 +96,7 @@ export function TracksList({
           params.append("profileId", profileId);
         }
 
-        const response = await fetch(
+        const response = await apiFetch(
           `/api/tracks/${track.trackId}/timeline?${params}`
         );
         if (response.ok) {
@@ -162,7 +163,7 @@ export function TracksList({
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
 
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/tracks/${trackId}/timeline?${params}`,
         {
           signal: controller.signal,

@@ -108,7 +108,7 @@ class ImportProgressManager {
         }
     }
 
-    updateStats(profileName: string, stats: any): void {
+    updateStats(profileName: string, stats: ImportProgress['stats']): void {
         const progress = this.progressMap.get(profileName)
         if (progress) {
             progress.stats = { ...stats }
@@ -137,11 +137,15 @@ class ImportProgressManager {
 
     cancelImport(profileName: string): void {
         const progress = this.progressMap.get(profileName)
-        if (progress) {
-            progress.isRunning = false
+        if (progress?.isRunning) {
             progress.status = 'cancelled'
             progress.lastUpdate = new Date()
         }
+    }
+
+    finishCancellation(profileName: string): void {
+        const progress = this.progressMap.get(profileName)
+        if (progress) { progress.isRunning = false; progress.status = 'cancelled'; progress.lastUpdate = new Date() }
     }
 
     getProgress(profileName: string): ImportProgress | undefined {
@@ -164,7 +168,7 @@ class ImportProgressManager {
         if (progress.estimatedTotalRecords === 0) return 0
 
         const completedRecords = progress.totalRecordsProcessed + progress.currentRecord
-        return Math.min(100, Math.round((completedRecords / progress.estimatedTotalRecords) * 100))
+        return Math.min(99, Math.round((completedRecords / progress.estimatedTotalRecords) * 100))
     }
 }
 

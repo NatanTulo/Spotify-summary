@@ -1,3 +1,4 @@
+import type { CreationAttributes, Transaction } from 'sequelize'
 import { Audiobook } from '../../models/audiobooks/Audiobook.js'
 import { AudiobookPlay } from '../../models/audiobooks/AudiobookPlay.js'
 import { SpotifyPlayData, ImportStats } from './types.js'
@@ -5,9 +6,10 @@ import { SpotifyPlayData, ImportStats } from './types.js'
 export class AudiobookImporter {
     private audiobooks = new Map<string, number>() // name -> id
     private stats: ImportStats
+    private pending: CreationAttributes<AudiobookPlay>[] = []
     private profileId: number
 
-    constructor(stats: ImportStats, profileId: number) {
+    constructor(stats: ImportStats, profileId: number, private transaction?: Transaction) {
         this.stats = stats
         this.profileId = profileId
     }
@@ -51,11 +53,11 @@ export class AudiobookImporter {
         let audiobook: Audiobook | null = null
 
         if (spotifyUri) {
-            audiobook = await Audiobook.findOne({ where: { spotifyUri } })
+            audiobook = await Audiobook.findOne({ transaction: this.transaction, where: { spotifyUri } })
         }
 
         if (!audiobook) {
-            audiobook = await Audiobook.findOne({ where: { name } })
+            audiobook = await Audiobook.findOne({ transaction: this.transaction, where: { name } })
         }
 
         if (!audiobook) {
@@ -64,7 +66,7 @@ export class AudiobookImporter {
                 spotifyUri: spotifyUri || null,
                 createdAt: new Date(),
                 updatedAt: new Date()
-            })
+            }, { transaction: this.transaction })
             this.stats.audiobooksCreated++
         }
 
@@ -76,7 +78,7 @@ export class AudiobookImporter {
      * Utwórz audiobook play
      */
     private async createAudiobookPlay(record: SpotifyPlayData, audiobookId: number): Promise<void> {
-        await AudiobookPlay.create({
+        this.pending.push({
             audiobookId,
             profileId: this.profileId,
             timestamp: new Date(record.ts),
@@ -99,6 +101,13 @@ export class AudiobookImporter {
             updatedAt: new Date()
         })
 
-        this.stats.audiobookPlaysCreated++
+
     }
+    public async flush(): Promise<void> {
+        if (!this.pending.length) return
+        await AudiobookPlay.bulkCreate(this.pending, { transaction: this.transaction, validate: true })
+        this.stats.audiobookPlaysCreated += this.pending.length
+        this.pending = []
+    }
+
 }

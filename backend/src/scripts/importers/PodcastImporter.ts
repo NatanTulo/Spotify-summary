@@ -1,3 +1,4 @@
+import type { CreationAttributes, Transaction } from 'sequelize'
 import { Show } from '../../models/podcasts/Show.js'
 import { Episode } from '../../models/podcasts/Episode.js'
 import { PodcastPlay } from '../../models/podcasts/PodcastPlay.js'
@@ -7,9 +8,10 @@ export class PodcastImporter {
     private shows = new Map<string, number>()    // name -> id
     private episodes = new Map<string, number>() // name:showId -> id
     private stats: ImportStats
+    private pending: CreationAttributes<PodcastPlay>[] = []
     private profileId: number
 
-    constructor(stats: ImportStats, profileId: number) {
+    constructor(stats: ImportStats, profileId: number, private transaction?: Transaction) {
         this.stats = stats
         this.profileId = profileId
     }
@@ -54,14 +56,14 @@ export class PodcastImporter {
             return this.shows.get(name)!
         }
 
-        let show = await Show.findOne({ where: { name } })
+        let show = await Show.findOne({ transaction: this.transaction, where: { name } })
 
         if (!show) {
             show = await Show.create({
                 name,
                 createdAt: new Date(),
                 updatedAt: new Date()
-            })
+            }, { transaction: this.transaction })
             this.stats.showsCreated++
         }
 
@@ -83,11 +85,11 @@ export class PodcastImporter {
 
         // Preferuj dopasowanie po spotifyUri jeśli dostępne
         if (spotifyUri) {
-            episode = await Episode.findOne({ where: { spotifyUri } })
+            episode = await Episode.findOne({ transaction: this.transaction, where: { spotifyUri } })
         }
 
         if (!episode) {
-            episode = await Episode.findOne({ where: { name, showId } })
+            episode = await Episode.findOne({ transaction: this.transaction, where: { name, showId } })
         }
 
         if (!episode) {
@@ -97,7 +99,7 @@ export class PodcastImporter {
                 spotifyUri: spotifyUri || null,
                 createdAt: new Date(),
                 updatedAt: new Date()
-            })
+            }, { transaction: this.transaction })
             this.stats.episodesCreated++
         }
 
@@ -109,7 +111,7 @@ export class PodcastImporter {
      * Utwórz podcast play
      */
     private async createPodcastPlay(record: SpotifyPlayData, episodeId: number): Promise<void> {
-        await PodcastPlay.create({
+        this.pending.push({
             episodeId,
             profileId: this.profileId,
             timestamp: new Date(record.ts),
@@ -130,6 +132,13 @@ export class PodcastImporter {
             updatedAt: new Date()
         })
 
-        this.stats.podcastPlaysCreated++
+
     }
+    public async flush(): Promise<void> {
+        if (!this.pending.length) return
+        await PodcastPlay.bulkCreate(this.pending, { transaction: this.transaction, validate: true })
+        this.stats.podcastPlaysCreated += this.pending.length
+        this.pending = []
+    }
+
 }

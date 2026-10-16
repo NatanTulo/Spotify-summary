@@ -1,3 +1,4 @@
+import { apiFetch } from '../../../lib/api'
 import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '../../../context/LanguageContext';
 import { Profile, ImportProgress, AvailableProfile } from '../types';
@@ -17,7 +18,7 @@ export const useProfileManagement = (
 
     const fetchImportProgress = useCallback(async (profileName: string) => {
         try {
-            const response = await fetch(`/api/import/progress/${profileName}`);
+            const response = await apiFetch(`/api/import/progress/${profileName}`);
             if (response.ok) {
                 const data = await response.json();
                 if (data.success && data.data) {
@@ -52,7 +53,7 @@ export const useProfileManagement = (
     const checkActiveImports = useCallback(async () => {
         try {
             console.log("🔍 Checking for active imports...");
-            const response = await fetch("/api/import/progress");
+            const response = await apiFetch("/api/import/progress");
             if (response.ok) {
                 const data = await response.json();
                 if (data.success && data.data) {
@@ -89,8 +90,8 @@ export const useProfileManagement = (
         
         try {
             const [profilesRes, availableRes] = await Promise.all([
-                fetch("/api/import/profiles"),
-                fetch("/api/import/available"),
+                apiFetch("/api/import/profiles"),
+                apiFetch("/api/import/available"),
             ]);
 
             let profilesChanged = false;
@@ -124,7 +125,7 @@ export const useProfileManagement = (
                         if (missingPodcastStats.length > 0) {
                             await Promise.all(
                                 missingPodcastStats.map(p =>
-                                    fetch(`/api/import/profile/${encodeURIComponent(p.name)}/update-stats`, { method: 'POST' })
+                                    apiFetch(`/api/import/profile/${encodeURIComponent(p.name)}/update-stats`, { method: 'POST' })
                                         .catch(err => console.error('Failed to recompute stats for', p.name, err))
                                 )
                             );
@@ -164,7 +165,7 @@ export const useProfileManagement = (
     const handleImportProfile = async (profileName: string) => {
         setImportingProfile(profileName);
         try {
-            const response = await fetch(`/api/import/profile/${profileName}`, {
+            const response = await apiFetch(`/api/import/profile/${profileName}`, {
                 method: "POST",
             });
 
@@ -187,7 +188,7 @@ export const useProfileManagement = (
         if (!confirm(t("confirmDeleteProfileData"))) return;
 
         try {
-            const response = await fetch(`/api/import/clear?profileId=${profileId}`, {
+            const response = await apiFetch(`/api/import/clear?profileId=${profileId}`, {
                 method: "DELETE",
             });
 

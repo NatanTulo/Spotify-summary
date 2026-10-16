@@ -1,3 +1,4 @@
+import type { Transaction } from 'sequelize'
 import { DailyStats, YearlyStats, CountryStats, ArtistStats, Play } from '../models/index.js'
 import { fn, col, Op, literal, QueryTypes } from 'sequelize'
 import { sequelize } from '../config/database.js'
@@ -5,7 +6,7 @@ import { sequelize } from '../config/database.js'
 export class StatsAggregator {
     private profileId: number
 
-    constructor(profileId: number) {
+    constructor(profileId: number, private transaction?: Transaction) {
         this.profileId = profileId
     }
 
@@ -34,10 +35,10 @@ export class StatsAggregator {
      */
     private async clearExistingStats(): Promise<void> {
         await Promise.all([
-            DailyStats.destroy({ where: { profileId: this.profileId } }),
-            YearlyStats.destroy({ where: { profileId: this.profileId } }),
-            CountryStats.destroy({ where: { profileId: this.profileId } }),
-            ArtistStats.destroy({ where: { profileId: this.profileId } })
+            DailyStats.destroy({ transaction: this.transaction, where: { profileId: this.profileId } }),
+            YearlyStats.destroy({ transaction: this.transaction, where: { profileId: this.profileId } }),
+            CountryStats.destroy({ transaction: this.transaction, where: { profileId: this.profileId } }),
+            ArtistStats.destroy({ transaction: this.transaction, where: { profileId: this.profileId } })
         ])
     }
 
@@ -48,7 +49,7 @@ export class StatsAggregator {
         console.log('📅 Aggregating daily stats...')
 
         // Podstawowe statystyki dzienne
-        const dailyData = await Play.findAll({
+        const dailyData = await Play.findAll({ transaction: this.transaction,
             where: { profileId: this.profileId },
             attributes: [
                 [fn('DATE', col('timestamp')), 'date'],
@@ -72,7 +73,7 @@ export class StatsAggregator {
             JOIN artists ar ON al."artistId" = ar.id
             WHERE p."profileId" = :profileId
             GROUP BY DATE(p.timestamp)
-        `, {
+        `, { transaction: this.transaction,
             replacements: { profileId: this.profileId },
             type: QueryTypes.SELECT
         }) as any[]
@@ -98,7 +99,7 @@ export class StatsAggregator {
                 GROUP BY date, ar.id, ar.name
             ) sub
             ORDER BY date, plays DESC
-        `, {
+        `, { transaction: this.transaction,
             replacements: { profileId: this.profileId },
             type: QueryTypes.SELECT
         }) as any[]
@@ -126,7 +127,7 @@ export class StatsAggregator {
                 GROUP BY date, t.id, t.name, ar.name
             ) sub
             ORDER BY date, plays DESC
-        `, {
+        `, { transaction: this.transaction,
             replacements: { profileId: this.profileId },
             type: QueryTypes.SELECT
         }) as any[]
@@ -147,7 +148,7 @@ export class StatsAggregator {
         }))
 
         if (dailyStats.length > 0) {
-            await DailyStats.bulkCreate(dailyStats)
+            await DailyStats.bulkCreate(dailyStats, { transaction: this.transaction })
         }
 
         console.log(`   ✅ Created ${dailyStats.length} daily stats records`)
@@ -160,7 +161,7 @@ export class StatsAggregator {
         console.log('📅 Aggregating yearly stats...')
 
         // Podstawowe statystyki roczne
-        const yearlyData = await Play.findAll({
+        const yearlyData = await Play.findAll({ transaction: this.transaction,
             where: { profileId: this.profileId },
             attributes: [
                 [fn('EXTRACT', literal('YEAR FROM "timestamp"')), 'year'],
@@ -185,7 +186,7 @@ export class StatsAggregator {
             JOIN artists ar ON al."artistId" = ar.id
             WHERE p."profileId" = :profileId
             GROUP BY EXTRACT(YEAR FROM p.timestamp)::int
-        `, {
+        `, { transaction: this.transaction,
             replacements: { profileId: this.profileId },
             type: QueryTypes.SELECT
         }) as any[]
@@ -213,7 +214,7 @@ export class StatsAggregator {
                 GROUP BY year, ar.id, ar.name
             ) sub
             ORDER BY year, plays DESC
-        `, {
+        `, { transaction: this.transaction,
             replacements: { profileId: this.profileId },
             type: QueryTypes.SELECT
         }) as any[]
@@ -247,7 +248,7 @@ export class StatsAggregator {
                 GROUP BY year, t.id, t.name, ar.name
             ) sub
             ORDER BY year, plays DESC
-        `, {
+        `, { transaction: this.transaction,
             replacements: { profileId: this.profileId },
             type: QueryTypes.SELECT
         }) as any[]
@@ -279,7 +280,7 @@ export class StatsAggregator {
         })
 
         if (yearlyStats.length > 0) {
-            await YearlyStats.bulkCreate(yearlyStats)
+            await YearlyStats.bulkCreate(yearlyStats, { transaction: this.transaction })
         }
 
         console.log(`   ✅ Created ${yearlyStats.length} yearly stats records`)
@@ -291,7 +292,7 @@ export class StatsAggregator {
     private async aggregateCountryStats(): Promise<void> {
         console.log('🌍 Aggregating country stats...')
 
-        const countryData = await Play.findAll({
+        const countryData = await Play.findAll({ transaction: this.transaction,
             where: {
                 profileId: this.profileId,
                 country: { [Op.ne]: null }
@@ -316,7 +317,7 @@ export class StatsAggregator {
         }))
 
         if (countryStats.length > 0) {
-            await CountryStats.bulkCreate(countryStats)
+            await CountryStats.bulkCreate(countryStats, { transaction: this.transaction })
         }
 
         console.log(`   ✅ Created ${countryStats.length} country stats records`)
@@ -342,7 +343,7 @@ export class StatsAggregator {
             WHERE plays."profileId" = :profileId
             GROUP BY artists.id, artists.name
             ORDER BY COUNT(plays.id) DESC
-        `, {
+        `, { transaction: this.transaction,
             replacements: { profileId: this.profileId },
             type: QueryTypes.SELECT
         })
@@ -358,7 +359,7 @@ export class StatsAggregator {
         }))
 
         if (artistStats.length > 0) {
-            await ArtistStats.bulkCreate(artistStats)
+            await ArtistStats.bulkCreate(artistStats, { transaction: this.transaction })
         }
 
         console.log(`   ✅ Created ${artistStats.length} artist stats records`)

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Search, Filter, X, Calendar, Globe, Music, Users } from 'lucide-react'
+import { Search, Filter, X, Globe, Music, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useLanguage } from '@/context/LanguageContext'
@@ -88,7 +88,8 @@ export function AdvancedFilters({
                             type="text"
                             placeholder={t('searchPlaceholder')}
                             className="w-full pl-10 pr-4 py-2 border rounded-md bg-background"
-                            value={filters.search}
+                            aria-label={t('search')}
+                                    value={filters.search}
                             onChange={(e) => updateFilter('search', e.target.value)}
                         />
                     </div>
@@ -112,6 +113,7 @@ export function AdvancedFilters({
                                     type="number"
                                     min="0"
                                     className="w-full px-3 py-2 border rounded-md bg-background"
+                                    aria-label={t('minPlays')}
                                     value={filters.minPlays}
                                     onChange={(e) => updateFilter('minPlays', parseInt(e.target.value) || 0)}
                                 />
@@ -124,6 +126,7 @@ export function AdvancedFilters({
                                 </label>
                                 <select
                                     className="w-full px-3 py-2 border rounded-md bg-background"
+                                    aria-label={t('country')}
                                     value={filters.country}
                                     onChange={(e) => updateFilter('country', e.target.value)}
                                 >
@@ -141,6 +144,7 @@ export function AdvancedFilters({
                                 </label>
                                 <select
                                     className="w-full px-3 py-2 border rounded-md bg-background"
+                                    aria-label={t('platform')}
                                     value={filters.platform}
                                     onChange={(e) => updateFilter('platform', e.target.value)}
                                 >
@@ -152,41 +156,13 @@ export function AdvancedFilters({
                             </div>
                         </div>
 
-                        {/* Druga linia filtrów */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium mb-2">
-                                    <Calendar className="inline h-4 w-4 mr-1" />
-                                    {t('from')}
-                                </label>
-                                <input
-                                    type="date"
-                                    className="w-full px-3 py-2 border rounded-md bg-background"
-                                    value={filters.dateFrom}
-                                    onChange={(e) => updateFilter('dateFrom', e.target.value)}
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium mb-2">
-                                    <Calendar className="inline h-4 w-4 mr-1" />
-                                    {t('to')}
-                                </label>
-                                <input
-                                    type="date"
-                                    className="w-full px-3 py-2 border rounded-md bg-background"
-                                    value={filters.dateTo}
-                                    onChange={(e) => updateFilter('dateTo', e.target.value)}
-                                />
-                            </div>
-                        </div>
-
                         {/* Sortowanie */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium mb-2">{t('sortBy')}</label>
                                 <select
                                     className="w-full px-3 py-2 border rounded-md bg-background"
+                                    aria-label={t('sortBy')}
                                     value={filters.sortBy}
                                     onChange={(e) => updateFilter('sortBy', e.target.value)}
                                 >
@@ -203,6 +179,7 @@ export function AdvancedFilters({
                                 <label className="block text-sm font-medium mb-2">{t('sortOrder')}</label>
                                 <select
                                     className="w-full px-3 py-2 border rounded-md bg-background"
+                                    aria-label={t('sortOrder')}
                                     value={filters.sortOrder}
                                     onChange={(e) => updateFilter('sortOrder', e.target.value as 'asc' | 'desc')}
                                 >

@@ -16,7 +16,7 @@ export default defineConfig({
     },
     server: {
         port: 3000,
-        host: '0.0.0.0', // Nasłuchuj na wszystkich interfejsach sieciowych
+        host: '127.0.0.1', // Dostęp wyłącznie lokalny
         proxy: {
             '/api': {
                 target: 'http://127.0.0.1:5000',

@@ -5,7 +5,7 @@ import ProfileService from './profileService.js'
 
 export class ImportService {
     private getDataDir() {
-        return path.join(process.cwd(), '..', 'data')
+        return path.resolve(process.env.SPOTIFY_DATA_DIR || path.join(process.cwd(), '..', 'data'))
     }
 
     getAvailableProfiles() {
@@ -16,7 +16,7 @@ export class ImportService {
         }
 
         return fs.readdirSync(dataDir, { withFileTypes: true })
-            .filter(dirent => dirent.isDirectory())
+            .filter(dirent => dirent.isDirectory() && path.dirname(fs.realpathSync(path.join(dataDir, dirent.name))) === fs.realpathSync(dataDir))
             .map(dirent => {
                 const profilePath = path.join(dataDir, dirent.name)
                 const files = fs.readdirSync(profilePath)
@@ -70,7 +70,11 @@ export class ImportService {
 
     async startImport(profileName: string) {
         const dataDir = this.getDataDir()
-        const profilePath = path.join(dataDir, profileName)
+        const available = this.getAvailableProfiles().find(profile => profile.name === profileName)
+        if (!available || !profileName || path.basename(profileName) !== profileName) throw new Error('Profile not found')
+        const root = fs.realpathSync(dataDir)
+        const profilePath = fs.realpathSync(available.path)
+        if (path.dirname(profilePath) !== root) throw new Error('Profile not found')
 
         if (!fs.existsSync(profilePath)) {
             throw new Error('Profile not found')
@@ -112,7 +116,7 @@ export class ImportService {
                 await importer.import()
             } catch (error) {
                 console.error('Error during background import:', error)
-                progressManager.errorImport(profileName, error instanceof Error ? error.message : 'Unknown error')
+                if (progressManager.getProgress(profileName)?.status !== 'cancelled') progressManager.errorImport(profileName, error instanceof Error ? error.message : 'Unknown error')
             }
         }, 100)
 

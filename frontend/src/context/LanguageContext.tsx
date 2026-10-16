@@ -12,7 +12,7 @@ interface LanguageContextType {
   formatDate: (date: string | Date | null | undefined, includeTime?: boolean) => string;
 }
 
-const translations: Record<Language, any> = { pl, en };
+const translations: Record<Language, Record<string, string>> = { pl, en };
 
 const LanguageContext = createContext<LanguageContextType | undefined>(
   undefined

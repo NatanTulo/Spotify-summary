@@ -189,6 +189,7 @@ const Layout = ({ children }: LayoutProps) => {
                             {/* Mobile Profile Selector - simplified */}
                             <div className="sm:hidden">
                                 <Button
+                                    aria-label={t('dataManagement')}
                                     onClick={handleImportRequested}
                                     variant="spotify"
                                     size="sm"
@@ -206,12 +207,13 @@ const Layout = ({ children }: LayoutProps) => {
 
             {/* Profile Manager Modal */}
             {showProfileManager && (
-                <div className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 z-50">
+                <div role="dialog" aria-modal="true" aria-label={t('dataManagement')} className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 z-50">
                     <div className="glass max-w-4xl w-full max-h-[90vh] sm:max-h-[82vh] overflow-auto">
                         <div className="p-3 sm:p-6">
                             <div className="flex items-center justify-between mb-4 sm:mb-6">
                                 <h2 className="text-xl sm:text-2xl font-semibold tracking-tight">{t('dataManagement')}</h2>
                                 <button
+                                    aria-label={t('close')}
                                     onClick={() => setShowProfileManager(false)}
                                     className="p-2 hover:bg-muted rounded-md transition-colors"
                                 >

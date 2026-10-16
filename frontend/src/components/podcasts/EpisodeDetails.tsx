@@ -1,3 +1,4 @@
+import { apiFetch } from '../../lib/api'
 import { useState, useEffect } from 'react'
 import { ArrowLeft, Play } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
@@ -48,7 +49,7 @@ export function EpisodeDetails({ episodeId, episodeName, showName, profileId, on
         setError(null)
 
         try {
-            const response = await fetch(`/api/podcasts/${profileId}/episode/${episodeId}/plays`)
+            const response = await apiFetch(`/api/podcasts/${profileId}/episode/${episodeId}/plays`)
             if (!response.ok) {
                 throw new Error('Failed to fetch episode plays')
             }

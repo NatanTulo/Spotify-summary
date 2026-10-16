@@ -1,3 +1,4 @@
+import { scopeSql } from '../../middleware/dateScope.js'
 import express, { Router } from 'express'
 import { fn, col, literal, QueryTypes } from 'sequelize'
 import { sequelize } from '../../config/database.js'
@@ -94,7 +95,7 @@ router.get('/', async (req, res) => {
 
         const countQuery = `SELECT COUNT(*) as total ${matchingTracksQuery}`
 
-        const tracks = await sequelize.query(tracksQuery, {
+        const tracks = await sequelize.query(scopeSql(tracksQuery), {
             type: QueryTypes.SELECT,
             replacements: {
                 ...replacements,
@@ -103,7 +104,7 @@ router.get('/', async (req, res) => {
             }
         })
 
-        const countResult = await sequelize.query(countQuery, {
+        const countResult = await sequelize.query(scopeSql(countQuery), {
             type: QueryTypes.SELECT,
             replacements,
         }) as any[]
@@ -195,7 +196,7 @@ router.get('/:id', async (req, res) => {
         }
 
         // Get plays statistics and date range
-        const playCondition = profileId ? { profileId, trackId: id } : { trackId: id }
+        const playCondition = profileId && profileId !== 'all' ? { profileId, trackId: id } : { trackId: id }
         
         const playsStats = await Play.findOne({
             where: playCondition,
@@ -279,7 +280,7 @@ router.get('/:id/plays', async (req, res) => {
         const pageNum = parseInt(page as string)
         const limitNum = parseInt(limit as string)
 
-        const playCondition = profileId ? { profileId, trackId: id } : { trackId: id }
+        const playCondition = profileId && profileId !== 'all' ? { profileId, trackId: id } : { trackId: id }
 
         const plays = await Play.findAndCountAll({
             where: playCondition,
@@ -382,7 +383,7 @@ router.get('/:id/timeline', async (req, res) => {
             ORDER BY ds.play_date ASC
         `
 
-        const timeline = await sequelize.query(timelineQuery, {
+        const timeline = await sequelize.query(scopeSql(timelineQuery), {
             bind: [trackId],
             type: QueryTypes.SELECT,
             logging: false // Disable query logging for performance

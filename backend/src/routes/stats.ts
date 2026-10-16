@@ -1,3 +1,5 @@
+import { scopedOptions } from '../middleware/dateScope.js'
+import { scopeSql } from '../middleware/dateScope.js'
 import express, { Router } from 'express'
 import { Op, fn, col, QueryTypes } from 'sequelize'
 import { sequelize } from '../config/database.js'
@@ -30,30 +32,30 @@ router.get('/overview', async (req, res) => {
             uniqueAlbums
         ] = await Promise.all([
             Play.count({ where: filter }),
-            Play.sum('msPlayed', { where: filter }),
+            Play.sum('msPlayed', scopedOptions({ where: filter })),
             Play.count({
                 where: filter,
                 distinct: true,
                 col: 'trackId'
             }),
-            sequelize.query(`
+            sequelize.query(scopeSql(`
                 SELECT COUNT(DISTINCT artists.id) as count
                 FROM plays
                 JOIN tracks ON plays."trackId" = tracks.id
                 JOIN albums ON tracks."albumId" = albums.id  
                 JOIN artists ON albums."artistId" = artists.id
                 ${profileId && profileId !== 'all' ? 'WHERE plays."profileId" = :profileId' : ''}
-            `, {
+            `), {
                 replacements: profileId && profileId !== 'all' ? { profileId } : {},
                 type: QueryTypes.SELECT
             }).then((result: any[]) => parseInt(result[0]?.count) || 0),
-            sequelize.query(`
+            sequelize.query(scopeSql(`
                 SELECT COUNT(DISTINCT albums.id) as count
                 FROM plays
                 JOIN tracks ON plays."trackId" = tracks.id
                 JOIN albums ON tracks."albumId" = albums.id
                 ${profileId && profileId !== 'all' ? 'WHERE plays."profileId" = :profileId' : ''}
-            `, {
+            `), {
                 replacements: profileId && profileId !== 'all' ? { profileId } : {},
                 type: QueryTypes.SELECT
             }).then((result: any[]) => parseInt(result[0]?.count) || 0)
@@ -112,7 +114,7 @@ router.get('/yearly', async (req, res) => {
     console.log('Yearly stats endpoint called')
     try {
         const { profileId } = req.query
-        const filter = profileId ? { profileId: parseInt(profileId as string) } : {}
+        const filter = profileId && profileId !== 'all' ? { profileId: parseInt(profileId as string) } : {}
 
         const yearlyStats = await Play.findAll({
             where: filter,
@@ -150,7 +152,7 @@ router.get('/countries', async (req, res) => {
     console.log('Countries stats endpoint called')
     try {
         const { profileId } = req.query
-        const filter = profileId ? { profileId: parseInt(profileId as string) } : {}
+        const filter = profileId && profileId !== 'all' ? { profileId: parseInt(profileId as string) } : {}
 
         const countryStats = await Play.findAll({
             where: {
@@ -191,7 +193,7 @@ router.get('/countries', async (req, res) => {
 router.get('/timeline', async (req, res) => {
     try {
         const { profileId, period = 'day' } = req.query
-        const filter = profileId ? { profileId: parseInt(profileId as string) } : {}
+        const filter = profileId && profileId !== 'all' ? { profileId: parseInt(profileId as string) } : {}
 
         let dateFormat: string
         switch (period) {
@@ -316,14 +318,14 @@ router.get('/video', async (req, res) => {
             uniqueEpisodes
         ] = await Promise.all([
             PodcastPlay.count({ where: filter }),
-            PodcastPlay.sum('msPlayed', { where: filter }),
-            sequelize.query(`
+            PodcastPlay.sum('msPlayed', scopedOptions({ where: filter })),
+            sequelize.query(scopeSql(`
                 SELECT COUNT(DISTINCT shows.id) as count
                 FROM podcast_plays
                 JOIN episodes ON podcast_plays."episodeId" = episodes.id
                 JOIN shows ON episodes."showId" = shows.id
                 WHERE podcast_plays."profileId" = :profileId
-            `, {
+            `), {
                 replacements: { profileId },
                 type: QueryTypes.SELECT
             }).then((result: any[]) => parseInt(result[0]?.count) || 0),
@@ -373,14 +375,14 @@ router.get('/podcasts', async (req, res) => {
             uniqueEpisodes
         ] = await Promise.all([
             PodcastPlay.count({ where: filter }),
-            PodcastPlay.sum('msPlayed', { where: filter }),
-            sequelize.query(`
+            PodcastPlay.sum('msPlayed', scopedOptions({ where: filter })),
+            sequelize.query(scopeSql(`
                 SELECT COUNT(DISTINCT shows.id) as count
                 FROM podcast_plays
                 JOIN episodes ON podcast_plays."episodeId" = episodes.id
                 JOIN shows ON episodes."showId" = shows.id
                 WHERE podcast_plays."profileId" = :profileId
-            `, {
+            `), {
                 replacements: { profileId },
                 type: QueryTypes.SELECT
             }).then((result: any[]) => parseInt(result[0]?.count) || 0),

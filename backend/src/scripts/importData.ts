@@ -1,3 +1,5 @@
+import { readHistory, validateRecord, ImportCancelledError } from './readHistory.js'
+import type { Transaction } from 'sequelize'
 import fs from 'fs'
 import path from 'path'
 import { pathToFileURL } from 'node:url'
@@ -18,6 +20,7 @@ import { AudiobookImporter } from './importers/AudiobookImporter.js'
 dotenv.config()
 
 class SpotifyDataImporter {
+    private transaction?: Transaction
     private dataDir: string
     private profileName?: string
     private profileId?: number
@@ -56,6 +59,7 @@ class SpotifyDataImporter {
 
         // Jeśli podano nazwę profilu, użyj folderu profilu
         if (profileName) {
+            if (path.basename(profileName) !== profileName || profileName === '.' || profileName === '..') throw new Error('Invalid profile name')
             this.dataDir = path.join(this.dataDir, profileName)
         } else {
             // Sprawdź czy istnieje subfolder "Spotify Extended Streaming History"
@@ -69,9 +73,9 @@ class SpotifyDataImporter {
 
     private initializeImporters() {
         if (!this.profileId) throw new Error("Profile ID not set");
-        this.musicImporter = new MusicImporter(this.stats, this.profileId);
-        this.podcastImporter = new PodcastImporter(this.stats, this.profileId);
-        this.audiobookImporter = new AudiobookImporter(this.stats, this.profileId);
+        this.musicImporter = new MusicImporter(this.stats, this.profileId, this.transaction);
+        this.podcastImporter = new PodcastImporter(this.stats, this.profileId, this.transaction);
+        this.audiobookImporter = new AudiobookImporter(this.stats, this.profileId, this.transaction);
     }
 
     async import(): Promise<void> {
@@ -85,64 +89,31 @@ class SpotifyDataImporter {
             await connectDB()
             console.log('✅ Connected to PostgreSQL')
 
-            // Utwórz lub pobierz profil
-            if (this.profileName) {
-                await this.getOrCreateProfile()
-            }
-
-            // Initialize importers after profile is ready
-            this.initializeImporters();
-
-            // Find all JSON files
             const files = this.findJsonFiles()
-            console.log(`📄 Found ${files.length} JSON files`)
-
-            if (files.length === 0) {
-                console.log('❌ No JSON files found in data directory')
-                console.log('💡 Please place your Spotify JSON files in the ./data/ folder')
-                if (this.profileName) {
-                    this.progressManager.errorImport(this.profileName, 'No JSON files found')
+            if (!files.length) throw new Error('No JSON files found in data directory')
+            this.checkCancelled()
+            const estimatedTotal = await this.estimateTotalRecords(files)
+            this.checkCancelled()
+            if (this.profileName) this.progressManager.startImport(this.profileName, files.length, estimatedTotal)
+            await sequelize.transaction(async transaction => {
+                this.transaction = transaction
+                // Serialize imports sharing artist/track dimensions. Readers retain the old committed history.
+                await sequelize.query('SELECT pg_advisory_xact_lock(187042601)', { transaction })
+                this.checkCancelled()
+                await this.getOrCreateProfile()
+                this.initializeImporters()
+                await this.clearExistingData()
+                for (let i = 0; i < files.length; i++) {
+                    await this.processFileWithProgress(files[i], i)
+                    if (this.profileName) this.progressManager.completeFile(this.profileName)
                 }
-                throw new Error('No JSON files found in data directory')
-            }
-
-            // Szacuj całkowitą liczbę rekordów (szybkie przejrzenie plików)
-            const estimatedTotal = this.estimateTotalRecords(files)
-
-            // Validate every source file before replacing the profile's old history.
-            await this.clearExistingData()
-
-            // Rozpocznij śledzenie progress
-            if (this.profileName) {
-                this.progressManager.startImport(this.profileName, files.length, estimatedTotal)
-            }
-
-            // Process each file
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i]
-                await this.processFileWithProgress(file, i)
-
-                // Oznacz plik jako ukończony
-                if (this.profileName) {
-                    this.progressManager.completeFile(this.profileName)
-                }
-
-                // Krótka przerwa między plikami żeby nie blokować event loop
-                await this.sleep(100)
-            }
-
-            // Update profile statistics
-            if (this.profileId) {
+                this.checkCancelled()
                 await this.updateProfileStatistics()
-            }
-
-            // Agreguj statystyki dla szybszego ładowania wykresów
-            if (this.profileId) {
-                console.log('\n📊 Aggregating statistics for fast chart loading...')
-                const aggregator = new StatsAggregator(this.profileId)
-                await aggregator.aggregateAllStats()
-                console.log('✅ Statistics aggregation completed!')
-            }
+                await new StatsAggregator(this.profileId!, transaction).aggregateAllStats()
+                this.checkCancelled()
+                await sequelize.query('ANALYZE plays, podcast_plays, audiobook_plays', { transaction })
+            })
+            this.transaction = undefined
 
             // Zakończ śledzenie progress
             if (this.profileName) {
@@ -156,7 +127,8 @@ class SpotifyDataImporter {
         } catch (error) {
             console.error('❌ Import failed:', error)
             if (this.profileName) {
-                this.progressManager.errorImport(this.profileName, error instanceof Error ? error.message : 'Unknown error')
+                if (error instanceof ImportCancelledError) this.progressManager.finishCancellation(this.profileName)
+                else this.progressManager.errorImport(this.profileName, error instanceof Error ? error.message : 'Unknown error')
             }
             throw error
         }
@@ -170,7 +142,7 @@ class SpotifyDataImporter {
             throw new Error('Profile name is required')
         }
 
-        let profile = await Profile.findOne({ where: { name: this.profileName } })
+        let profile = await Profile.findOne({ transaction: this.transaction, where: { name: this.profileName } })
 
         if (!profile) {
             profile = await Profile.create({
@@ -189,7 +161,7 @@ class SpotifyDataImporter {
                 },
                 createdAt: new Date(),
                 updatedAt: new Date()
-            })
+            }, { transaction: this.transaction })
             console.log(`✅ Created new profile: ${this.profileName}`)
         } else {
             console.log(`📋 Using existing profile: ${this.profileName}`)
@@ -206,9 +178,9 @@ class SpotifyDataImporter {
 
         console.log('🗑️ Clearing existing data for profile...')
         await Promise.all([
-            Play.destroy({ where: { profileId: this.profileId } }),
-            PodcastPlay.destroy({ where: { profileId: this.profileId } }),
-            AudiobookPlay.destroy({ where: { profileId: this.profileId } })
+            Play.destroy({ transaction: this.transaction, where: { profileId: this.profileId } }),
+            PodcastPlay.destroy({ transaction: this.transaction, where: { profileId: this.profileId } }),
+            AudiobookPlay.destroy({ transaction: this.transaction, where: { profileId: this.profileId } })
         ])
         console.log('✅ Existing data cleared')
     }
@@ -224,89 +196,60 @@ class SpotifyDataImporter {
         return fs.readdirSync(this.dataDir)
             .filter(file => file.endsWith('.json') && 
                    (file.includes('Streaming_History_Audio') || file.includes('Streaming_History_Video')))
+            .filter(file => path.dirname(fs.realpathSync(path.join(this.dataDir, file))) === fs.realpathSync(this.dataDir))
             .sort()
     }
 
     /**
      * Szacuj całkowitą liczbę rekordów
      */
-    private estimateTotalRecords(files: string[]): number {
+    private async estimateTotalRecords(files: string[]): Promise<number> {
         let total = 0
         for (const file of files) {
-            const filePath = path.join(this.dataDir, file)
-            const content = fs.readFileSync(filePath, 'utf8')
-            const data = JSON.parse(content)
-            total += data.length
+            for await (const record of readHistory(path.join(this.dataDir, file))) {
+                validateRecord(record)
+                total++
+                this.checkCancelled()
+            }
         }
         return total
     }
 
-    /**
-     * Przetwórz plik z progress tracking
-     */
-    private async processFileWithProgress(file: string, index: number): Promise<void> {
-        const filePath = path.join(this.dataDir, file)
-        console.log(`\n📄 Processing file ${index + 1}: ${file}`)
-
-        const content = fs.readFileSync(filePath, 'utf8')
-        const data: SpotifyPlayData[] = JSON.parse(content)
-
-        console.log(`   📊 Records in file: ${data.length}`)
-
-        // Batch processing dla lepszej wydajności
-        const batchSize = 1000
-        let processed = 0
-        let lastStatsUpdate = Date.now()
-
-        for (let i = 0; i < data.length; i += batchSize) {
-            const batch = data.slice(i, i + batchSize)
-            await this.processBatch(batch)
-            processed += batch.length
-
-            if (this.profileName) {
-                this.progressManager.updateFileProgress(this.profileName, file, index, processed, data.length)
-                // Aktualizuj statystyki co 5 sekund podczas importu
-                const now = Date.now()
-                if (now - lastStatsUpdate > 5000) {
-                    await this.updateRealTimeStats()
-                    lastStatsUpdate = now
-                }
-            }
-
-            // Progress log
-            if (processed % 5000 === 0 || processed === data.length) {
-                console.log(`   ⏳ Processed: ${processed}/${data.length} records`)
-            }
-
-            // Krótka przerwa żeby nie blokować event loop
-            if (i % 10000 === 0) {
-                await this.sleep(10)
-            }
-        }
-
-        this.stats.filesProcessed++
-        this.stats.totalRecords += data.length
-        console.log(`   ✅ File completed: ${data.length} records processed`)
-        
-        // Aktualizuj statystyki na końcu pliku
-        if (this.profileName) {
-            await this.updateRealTimeStats()
-        }
+    private checkCancelled(): void {
+        if (this.profileName && this.progressManager.getProgress(this.profileName)?.status === 'cancelled') throw new ImportCancelledError()
     }
 
-    /**
-     * Przetwórz batch rekordów
-     */
-    private async processBatch(batch: SpotifyPlayData[]): Promise<void> {
-        for (const record of batch) {
-            try {
-                await this.processRecord(record)
-            } catch (error) {
-                console.error('Error processing record:', error)
-                this.stats.skippedRecords++
-                this.incrementSkip('errors')
+    private async processFileWithProgress(file: string, index: number): Promise<void> {
+        let batch: SpotifyPlayData[] = []
+        let processed = 0
+        for await (const record of readHistory(path.join(this.dataDir, file))) {
+            validateRecord(record)
+            batch.push(record)
+            if (batch.length === 1000) {
+                await this.processBatch(batch)
+                processed += batch.length
+                batch = []
+                if (this.profileName) this.progressManager.updateFileProgress(this.profileName, file, index, processed, processed)
             }
         }
+        await this.processBatch(batch)
+        processed += batch.length
+        this.stats.filesProcessed++
+        this.stats.totalRecords += processed
+        if (this.profileName) this.progressManager.updateFileProgress(this.profileName, file, index, processed, processed)
+        await this.updateRealTimeStats()
+    }
+
+    private async processBatch(batch: SpotifyPlayData[]): Promise<void> {
+        this.checkCancelled()
+        for (const record of batch) {
+            this.checkCancelled()
+            await this.processRecord(record)
+        }
+        await this.musicImporter.flush()
+        await this.podcastImporter.flush()
+        await this.audiobookImporter.flush()
+        this.checkCancelled()
     }
 
     /**
@@ -389,9 +332,9 @@ class SpotifyDataImporter {
             uniqueShows,
             uniqueEpisodes
         ] = await Promise.all([
-            Play.count({ where: { profileId: this.profileId } }),
-            Play.sum('msPlayed', { where: { profileId: this.profileId } }),
-            Play.count({
+            Play.count({ transaction: this.transaction, where: { profileId: this.profileId } }),
+            Play.sum('msPlayed', { transaction: this.transaction, where: { profileId: this.profileId } }),
+            Play.count({ transaction: this.transaction,
                 where: { profileId: this.profileId },
                 distinct: true,
                 col: 'trackId'
@@ -404,10 +347,10 @@ class SpotifyDataImporter {
                 JOIN albums ON tracks."albumId" = albums.id  
                 JOIN artists ON albums."artistId" = artists.id
                 WHERE plays."profileId" = :profileId
-            `, {
+            `, { transaction: this.transaction,
                 replacements: { profileId: this.profileId },
                 type: QueryTypes.SELECT
-            }).then(result => parseInt((result[0] as any).count)),
+            }).then(result => parseInt((result[0] as { count: string }).count)),
             // Policz unikalne albumy
             sequelize.query(`
                 SELECT COUNT(DISTINCT albums.id) as count 
@@ -415,12 +358,12 @@ class SpotifyDataImporter {
                 JOIN tracks ON plays."trackId" = tracks.id
                 JOIN albums ON tracks."albumId" = albums.id  
                 WHERE plays."profileId" = :profileId
-            `, {
+            `, { transaction: this.transaction,
                 replacements: { profileId: this.profileId },
                 type: QueryTypes.SELECT
-            }).then(result => parseInt((result[0] as any).count)),
+            }).then(result => parseInt((result[0] as { count: string }).count)),
             // Podcast plays count
-            PodcastPlay.count({ where: { profileId: this.profileId } }),
+            PodcastPlay.count({ transaction: this.transaction, where: { profileId: this.profileId } }),
             // Unique shows (via join)
             sequelize.query(`
                 SELECT COUNT(DISTINCT shows.id) as count 
@@ -428,12 +371,12 @@ class SpotifyDataImporter {
                 JOIN episodes ON podcast_plays."episodeId" = episodes.id
                 JOIN shows ON episodes."showId" = shows.id  
                 WHERE podcast_plays."profileId" = :profileId
-            `, {
+            `, { transaction: this.transaction,
                 replacements: { profileId: this.profileId },
                 type: QueryTypes.SELECT
-            }).then(result => parseInt((result[0] as any).count)),
+            }).then(result => parseInt((result[0] as { count: string }).count)),
             // Unique episodes
-            PodcastPlay.count({
+            PodcastPlay.count({ transaction: this.transaction,
                 where: { profileId: this.profileId },
                 distinct: true,
                 col: 'episodeId'
@@ -448,13 +391,14 @@ class SpotifyDataImporter {
                 uniqueArtists,
                 uniqueAlbums,
                 totalPodcastPlays,
-                totalAudiobookPlays: 0,
+                totalAudiobookPlays: await AudiobookPlay.count({ where: { profileId: this.profileId }, transaction: this.transaction }),
                 uniqueShows,
                 uniqueEpisodes,
-                uniqueAudiobooks: 0
+                uniqueAudiobooks: await AudiobookPlay.count({ where: { profileId: this.profileId }, distinct: true, col: 'audiobookId', transaction: this.transaction })
             },
+            lastImport: new Date(),
             updatedAt: new Date()
-        }, {
+        }, { transaction: this.transaction,
             where: { id: this.profileId }
         })
 
@@ -469,10 +413,6 @@ class SpotifyDataImporter {
     private async updateRealTimeStats(): Promise<void> {
         if (!this.profileName) return
         this.progressManager.updateStats(this.profileName, this.stats)
-    }
-
-    private async sleep(ms: number): Promise<void> {
-        return new Promise(resolve => setTimeout(resolve, ms))
     }
 
     private printStats(): void {

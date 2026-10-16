@@ -1,24 +1,9 @@
-import { useState, useCallback } from 'react'
-import { FilterState } from '../types'
-
-export interface Album {
-    id: number
-    name: string
-    artist: string
-    plays: number
-    minutes: number
-}
-
+import { useState, useCallback, type SetStateAction } from 'react'
+import { useApiQuery } from '../../../lib/api'
+import type { FilterState } from '../types'
+export interface Album { id: number; name: string; artist: string; plays: number; minutes: number }
 export const useAlbumsData = (profileId: string | null) => {
-    const [albums, setAlbums] = useState<Album[]>([])
-    const [loading, setLoading] = useState(false)
-    const [pagination, setPagination] = useState({
-        page: 1,
-        limit: 20,
-        total: 0,
-        pages: 0
-    })
-    const [filters, setFilters] = useState<FilterState>({
+    const [filters, updateFilters] = useState<FilterState>({
         search: '',
         minPlays: 0,
         dateFrom: '',
@@ -31,65 +16,20 @@ export const useAlbumsData = (profileId: string | null) => {
         showShuffle: false
     })
 
-    const fetchAlbums = useCallback(async (page = 1, limit?: number) => {
-        setLoading(true)
-        try {
-            const params = new URLSearchParams({
-                page: page.toString(),
-                limit: (limit || pagination.limit).toString(),
-                search: filters.search,
-                minPlays: String(filters.minPlays),
-                ...(filters.country && { country: filters.country }),
-                ...(filters.platform && { platform: filters.platform }),
-                ...(filters.dateFrom && { dateFrom: filters.dateFrom }),
-                ...(filters.dateTo && { dateTo: filters.dateTo }),
-                sortBy: filters.sortBy,
-                sortOrder: filters.sortOrder,
-                showSkipped: String(filters.showSkipped),
-                showShuffle: String(filters.showShuffle),
-                ...(profileId && { profileId: profileId })
-            })
 
-            const response = await fetch(`/api/albums?${params}&_t=${Date.now()}`)
-            if (response.ok) {
-                const data = await response.json()
-                setAlbums(data.data || [])
-                setPagination(data.pagination || pagination)
-            }
-        } catch (error) {
-            console.error('Failed to fetch albums:', error)
-        } finally {
-            setLoading(false)
-        }
-    }, [filters, pagination.limit, profileId])
-
-    const handlePageChange = (page: number) => {
-        setPagination(prev => ({ ...prev, page }))
-        fetchAlbums(page)
-    }
-
-    const handlePageSizeChange = (newLimit: number) => {
-        setPagination(prev => ({ ...prev, limit: newLimit, page: 1 }))
-        fetchAlbums(1, newLimit)
-    }
-
-    const handleSort = (field: string, order: 'asc' | 'desc') => {
-        setFilters(prev => ({
-            ...prev,
-            sortBy: field,
-            sortOrder: order
-        }))
-    }
-
+    const [page, setPage] = useState(1)
+    const [limit, setLimit] = useState(20)
+    const setFilters = useCallback((value: SetStateAction<FilterState>) => { setPage(1); updateFilters(value) }, [])
+    const params = new URLSearchParams({ page: String(page), limit: String(limit), profileId: profileId || 'all' })
+    for (const [key, value] of Object.entries(filters)) if (value !== '') params.set(key, String(value))
+    const query = useApiQuery<Album[]>(`/api/albums?${params}`)
+    const fetchAlbums = useCallback(async (nextPage = 1, nextLimit?: number) => { setPage(nextPage); if (nextLimit) setLimit(nextLimit) }, [])
+    const handleSort = (field: string, order: 'asc' | 'desc') => { setPage(1); setFilters(previous => ({ ...previous, sortBy: field, sortOrder: order })) }
     return {
-        albums,
-        loading,
-        pagination,
-        filters,
-        setFilters,
-        fetchAlbums,
-        handlePageChange,
-        handlePageSizeChange,
-        handleSort
+        albums: query.data?.data || [], loading: query.isPending, error: query.error,
+        pagination: query.data?.pagination || { page, limit, total: 0, pages: 0 },
+        filters, setFilters, fetchAlbums, handleSort,
+        handlePageChange: setPage,
+        handlePageSizeChange: (size: number) => { setLimit(size); setPage(1) },
     }
 }

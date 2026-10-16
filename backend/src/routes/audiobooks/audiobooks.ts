@@ -46,6 +46,7 @@ router.get('/:profileId', async (req, res) => {
                 audiobooks: audiobooks.rows,
                 pagination: {
                     current: pageNum,
+                    limit: limitNum,
                     pages: Math.ceil(audiobooks.count / limitNum),
                     total: audiobooks.count
                 },
@@ -100,6 +101,7 @@ router.get('/:profileId/audiobook/:audiobookId/plays', async (req, res) => {
                 plays: plays.rows,
                 pagination: {
                     current: pageNum,
+                    limit: limitNum,
                     pages: Math.ceil(plays.count / limitNum),
                     total: plays.count
                 }

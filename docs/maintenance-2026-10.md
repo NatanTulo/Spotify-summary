@@ -16,10 +16,10 @@ Wyniki późniejszej weryfikacji i dodatkowe poprawki: [raport weryfikacji](veri
 - Naprawiono SQL injection w wyszukiwaniu utworów i albumów: parametryzowane wyszukiwanie, dozwolone kierunki sortowania, walidacja identyfikatorów i paginacji. Doszły testy HTTP obu endpointów.
 - Naprawiono warunkowy hook w timeline, zgodność typów Recharts i deklaracji matcherów Vitest 5, konfigurację projektów testowych oraz niejednoznaczne asercje istniejących testów.
 - Naprawiono start skompilowanego backendu: cykliczną zależność metadanych dekoratorów audiobooków oraz wczytywanie `.env` przed utworzeniem połączenia z bazą. Obsługiwany jest teraz dokumentowany `DATABASE_URL`; usunięto domyślne hasło `admin`.
-- Import CLI działa na Windows i wykrywa foldery profili. Tworzy brakujące tabele przez `sync()` bez `alter`/`force`. Najpierw czyta pliki źródłowe, dopiero potem zastępuje historię danego profilu. `pnpm import-data` i `pnpm --dir backend import` korzystają z tego samego runnera.
+- Import CLI działa na Windows i wykrywa foldery profili. W aktualnej wersji wymaga zastosowania migracji. Najpierw weryfikuje pliki, potem zastępuje historię w jednej transakcji. `pnpm import-data` i `pnpm --dir backend import` korzystają z tego samego runnera.
 - Dodano CI z instalacją przez frozen lockfile, lintem, testami, buildem i audytem oraz cotygodniowe aktualizacje Dependabot. Akcje GitHub przypięto do commitów.
 
-## Weryfikacja
+## Weryfikacja pierwszej aktualizacji zależności
 
 - `pnpm check`: lint, 28 testów i build obu części przechodzą.
 - `pnpm test:coverage`: działa; pokrycie całego kodu jest nadal niskie, około 4,4% linii.
@@ -36,16 +36,28 @@ Statystyki profilu po imporcie: 16 175 utworów, 3 627 słuchanych artystów, 10
 
 Po imporcie sprawdzono API na docelowej bazie oraz pięć wykresów muzycznych w przeglądarce, w tym agregację pełnej historii w timeline. Tymczasowa baza z danymi syntetycznymi została usunięta.
 
-## Zalecana kolejność dalszych prac
+## Realizacja dalszych prac — 16.10.2026
 
-1. **Dostęp do prywatnych danych i operacji zapisu.** Backend nasłuchuje na `0.0.0.0`, a endpointy odczytu, importu i kasowania nie wymagają uwierzytelnienia. Dla wersji lokalnej warto domyślnie używać loopback; dla udostępnianej — uwierzytelnienia i uprawnień do profili. CORS nie zastępuje kontroli dostępu. W `ImportService.startImport` warto dodatkowo ograniczyć nazwę profilu do listy wykrytych folderów i zweryfikować docelową ścieżkę.
-2. **Migracje i bezpieczna wymiana importu.** Zastąpić `sequelize.sync({ alter: true })` w trybie development wersjonowanymi migracjami. Importować do zestawu roboczego i przełączać dane dopiero po poprawnym przetworzeniu całości. Obecny import usuwa poprzednią historię profilu przed zapisem nowej; błąd w trakcie może pozostawić niepełne dane. Dodać sprawdzony backup i odtwarzanie.
-3. **Testy importu i agregacji na PostgreSQL.** Pokryć ponowny import, uszkodzony plik, anulowanie, separację profili i zgodność sum na wykresach. Dołożyć test przeglądarkowy: import → wybór profilu → wyszukiwanie → wykres. Dotychczasowy smoke test `1 + 1` nie weryfikuje działania backendu.
-4. **Spójne pobieranie danych i błędy.** Wykorzystać już zainstalowany TanStack Query w hookach, które obecnie używają ręcznych efektów i `fetch`. Dodać anulowanie żądań po zmianie profilu oraz widoczny stan błędu zamiast udawania pustych statystyk. Selektory krajów i platform zostały już podłączone do metadanych podczas późniejszej weryfikacji.
-5. **Walidacja i kontrakt API.** Rozszerzyć walidację query/body na pozostałe endpointy, ujednolicić paginację, statusy błędów i typy odpowiedzi. Wykorzystać `shared/` oraz ograniczyć liczne `any`. Obecny lint obejmuje reguły JS i kolejność hooków; kolejne reguły TS i zależności efektów można włączać wraz z porządkowaniem kodu.
-6. **Wydajność dużych historii.** Pomierzyć import i zapytania na pełnym eksporcie; rozważyć `bulkCreate`/COPY zamiast pojedynczego INSERT dla każdego odtworzenia, strumieniowe czytanie JSON i indeksy dobierane na podstawie `EXPLAIN ANALYZE`. Import aktualizuje też statystyki cyklicznie, co dokłada koszt przy dużej bazie.
-7. **Polityka CSP i czcionki.** Inter jest już serwowany lokalnie po późniejszej weryfikacji. Warto usunąć niepotrzebne uprawnienia `unsafe-eval` i inline scripts po sprawdzeniu aplikacji, uporządkować konfigurowanie CORS i ukryć szczegóły błędów SQL w odpowiedziach produkcyjnych.
-8. **Funkcje analityczne.** Największy zysk użytkowy dają wspólny zakres dat dla wszystkich zakładek, porównanie dwóch okresów, kalendarz aktywności oraz odkrycia nowych artystów. Warto też poprawić odmianę polskich liczebników i etykiety tabel na telefonie. Obecny React/Vite/PostgreSQL wystarcza do tych zmian; zmiana frameworka nie jest do nich potrzebna.
+Wykonano poniższe punkty dla wersji **wyłącznie lokalnej, bez logowania**, zgodnie z decyzją właściciela projektu. Instrukcje operacyjne i pomiary: [utrzymanie lokalne](local-maintenance.md). Polecenia testowe: [testowanie](testing.md).
+
+1. **Dostęp lokalny.** Frontend i backend nasłuchują na `127.0.0.1`; API sprawdza Host, Origin i Fetch Metadata. Import przyjmuje tylko wykryte nazwy profili i kontroluje rzeczywiste ścieżki folderów oraz plików.
+2. **Migracje i import.** Usunięto `sync()` przy starcie oraz z CLI. Dodano wersjonowane migracje, weryfikację schematu, kopię PostgreSQL i odtwarzanie wyłącznie do nowej bazy. Import historii, metadanych i agregatów jest jedną transakcją z rollbackiem przy błędzie lub anulowaniu. Usuwanie profili i przeliczanie statystyk współdzielą blokadę z importem; poprawiono obsługę podcastów i audiobooków podczas czyszczenia.
+3. **Testy.** Usunięto test `1 + 1`. Dodano testy PostgreSQL: powtórny import, uszkodzony JSON, błąd po pierwszej partii, anulowanie, separacja profili, agregaty, wszystkie rodzaje treści, daty, walidacja i czyszczenie. Playwright sprawdza import → profil → wyszukiwanie → wykres, pozostałe zakładki, daty, telefon, CSP i odzyskanie po błędzie API. CI otrzymało PostgreSQL i testy przeglądarkowe.
+4. **Pobieranie danych.** Główne hooki używają TanStack Query; pozostałe panele i polling wspólnego adaptera Query. Żądania są anulowane po zmianie profilu/dat. Dodano widoczne błędy i ponowienie; usunięto losowe dane zastępcze oraz odpowiedzi podcastów udające sukces po błędzie bazy.
+5. **Kontrakt.** Wspólne typy w `shared/api.d.ts`, Zod dla query/body/identyfikatorów oraz odpowiedzi klienta, wspólna paginacja i kody błędów. Ograniczono `any` w przebudowanych hookach i dodano dla nich mocniejsze reguły TS oraz zależności hooków.
+6. **Wydajność.** Strumieniowy JSON, `bulkCreate` po maksymalnie 1000 rekordów, agregacja raz na końcu i `ANALYZE`. Pełny eksport w pustej bazie testowej: 45,78 s, identyczne liczby i sumy. Zmierzona agregacja po aktualizacji statystyk: 0,527 ms. Nie dodano zbędnego indeksu ani COPY — istniejące indeksy wystarczają w wykonanym pomiarze. RSS po imporcie 337,2 MB; nie jest to pomiar szczytu.
+7. **CSP i błędy.** Skrypty tylko z własnego originu, bez `unsafe-eval` i inline scripts. Inter lokalnie, dokładna konfiguracja CORS loopback, odpowiedzi API bez szczegółów SQL. Style inline pozostały potrzebne dla wykresów i komponentów UI.
+8. **Analizy i UI.** Wspólny zakres dat UTC dla zakładek, porównanie z poprzednim lub własnym okresem, roczny kalendarz aktywności wszystkich treści, do 30 nowych artystów rozpoznawanych po pierwszym odtworzeniu w całej historii. Dodano odmianę liczebników w nowych analizach, rankingach i paginacji utworów, etykiety dostępności oraz poprawki układu telefonu. Bez wymiany frameworka.
+
+### Wynik końcowej weryfikacji
+
+- `pnpm check`: lint, **47 testów**, build frontendu i backendu.
+- `pnpm test:postgres`: **48 asercji** na osobnej bazie PostgreSQL; każda baza testowa jest usuwana po zakończeniu.
+- `pnpm test:e2e`: **3 testy przeglądarkowe** na produkcyjnym buildzie i osobnej bazie.
+- `pnpm install --frozen-lockfile`: przechodzi; `pnpm audit --audit-level low`: brak znanych podatności.
+- Pełną kopię bazy odtworzono do nowej bazy; liczby profili, utworów, odtworzeń i suma czasu zgodne z oryginałem. Baza odtworzeniowa została usunięta; kopia pozostaje w ignorowanym `.local/backups/`.
+- Produkcyjny backend na aktualnej bazie: **17 endpointów** odpowiada prawidłowo; sumy muzyki, podcastów, porównania i kalendarza są zgodne dla zakresu 1–14.10.2026.
+- Bieżąca historia użytkownika i pliki w `data/` pozostały zachowane. Pełne importy sprawdzano wyłącznie w bazach testowych.
 
 ## Źródła zgodności
 

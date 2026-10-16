@@ -1,3 +1,4 @@
+import { countLabel } from '../../lib/countLabel'
 import { PaginationState } from "./types";
 import { useLanguage } from "../../context/LanguageContext";
 
@@ -12,18 +13,19 @@ export function PaginationControls({
   onPageChange,
   onPageSizeChange,
 }: PaginationControlsProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   return (
-    <div className="flex items-center justify-between mt-4">
-      <div className="flex items-center gap-4">
+    <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
+      <div className="flex flex-wrap items-center gap-3">
         <div className="text-sm text-muted-foreground">
-          {t("page")} {pagination.page} {t("of")} {pagination.pages} (
-          {pagination.total.toLocaleString()} {t("tracksCount")})
+          {t("page")} {pagination.page} {t("of")} {Math.max(1, pagination.pages)} (
+          {countLabel(pagination.total, "tracks", language)})
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">{t("perPage")}</span>
           <select
+            aria-label={t("perPage")}
             value={pagination.limit}
             onChange={(e) => onPageSizeChange?.(parseInt(e.target.value))}
             className="text-sm border rounded px-2 py-1 bg-background"

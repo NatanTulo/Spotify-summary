@@ -12,14 +12,18 @@
         "build:server": "cd backend && pnpm run build",
         "start": "cd backend && pnpm start",
         "import-data": "cd backend && pnpm run import-data",
-        "setup": "pnpm install && pnpm run import-data",
+        "setup": "pnpm install && pnpm db:migrate && pnpm run import-data",
         "test": "vitest",
         "test:ui": "vitest --ui",
         "test:run": "vitest run",
         "test:coverage": "vitest run --coverage",
         "lint": "pnpm --dir frontend run lint",
         "check": "pnpm lint && pnpm test:run && pnpm build",
-        "preview": "pnpm --dir frontend run preview"
+        "preview": "pnpm --dir frontend run preview",
+        "db:migrate": "pnpm --dir backend db:migrate",
+        "db:backup": "pnpm --dir backend db:backup",
+        "test:postgres": "pnpm --dir backend test:postgres",
+        "test:e2e": "pnpm --dir backend test:e2e"
     },
     "keywords": [
         "spotify",
@@ -28,9 +32,10 @@
         "typescript",
         "postgresql"
     ],
-    "author": "Natan Tułodziecki",
+    "author": "Natan TuÄąâ€šodziecki",
     "license": "MIT",
     "devDependencies": {
+        "@playwright/test": "^1.64.1",
         "@vitest/coverage-v8": "^5.0.5",
         "@vitest/ui": "^5.0.5",
         "vite": "^8.3.4",

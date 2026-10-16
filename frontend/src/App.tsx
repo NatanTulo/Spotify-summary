@@ -1,3 +1,5 @@
+import { useDateRange } from './context/DateRangeContext'
+import { DateRangeBar } from './components/DateRangeBar'
 import { Routes, Route } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
 import Layout from './components/Layout'
@@ -21,11 +23,13 @@ const LoadingSpinner = () => (
 )
 
 function App() {
+    const { range, revision } = useDateRange()
     return (
         <ErrorBoundary>
             <LanguageProvider>
                 <Layout>
-                    <Suspense fallback={<LoadingSpinner />}>
+                    <DateRangeBar />
+                    <Suspense key={`${range.dateFrom}:${range.dateTo}:${revision}`} fallback={<LoadingSpinner />}>
                         <Routes>
                             <Route path="/" element={<Dashboard />} />
                             <Route path="/dashboard" element={<Dashboard />} />

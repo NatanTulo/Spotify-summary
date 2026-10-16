@@ -1,3 +1,4 @@
+import { apiFetch } from '../../lib/api'
 import { useState } from 'react'
 import { ChevronDown, ChevronRight, Clock } from 'lucide-react'
 import { useLanguage } from '../../context/LanguageContext'
@@ -47,7 +48,7 @@ export function PodcastShowRow({ show, selectedProfile, onEpisodeSelect }: Podca
                 order: o,
                 profileId: selectedProfile || 'all',
             })
-            const res = await fetch(`/api/podcasts/shows/${show.id}/episodes?${params.toString()}`)
+            const res = await apiFetch(`/api/podcasts/shows/${show.id}/episodes?${params.toString()}`)
             const json = await res.json()
             if (json.success) {
                 setEpisodes(json.data.episodes)

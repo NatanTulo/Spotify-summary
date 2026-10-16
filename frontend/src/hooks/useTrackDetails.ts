@@ -1,3 +1,4 @@
+import { apiFetch } from '../lib/api'
 import { useState, useEffect } from 'react'
 
 export interface DetailedTrack {
@@ -39,10 +40,6 @@ export interface Play {
     skipped?: boolean
 }
 
-// Timeline cache to prevent repeated requests
-const timelineCache = new Map<string, { data: any[], timestamp: number }>()
-const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
-
 export const useTrackDetails = (trackId: string, profileId?: string) => {
     const [track, setTrack] = useState<DetailedTrack | null>(null)
     const [plays, setPlays] = useState<Play[]>([])
@@ -77,7 +74,7 @@ export const useTrackDetails = (trackId: string, profileId?: string) => {
         try {
             const params = new URLSearchParams()
             if (profileId) params.set('profileId', profileId)
-            const response = await fetch(`/api/tracks/${trackId}?${params}`)
+            const response = await apiFetch(`/api/tracks/${trackId}?${params}`)
             if (response.ok) {
                 const data = await response.json()
                 const rawTrack = data.data
@@ -124,16 +121,6 @@ export const useTrackDetails = (trackId: string, profileId?: string) => {
         try {
             setTimelineLoading(true)
             
-            // Check cache first
-            const cacheKey = `${trackId}-${profileId || 'all'}`
-            const cached = timelineCache.get(cacheKey)
-            
-            if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
-                setTimelineData(cached.data)
-                setTimelineLoading(false)
-                return
-            }
-
             const params = new URLSearchParams()
             if (profileId) {
                 params.append('profileId', profileId)
@@ -143,7 +130,7 @@ export const useTrackDetails = (trackId: string, profileId?: string) => {
             const controller = new AbortController()
             const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
 
-            const response = await fetch(`/api/tracks/${trackId}/timeline?${params}`, {
+            const response = await apiFetch(`/api/tracks/${trackId}/timeline?${params}`, {
                 signal: controller.signal
             })
             
@@ -154,11 +141,7 @@ export const useTrackDetails = (trackId: string, profileId?: string) => {
                 const timelineData = data.data || []
                 setTimelineData(timelineData)
                 
-                // Cache the result
-                timelineCache.set(cacheKey, {
-                    data: timelineData,
-                    timestamp: Date.now()
-                })
+
             }
         } catch (error) {
             if (error instanceof Error && error.name === 'AbortError') {
@@ -181,7 +164,7 @@ export const useTrackDetails = (trackId: string, profileId?: string) => {
             params.append('page', page.toString())
             params.append('limit', '50')
 
-            const response = await fetch(`/api/tracks/${trackId}/plays?${params}`)
+            const response = await apiFetch(`/api/tracks/${trackId}/plays?${params}`)
             if (response.ok) {
                 const data = await response.json()
                 setPlays(data.data || [])

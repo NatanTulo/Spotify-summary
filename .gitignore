@@ -63,3 +63,6 @@ vite.config.d.ts
 
 .notatki
 .agent
+.local/
+playwright-report/
+test-results/

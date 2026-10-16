@@ -1,3 +1,4 @@
+import type { CreationAttributes, Transaction } from 'sequelize'
 import { Artist } from '../../models/music/Artist.js'
 import { Album } from '../../models/music/Album.js'
 import { Track } from '../../models/music/Track.js'
@@ -9,9 +10,10 @@ export class MusicImporter {
     private albums = new Map<string, number>()   // name:artistId -> id
     private tracks = new Map<string, number>()   // name:albumId -> id
     private stats: ImportStats
+    private pending: CreationAttributes<Play>[] = []
     private profileId: number
 
-    constructor(stats: ImportStats, profileId: number) {
+    constructor(stats: ImportStats, profileId: number, private transaction?: Transaction) {
         this.stats = stats
         this.profileId = profileId
     }
@@ -61,14 +63,14 @@ export class MusicImporter {
             return this.artists.get(name)!
         }
 
-        let artist = await Artist.findOne({ where: { name } })
+        let artist = await Artist.findOne({ transaction: this.transaction, where: { name } })
 
         if (!artist) {
             artist = await Artist.create({
                 name,
                 createdAt: new Date(),
                 updatedAt: new Date()
-            })
+            }, { transaction: this.transaction })
             this.stats.artistsCreated++
         }
 
@@ -85,7 +87,7 @@ export class MusicImporter {
             return this.albums.get(key)!
         }
 
-        let album = await Album.findOne({ where: { name, artistId } })
+        let album = await Album.findOne({ transaction: this.transaction, where: { name, artistId } })
 
         if (!album) {
             album = await Album.create({
@@ -93,7 +95,7 @@ export class MusicImporter {
                 artistId,
                 createdAt: new Date(),
                 updatedAt: new Date()
-            })
+            }, { transaction: this.transaction })
             this.stats.albumsCreated++
         }
 
@@ -114,12 +116,12 @@ export class MusicImporter {
 
         // Najpierw szukaj po URI (jeśli dostępne)
         if (spotifyUri) {
-            track = await Track.findOne({ where: { uri: spotifyUri } })
+            track = await Track.findOne({ transaction: this.transaction, where: { uri: spotifyUri } })
         }
 
         // Jeśli nie znaleziono po URI, szukaj po (name, albumId)
         if (!track) {
-            track = await Track.findOne({ where: { name, albumId } })
+            track = await Track.findOne({ transaction: this.transaction, where: { name, albumId } })
         }
 
         if (!track) {
@@ -129,12 +131,12 @@ export class MusicImporter {
                 uri: spotifyUri,
                 createdAt: new Date(),
                 updatedAt: new Date()
-            })
+            }, { transaction: this.transaction })
             this.stats.tracksCreated++
         } else if (spotifyUri && !track.uri) {
             // Uzupełnij brakujące URI
             track.uri = spotifyUri
-            await track.save()
+            await track.save({ transaction: this.transaction })
         }
 
         this.tracks.set(key, track.id)
@@ -145,7 +147,7 @@ export class MusicImporter {
      * Utwórz play
      */
     private async createPlay(record: SpotifyPlayData, trackId: number): Promise<void> {
-        await Play.create({
+        this.pending.push({
             trackId,
             profileId: this.profileId,
             timestamp: new Date(record.ts),
@@ -166,6 +168,13 @@ export class MusicImporter {
             updatedAt: new Date()
         })
 
-        this.stats.playsCreated++
+
     }
+    public async flush(): Promise<void> {
+        if (!this.pending.length) return
+        await Play.bulkCreate(this.pending, { transaction: this.transaction, validate: true })
+        this.stats.playsCreated += this.pending.length
+        this.pending = []
+    }
+
 }

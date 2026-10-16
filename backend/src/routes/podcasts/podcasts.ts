@@ -1,3 +1,5 @@
+import { scopeSql } from '../../middleware/dateScope.js'
+import { scopedOptions } from '../../middleware/dateScope.js'
 import { Router, Request, Response } from 'express'
 import { Op, QueryTypes, col, fn, literal } from 'sequelize'
 import { Show, Episode, PodcastPlay, Profile } from '../../models/index.js'
@@ -48,7 +50,7 @@ const toInt = (v: any, fb: number) => { const n = parseInt(v); return Number.isN
 // GET /podcasts/shows
 router.get('/shows', async (req: Request, res: Response) => {
   try {
-    const { limit = '50', offset = '0', search, profileId, sortBy = 'name', order = 'asc' } = req.query as any
+    const { limit = '50', offset = '0', search, profileId = 'all', sortBy = 'name', order = 'asc' } = req.query as any
     const limitNum = toInt(limit, 50)
     const offsetNum = toInt(offset, 0)
     
@@ -100,7 +102,7 @@ router.get('/shows', async (req: Request, res: Response) => {
 router.get('/shows/:showId/episodes', async (req: Request, res: Response) => {
   try {
     const { showId } = req.params
-    const { limit = '50', offset = '0', profileId, search, sortBy = 'name', order = 'asc' } = req.query as any
+    const { limit = '50', offset = '0', profileId = 'all', search, sortBy = 'name', order = 'asc' } = req.query as any
     const limitNum = toInt(limit, 50)
     const offsetNum = toInt(offset, 0)
     
@@ -165,7 +167,7 @@ router.get('/stats', async (req: Request, res: Response) => {
     }
     
     const totalPodcastPlays = await PodcastPlay.count({ where: filter })
-    const totalMs = await PodcastPlay.sum('msPlayed', { where: filter }) || 0
+    const totalMs = await PodcastPlay.sum('msPlayed', scopedOptions({ where: filter })) || 0
     const uniqueEpisodes = await PodcastPlay.count({ distinct: true, col: 'episodeId', where: filter })
     
     const showQuery = profileId && profileId !== 'all' 
@@ -177,7 +179,7 @@ router.get('/stats', async (req: Request, res: Response) => {
          FROM podcast_plays p
          INNER JOIN episodes e ON p."episodeId" = e.id`
     
-    const showRows = await PodcastPlay.sequelize!.query(showQuery, { 
+    const showRows = await PodcastPlay.sequelize!.query(scopeSql(showQuery), {
       replacements: profileId && profileId !== 'all' ? { pid: toInt(profileId, 0) } : {}, 
       type: QueryTypes.SELECT 
     }) as any[]
@@ -186,7 +188,7 @@ router.get('/stats', async (req: Request, res: Response) => {
     res.json({ success: true, data: { totalPodcastPlays, totalPodcastMinutes: Math.round(totalMs / 60000), uniqueEpisodes, uniqueShows } })
   } catch (e) {
     console.error('Error fetching podcast stats:', e)
-    res.json({ success: true, data: { totalPodcastPlays: 0, totalPodcastMinutes: 0, uniqueEpisodes: 0, uniqueShows: 0 } })
+    res.status(500).json({ success: false, error: 'Failed to load podcast statistics' })
   }
 })
 
@@ -225,7 +227,7 @@ router.get('/top-shows', async (req: Request, res: Response) => {
     res.json({ success: true, data: formatted })
   } catch (e) {
     console.error('Error fetching top shows:', e)
-    res.json({ success: true, data: [] })
+    res.status(500).json({ success: false, error: 'Failed to load podcast statistics' })
   }
 })
 
@@ -264,7 +266,7 @@ router.get('/top-episodes', async (req: Request, res: Response) => {
     res.json({ success: true, data: formatted })
   } catch (e) {
     console.error('Error fetching top episodes:', e)
-    res.json({ success: true, data: [] })
+    res.status(500).json({ success: false, error: 'Failed to load podcast statistics' })
   }
 })
 
@@ -304,7 +306,7 @@ router.get('/daily-stats', async (req: Request, res: Response) => {
     res.json({ success: true, data })
   } catch (e) {
     console.error('Error fetching daily stats:', e)
-    res.json({ success: true, data: [] })
+    res.status(500).json({ success: false, error: 'Failed to load podcast statistics' })
   }
 })
 
@@ -336,7 +338,7 @@ router.get('/daily-stats-all', async (req: Request, res: Response) => {
     res.json({ success: true, data })
   } catch (e) {
     console.error('Error fetching daily stats all:', e)
-    res.json({ success: true, data: [] })
+    res.status(500).json({ success: false, error: 'Failed to load podcast statistics' })
   }
 })
 
@@ -361,7 +363,7 @@ router.get('/platform-stats', async (req: Request, res: Response) => {
     res.json({ success: true, data })
   } catch (e) {
     console.error('Error fetching platform stats:', e)
-    res.json({ success: true, data: [] })
+    res.status(500).json({ success: false, error: 'Failed to load podcast statistics' })
   }
 })
 
@@ -392,7 +394,7 @@ router.get('/time-of-day', async (req: Request, res: Response) => {
     res.json({ success: true, data })
   } catch (e) {
     console.error('Error fetching time-of-day stats:', e)
-    res.json({ success: true, data: [] })
+    res.status(500).json({ success: false, error: 'Failed to load podcast statistics' })
   }
 })
 
@@ -423,7 +425,7 @@ router.get('/day-of-week', async (req: Request, res: Response) => {
     res.json({ success: true, data })
   } catch (e) {
     console.error('Error fetching day-of-week stats:', e)
-    res.json({ success: true, data: [] })
+    res.status(500).json({ success: false, error: 'Failed to load podcast statistics' })
   }
 })
 

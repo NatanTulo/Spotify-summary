@@ -33,7 +33,7 @@ const options: SequelizeOptions = {
         Audiobook,
         AudiobookPlay
     ],
-    logging: process.env.NODE_ENV === 'development' ? console.log : false,
+    logging: process.env.DEBUG_SQL === 'true' ? console.log : false,
     pool: {
         max: 20,
         min: 0,
@@ -63,22 +63,10 @@ export const connectDB = async (): Promise<void> => {
         await sequelize.authenticate()
         console.log('✅ PostgreSQL connected successfully')
 
-        // Synchronize database in development
-        if (process.env.NODE_ENV === 'development') {
-            await sequelize.sync({ alter: true })
-            console.log('✅ Database synchronized successfully')
-        }
-
-        // Graceful shutdown
-        process.on('SIGINT', async () => {
-            await sequelize.close()
-            console.log('💤 PostgreSQL connection closed through app termination')
-            process.exit(0)
-        })
 
     } catch (error) {
         console.error('❌ PostgreSQL connection failed:', error)
-        process.exit(1)
+        throw error
     }
 }
 

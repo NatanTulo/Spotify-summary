@@ -1,3 +1,5 @@
+import { countLabel } from '../lib/countLabel'
+import { HistoryInsights } from '../components/HistoryInsights'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Play, Users, Music, Clock, Globe, Radio } from 'lucide-react'
 import { useProfile } from '../context/ProfileContext'
@@ -7,7 +9,7 @@ import { useDashboardStats } from '../hooks/useDashboardStats'
 
 const Dashboard = () => {
     const { selectedProfile } = useProfile()
-    const { t } = useLanguage()
+    const { t, language } = useLanguage()
     const {
         stats,
         podcastStats,
@@ -176,7 +178,7 @@ const Dashboard = () => {
                                             </div>
                                         </div>
                                         <div className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
-                                            {artist.plays} {t('playsLabel')}
+                                            {countLabel(artist.plays, 'plays', language)}
                                         </div>
                                     </div>
                                 ))
@@ -216,7 +218,7 @@ const Dashboard = () => {
                                             </div>
                                         </div>
                                         <div className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
-                                            {track.plays} {t('playsLabel')}
+                                            {countLabel(track.plays, 'plays', language)}
                                         </div>
                                     </div>
                                 ))
@@ -256,7 +258,7 @@ const Dashboard = () => {
                                             </div>
                                         </div>
                                         <div className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
-                                            {show.plays} {t('playsLabel')}
+                                            {countLabel(show.plays, 'plays', language)}
                                         </div>
                                     </div>
                                 ))
@@ -293,7 +295,7 @@ const Dashboard = () => {
                                             </div>
                                         </div>
                                         <div className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
-                                            {episode.plays} {t('playsLabel')}
+                                            {countLabel(episode.plays, 'plays', language)}
                                         </div>
                                     </div>
                                 ))
@@ -309,6 +311,7 @@ const Dashboard = () => {
                 </Card>
             </div>
 
+            <HistoryInsights />
             {/* Data Import Guide */}
             <DataImportGuide />
         </div>

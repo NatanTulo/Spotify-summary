@@ -1,3 +1,4 @@
+import { scopeSql } from '../../middleware/dateScope.js'
 import express, { Router } from 'express'
 import { sequelize } from '../../config/database.js'
 import { QueryTypes } from 'sequelize'
@@ -75,7 +76,7 @@ router.get('/', async (req, res) => {
             ) AS matching_albums
         `
 
-        const albums = await sequelize.query(albumsQuery, {
+        const albums = await sequelize.query(scopeSql(albumsQuery), {
             type: QueryTypes.SELECT,
             replacements: {
                 ...replacements,
@@ -84,7 +85,7 @@ router.get('/', async (req, res) => {
             }
         })
 
-        const countResult = await sequelize.query(countQuery, {
+        const countResult = await sequelize.query(scopeSql(countQuery), {
             type: QueryTypes.SELECT,
             replacements,
         }) as any[]

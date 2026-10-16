@@ -31,4 +31,13 @@ export default [
     files: ['*.{js,ts}'],
     languageOptions: { globals: globals.node },
   },
+  {
+    files: ['src/lib/**/*.{ts,tsx}', 'src/context/DateRangeContext.tsx', 'src/components/{DateRangeBar,HistoryInsights}.tsx', 'src/hooks/{useDashboardStats,usePodcastShows,useFilterMetadata}.ts', 'src/pages/music/hooks/*.ts', 'src/pages/podcasts/hooks/*.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/consistent-type-imports': 'error',
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      'react-hooks/exhaustive-deps': 'error',
+    },
+  },
 ]

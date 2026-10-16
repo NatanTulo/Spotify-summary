@@ -1,3 +1,4 @@
+import { apiFetch } from '../lib/api'
 import { useState, useEffect } from 'react'
 import { Progress } from './ui/progress'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
@@ -52,7 +53,7 @@ export const ImportProgressDisplay = ({ profileName, onClose, className }: Impor
                 ? `/api/import/progress/${profileName}`
                 : '/api/import/progress'
 
-            const response = await fetch(url)
+            const response = await apiFetch(url)
             if (response.ok) {
                 const data = await response.json()
                 if (data.success) {
@@ -75,7 +76,7 @@ export const ImportProgressDisplay = ({ profileName, onClose, className }: Impor
 
         setIsLoading(true)
         try {
-            const response = await fetch(`/api/import/progress/${progress.profileName}`, {
+            const response = await apiFetch(`/api/import/progress/${progress.profileName}`, {
                 method: 'DELETE'
             })
 

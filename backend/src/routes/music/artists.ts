@@ -1,3 +1,4 @@
+import { scopeSql } from '../../middleware/dateScope.js'
 import express, { Router } from 'express'
 import { sequelize } from '../../config/database.js'
 import { QueryTypes } from 'sequelize'
@@ -14,7 +15,7 @@ router.get('/top', async (req, res) => {
         const whereClause = profileId && profileId !== 'all' ? 'WHERE plays."profileId" = :profileId' : ''
         const replacements = profileId && profileId !== 'all' ? { profileId, limit: parseInt(limit as string) } : { limit: parseInt(limit as string) }
 
-        const topArtists = await sequelize.query(`
+        const topArtists = await sequelize.query(scopeSql(`
             SELECT 
                 artists.id,
                 artists.name,
@@ -28,7 +29,7 @@ router.get('/top', async (req, res) => {
             GROUP BY artists.id, artists.name
             ORDER BY COUNT(plays.id) DESC
             LIMIT :limit
-        `, {
+        `), {
             replacements,
             type: QueryTypes.SELECT
         })

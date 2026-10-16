@@ -1,3 +1,4 @@
+vi.mock('../components/HistoryInsights', () => ({ HistoryInsights: () => null }))
 import { expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { LanguageProvider } from '../context/LanguageContext'

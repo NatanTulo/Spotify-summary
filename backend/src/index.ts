@@ -1,3 +1,6 @@
+import analyticsRouter from './routes/analytics.js'
+import { dateScope, installDateScopes } from './middleware/dateScope.js'
+import { assertMigrated } from './config/migrations.js'
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
@@ -6,7 +9,8 @@ import rateLimit from 'express-rate-limit'
 import dotenv from 'dotenv'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { networkInterfaces } from 'os'
+import { localHost, localRequestsOnly, allowedOrigins } from './middleware/localSecurity.js'
+import { apiContract, validateApi, validateBody } from './middleware/apiContract.js'
 import 'reflect-metadata'
 import { connectDB } from './config/database.js'
 import tracksRouter from './routes/music/tracks.js'
@@ -19,41 +23,7 @@ import audiobooksRouter from './routes/audiobooks/audiobooks.js'
 
 dotenv.config()
 
-// Funkcja do wykrywania lokalnych adresów IP
-function getLocalNetworkAddresses() {
-    const addresses = []
-    const nets = networkInterfaces()
-    
-    for (const name of Object.keys(nets)) {
-        const interfaces = nets[name]
-        if (!interfaces) continue
-        
-        for (const net of interfaces) {
-            // Pomiń interfejsy niebędące IPv4 i wewnętrzne (loopback)
-            if (net.family === 'IPv4' && !net.internal) {
-                addresses.push(net.address)
-            }
-        }
-    }
-    
-    return addresses
-}
-
-// Tworzenie listy dozwolonych origins
-function createAllowedOrigins() {
-    const localAddresses = getLocalNetworkAddresses()
-    const origins = [
-        'http://localhost:3000'
-    ]
-    
-    // Dodaj wszystkie lokalne adresy IP z portem 3000
-    localAddresses.forEach(address => {
-        origins.push(`http://${address}:3000`)
-    })
-    
-    return origins
-}
-
+installDateScopes()
 const app = express()
 const PORT = process.env.PORT || 5000
 
@@ -62,7 +32,7 @@ app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+            scriptSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'"],
             imgSrc: ["'self'", "data:", "https:"],
             connectSrc: ["'self'"],
@@ -75,8 +45,11 @@ app.use(helmet({
     crossOriginEmbedderPolicy: false
 }))
 
+app.use(localRequestsOnly)
+app.use('/api', apiContract, validateApi, dateScope)
+
 app.use(cors({
-    origin: createAllowedOrigins(),
+    origin: allowedOrigins(),
     credentials: true
 }))
 
@@ -91,8 +64,9 @@ const limiter = rateLimit({
 app.use(limiter)
 
 // Body parsing middleware
-app.use(express.json({ limit: '10mb' }))
-app.use(express.urlencoded({ extended: true, limit: '10mb' }))
+app.use(express.json({ limit: '16kb' }))
+app.use('/api', validateBody)
+
 
 // Health check
 app.get('/api/health', (_req, res) => {
@@ -106,6 +80,7 @@ app.get('/api/health', (_req, res) => {
 // Setup routes
 function setupRoutes() {
     // API Routes
+    app.use('/api/analytics', analyticsRouter)
     app.use('/api/tracks', tracksRouter)
     app.use('/api/stats', statsRouter)
     app.use('/api/artists', artistsRouter)
@@ -150,7 +125,7 @@ function setupRoutes() {
 
         res.status(err.status || 500).json({
             success: false,
-            error: err.message || 'Internal server error',
+            error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error',
             ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
         })
     })
@@ -161,6 +136,7 @@ async function startServer() {
     try {
         // Connect to database
         await connectDB()
+        await assertMigrated()
         console.log('✅ Connected to PostgreSQL')
 
         // Setup routes
@@ -169,15 +145,15 @@ async function startServer() {
 
         // Start listening
         const port = parseInt(PORT.toString(), 10)
-        const allowedOrigins = createAllowedOrigins()
+        const origins = allowedOrigins()
         
-        app.listen(port, '0.0.0.0', () => {
+        app.listen(port, localHost, () => {
             console.log(`🚀 Server running on port ${port}`)
             console.log(`📊 API available at http://localhost:${port}/api`)
-            console.log(`🌐 Network access: http://0.0.0.0:${port}/api`)
+            console.log(`🌐 Local access only: http://127.0.0.1:${port}/api`)
             console.log(`🔍 Health check: http://localhost:${port}/api/health`)
             console.log(`🔒 Allowed CORS origins:`)
-            allowedOrigins.forEach(origin => console.log(`   - ${origin}`))
+            origins.forEach(origin => console.log(`   - ${origin}`))
         })
     } catch (error) {
         console.error('❌ Failed to start server:', error)

@@ -1,16 +1,8 @@
-import { useState, useCallback } from 'react'
-import { FilterState, Track } from '../types'
-
+import { useState, useCallback, type SetStateAction } from 'react'
+import { useApiQuery } from '../../../lib/api'
+import type { FilterState, Track } from '../types'
 export const useTracksData = (profileId: string | null) => {
-    const [tracks, setTracks] = useState<Track[]>([])
-    const [loading, setLoading] = useState(false)
-    const [pagination, setPagination] = useState({
-        page: 1,
-        limit: 20,
-        total: 0,
-        pages: 0
-    })
-    const [filters, setFilters] = useState<FilterState>({
+    const [filters, updateFilters] = useState<FilterState>({
         search: '',
         minPlays: 0,
         dateFrom: '',
@@ -23,65 +15,20 @@ export const useTracksData = (profileId: string | null) => {
         showShuffle: false
     })
 
-    const fetchTracks = useCallback(async (page = 1, limit?: number) => {
-        setLoading(true)
-        try {
-            const params = new URLSearchParams({
-                page: page.toString(),
-                limit: (limit || pagination.limit).toString(),
-                search: filters.search,
-                minPlays: filters.minPlays.toString(),
-                sortBy: filters.sortBy,
-                sortOrder: filters.sortOrder,
-                showSkipped: String(filters.showSkipped),
-                showShuffle: String(filters.showShuffle),
-                ...(filters.country && { country: filters.country }),
-                ...(filters.platform && { platform: filters.platform }),
-                ...(filters.dateFrom && { dateFrom: filters.dateFrom }),
-                ...(filters.dateTo && { dateTo: filters.dateTo }),
-                ...(profileId && { profileId: profileId })
-            })
 
-            const response = await fetch(`/api/tracks?${params}&_t=${Date.now()}`)
-            if (response.ok) {
-                const data = await response.json()
-                setTracks(data.data || [])
-                setPagination(data.pagination || pagination)
-            }
-        } catch (error) {
-            console.error('Failed to fetch tracks:', error)
-        } finally {
-            setLoading(false)
-        }
-    }, [filters, pagination.limit, profileId])
-
-    const handlePageChange = (page: number) => {
-        setPagination(prev => ({ ...prev, page }))
-        fetchTracks(page)
-    }
-
-    const handlePageSizeChange = (newLimit: number) => {
-        setPagination(prev => ({ ...prev, limit: newLimit, page: 1 }))
-        fetchTracks(1, newLimit)
-    }
-
-    const handleSort = (field: string, order: 'asc' | 'desc') => {
-        setFilters(prev => ({
-            ...prev,
-            sortBy: field,
-            sortOrder: order
-        }))
-    }
-
+    const [page, setPage] = useState(1)
+    const [limit, setLimit] = useState(20)
+    const setFilters = useCallback((value: SetStateAction<FilterState>) => { setPage(1); updateFilters(value) }, [])
+    const params = new URLSearchParams({ page: String(page), limit: String(limit), profileId: profileId || 'all' })
+    for (const [key, value] of Object.entries(filters)) if (value !== '') params.set(key, String(value))
+    const query = useApiQuery<Track[]>(`/api/tracks?${params}`)
+    const fetchTracks = useCallback(async (nextPage = 1, nextLimit?: number) => { setPage(nextPage); if (nextLimit) setLimit(nextLimit) }, [])
+    const handleSort = (field: string, order: 'asc' | 'desc') => { setPage(1); setFilters(previous => ({ ...previous, sortBy: field, sortOrder: order })) }
     return {
-        tracks,
-        loading,
-        pagination,
-        filters,
-        setFilters,
-        fetchTracks,
-        handlePageChange,
-        handlePageSizeChange,
-        handleSort
+        tracks: query.data?.data || [], loading: query.isPending, error: query.error,
+        pagination: query.data?.pagination || { page, limit, total: 0, pages: 0 },
+        filters, setFilters, fetchTracks, handleSort,
+        handlePageChange: setPage,
+        handlePageSizeChange: (size: number) => { setLimit(size); setPage(1) },
     }
 }

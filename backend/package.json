@@ -10,9 +10,14 @@
         "start": "node dist/index.js",
         "import-data": "tsx src/scripts/runImport.ts",
         "import": "tsx src/scripts/runImport.ts",
-        "test": "vitest"
+        "test": "vitest",
+        "db:migrate": "tsx src/scripts/migrate.ts",
+        "db:backup": "tsx src/scripts/backup.ts",
+        "test:postgres": "tsx src/test/postgres.integration.ts",
+        "test:e2e": "tsx src/test/browser.ts"
     },
     "dependencies": {
+        "@streamparser/json-node": "^0.0.26",
         "compression": "^1.8.2",
         "cors": "^2.8.6",
         "dotenv": "^18.0.8",
@@ -22,17 +27,18 @@
         "pg": "^8.23.1",
         "reflect-metadata": "^0.2.2",
         "sequelize": "^6.37.8",
-        "sequelize-typescript": "^2.1.6"
+        "sequelize-typescript": "^2.1.6",
+        "zod": "^4.6.7"
     },
     "devDependencies": {
         "@types/compression": "^1.8.1",
         "@types/cors": "^2.8.19",
         "@types/express": "^5.0.6",
         "@types/node": "^24.19.2",
+        "@types/pg": "^8.23.1",
         "tsx": "^4.23.15",
         "typescript": "^6.0.3",
-        "vitest": "^5.0.5",
-        "@types/pg": "^8.23.1"
+        "vitest": "^5.0.5"
     },
     "private": true
 }

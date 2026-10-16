@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { BarChart3, PieChart, TrendingUp, Music, Percent, Disc } from 'lucide-react'
@@ -43,11 +42,6 @@ export default function Analytics() {
     const { metadata } = useFilterMetadata(selectedProfile)
     const availableCountries = metadata.countries
     const availablePlatforms = metadata.platforms
-
-    useEffect(() => {
-        fetchTracks()
-        fetchStats()
-    }, [selectedProfile, fetchTracks, fetchStats])
 
     return (
         <div className="space-y-4 sm:space-y-6">

@@ -1,3 +1,4 @@
+import { apiFetch } from '../lib/api'
 import { useState, useEffect } from 'react'
 import { User, Download } from 'lucide-react'
 import { useLanguage } from '../context/LanguageContext'
@@ -40,8 +41,8 @@ export const HeaderProfileSelector = ({
     const fetchProfiles = async () => {
         try {
             const [profilesRes, statusRes] = await Promise.all([
-                fetch('/api/import/profiles'),
-                fetch('/api/import/status')
+                apiFetch('/api/import/profiles'),
+                apiFetch('/api/import/status')
             ])
 
             if (profilesRes.ok) {
@@ -112,6 +113,7 @@ export const HeaderProfileSelector = ({
 
             {/* Import Button - zawsze widoczny */}
             <Button
+                aria-label={t('dataManagement')}
                 onClick={onImportRequested}
                 disabled={isLoading}
                 variant="spotify"

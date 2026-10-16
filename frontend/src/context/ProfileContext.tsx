@@ -1,3 +1,4 @@
+import { queryClient } from '../lib/api'
 import { createContext, useContext, useState, ReactNode } from 'react'
 
 interface ProfileContextType {
@@ -20,8 +21,13 @@ interface ProfileProviderProps {
 }
 
 export const ProfileProvider = ({ children }: ProfileProviderProps) => {
-    const [selectedProfile, setSelectedProfile] = useState<string | null>(null)
+    const [selectedProfile, updateSelectedProfile] = useState<string | null>(null)
 
+    const setSelectedProfile = (value: string | null) => {
+        void queryClient.cancelQueries()
+        window.dispatchEvent(new Event('api-clear-error'))
+        updateSelectedProfile(value)
+    }
     return (
         <ProfileContext.Provider value={{ selectedProfile, setSelectedProfile }}>
             {children}

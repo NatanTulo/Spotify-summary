@@ -4,15 +4,18 @@
 
 Nowoczesna aplikacja webowa do analizy danych ze Spotify GDPR Export z pełnym systemem tłumaczeń (PL/EN). React + TypeScript + PostgreSQL.
 
-Aplikacja analizuje eksport Spotify i pozwala importować oraz usuwać dane profili. Backend jest przeznaczony do pracy lokalnej; obecnie nie ma logowania ani uprawnień do profili.
+Aplikacja analizuje eksport Spotify i pozwala importować oraz usuwać dane profili. Działa wyłącznie lokalnie, bez ekranu logowania. Frontend i backend nasłuchują na `127.0.0.1`; backend odrzuca obce nagłówki Host i Origin.
 
 Aktualizacja zależności i plan dalszych prac: [raport utrzymaniowy — październik 2026](docs/maintenance-2026-10.md).
 
+Instrukcje migracji i kopii: [utrzymanie lokalne](docs/local-maintenance.md). Testy: [workflow testowy](docs/testing.md).
+
 ## ✨ Główne funkcjonalności
 
-- **🌍 Multi-profile** – niezależne statystyki i równoległy import
+- **🌍 Multi-profile** – niezależne statystyki i bezpieczne importy w kolejce
 - **🔄 Import w czasie rzeczywistym** – progres per profil + możliwość anulowania
 - **📊 Lista utworów (19+ kolumn)** – sortowanie, filtrowanie, selektor kolumn, timeline per track
+- **📅 Analizy w czasie** – wspólne daty UTC, porównanie okresów, kalendarz aktywności i nowi artyści
 - **📈 Dashboard & Analytics** – roczne, dzienne, kraje, artyści, wzorce słuchania
 - **🕒 Dual Axis Listening Timeline** – osobna oś Y dla plays i minutes + zaawansowane funkcje:
   - **🧪 Adaptive Aggregation** – automatyczne bucketowanie >500 punktów (z zachowaniem top dni)
@@ -66,15 +69,15 @@ sudo -u postgres createdb spotify_analytics
 git clone https://github.com/NatanTulo/Spotify-summary
 cd spotify-summary
 
-# Instalacja Node.js przez pnpm (jeśli nie masz)
-pnpm env use --global 24.22.0
-
 # Instalacja zależności
 pnpm install
 
 # Konfiguracja backendu - skopiuj .env.example do .env i ustaw hasło PostgreSQL
 cp backend/.env.example backend/.env
 # Edytuj backend/.env: DATABASE_URL=postgresql://postgres:TWOJE_HASŁO@localhost:5432/spotify_analytics
+
+# Wersjonowane migracje (także przed uruchomieniem na istniejącej bazie)
+pnpm db:migrate
 
 # Uruchomienie
 pnpm run dev

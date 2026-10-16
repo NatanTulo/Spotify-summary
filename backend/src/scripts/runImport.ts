@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+import { assertMigrated } from '../config/migrations.js'
 
 import SpotifyDataImporter from './importData.js'
 import path from 'path'
@@ -29,7 +29,7 @@ async function main() {
     try {
         // Create missing tables without altering or dropping existing ones.
         await sequelize.authenticate()
-        await sequelize.sync()
+        await assertMigrated()
 
         const profileNames = fs.readdirSync(dataDir, { withFileTypes: true })
             .filter(entry => entry.isDirectory())
