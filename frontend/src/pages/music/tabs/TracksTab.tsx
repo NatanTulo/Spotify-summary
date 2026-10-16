@@ -1,76 +1,17 @@
-import { Suspense, lazy } from 'react'
+import type { ReactNode } from 'react'
 import { AdvancedFilters } from '@/components/filters/AdvancedFilters'
+import { TracksList } from '@/components/TracksList'
 import { FilterState, Track } from '../types'
-
-const TracksList = lazy(() => import('@/components/TracksList').then(module => ({ default: module.TracksList })))
-
 interface TracksTabProps {
-    tracks: Track[]
-    loading: boolean
-    pagination: {
-        page: number
-        limit: number
-        total: number
-        pages: number
-    }
-    filters: FilterState
-    selectedProfile: string | null
-    availableCountries: string[]
-    availablePlatforms: string[]
-    onFiltersChange: (filters: any) => void
-    onPageChange: (page: number) => void
-    onPageSizeChange: (limit: number) => void
+    tracks: Track[]; loading: boolean; error?: Error | null
+    pagination: { page: number; limit: number; total: number; pages: number }
+    filters: FilterState; selectedProfile: string | null
+    availableCountries: string[]; availablePlatforms: string[]
+    onFiltersChange: (filters: FilterState) => void
+    onPageChange: (page: number) => void; onPageSizeChange: (limit: number) => void
     onSort: (field: string, order: 'asc' | 'desc') => void
-    onApplyFilters: () => void
-    onResetFilters: () => void
+    onApplyFilters: () => void; onResetFilters: () => void
 }
-
-const ChartLoader = () => (
-    <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-    </div>
-)
-
-export function TracksTab({
-    tracks,
-    loading,
-    pagination,
-    filters,
-    selectedProfile,
-    availableCountries,
-    availablePlatforms,
-    onFiltersChange,
-    onPageChange,
-    onPageSizeChange,
-    onSort,
-    onApplyFilters,
-    onResetFilters
-}: TracksTabProps) {
-    return (
-        <div className="space-y-6">
-            <AdvancedFilters
-                filters={filters}
-                onFiltersChange={onFiltersChange}
-                onApply={onApplyFilters}
-                onReset={onResetFilters}
-                countries={availableCountries}
-                platforms={availablePlatforms}
-            />
-            <Suspense fallback={<ChartLoader />}>
-                <TracksList
-                    tracks={tracks as any[]}
-                    loading={loading}
-                    profileId={selectedProfile || undefined}
-                    pagination={pagination}
-                    onPageChange={onPageChange}
-                    onPageSizeChange={onPageSizeChange}
-                    onSort={onSort}
-                    currentSort={{
-                        field: filters.sortBy,
-                        order: filters.sortOrder
-                    }}
-                />
-            </Suspense>
-        </div>
-    )
+export function TracksTab(props: TracksTabProps) {
+    return <TracksList tracks={props.tracks} loading={props.loading} error={props.error} onRetry={props.onApplyFilters} profileId={props.selectedProfile || undefined} pagination={props.pagination} onPageChange={props.onPageChange} onPageSizeChange={props.onPageSizeChange} onSort={props.onSort} currentSort={{ field: props.filters.sortBy, order: props.filters.sortOrder }} toolbar={(controls: ReactNode) => <AdvancedFilters filters={props.filters} onFiltersChange={props.onFiltersChange} onReset={props.onResetFilters} countries={props.availableCountries} platforms={props.availablePlatforms}>{controls}</AdvancedFilters>} />
 }

@@ -30,7 +30,7 @@ export function PodcastsChartsTab({
     return (
         <div className="space-y-4">
             {/* Timeline (daily activity) */}
-            <ListeningTimelineChart data={(timelineStats.length ? timelineStats : dailyStats).map(d => ({
+            <ListeningTimelineChart scope="podcasts" data={(timelineStats.length ? timelineStats : dailyStats).map(d => ({
                 date: d.date,
                 plays: d.plays,
                 minutes: d.minutes 

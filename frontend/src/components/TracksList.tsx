@@ -1,310 +1,74 @@
-import { apiFetch } from '../lib/api'
-import { useState, Fragment, useEffect, useCallback, useMemo } from "react";
-import { Play, Settings2 } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "./ui/card";
-import { Button } from "./ui/button";
-import { useLanguage } from "../context/LanguageContext";
-import { TrackDetails } from "./TrackDetails";
-import { ExtendedTrack, PaginationState } from "./tracks/types";
-import { TrackRow } from "./tracks/TrackRow";
-import { TracksTableHeaders } from "./tracks/TracksTableHeaders";
-import { PaginationControls } from "./tracks/PaginationControls";
-import { ColumnSelector } from "./tracks/ColumnSelector";
-
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { ExternalLink, Settings2, X } from 'lucide-react'
+import { Button } from './ui/button'
+import { useLanguage } from '../context/LanguageContext'
+import { TrackDetails } from './TrackDetails'
+import { ExtendedTrack, PaginationState } from './tracks/types'
+import { TracksTableHeaders } from './tracks/TracksTableHeaders'
+import { PaginationControls } from './tracks/PaginationControls'
+import { ColumnSelector } from './tracks/ColumnSelector'
+import { useTrackColumns } from './tracks/columns'
+const spotifyUrl = (uri?: string) => uri && /^(spotify:track:[A-Za-z0-9]+|https:\/\/open\.spotify\.com\/track\/[A-Za-z0-9]+(?:\?[^\s]*)?)$/.test(uri) ? uri : undefined
+const defaultColumns: (keyof ExtendedTrack)[] = ['trackName', 'albumName', 'totalPlays', 'totalMinutes', 'lastPlay']
 interface TracksListProps {
-  tracks: ExtendedTrack[];
-  loading?: boolean;
-  profileId?: string;
-  pagination?: PaginationState;
-  onPageChange?: (page: number) => void;
-  onPageSizeChange?: (pageSize: number) => void;
-  onSort?: (field: string, order: "asc" | "desc") => void;
-  currentSort?: {
-    field: string;
-    order: "asc" | "desc";
-  };
+    tracks: ExtendedTrack[]; loading?: boolean; error?: Error | null; onRetry?: () => void; profileId?: string
+    pagination?: PaginationState; onPageChange?: (page: number) => void; onPageSizeChange?: (size: number) => void
+    onSort?: (field: string, order: 'asc' | 'desc') => void; currentSort?: { field: string; order: 'asc' | 'desc' }
+    toolbar?: (controls: ReactNode) => ReactNode
 }
-
-export function TracksList({
-  tracks,
-  loading = false,
-  profileId,
-  pagination,
-  onPageChange,
-  onPageSizeChange,
-  onSort,
-  currentSort,
-}: TracksListProps) {
-  const { t } = useLanguage();
-
-  // Wszystkie hooki muszą być na początku - przed jakimikolwiek warunkowymi returnami
-  const [expandedTrack, setExpandedTrack] = useState<string | null>(null);
-  const [trackTimelineData, setTrackTimelineData] = useState<any[]>([]);
-  const [timelineLoading, setTimelineLoading] = useState<string | null>(null);
-  const [timelineCache, setTimelineCache] = useState<Map<string, any[]>>(
-    new Map()
-  );
-  const [selectedTrackForDetails, setSelectedTrackForDetails] = useState<
-    string | null
-  >(null);
-  
-  // Domyślne kolumny
-  const defaultColumns: (keyof ExtendedTrack)[] = [
-    "trackName",
-    "artistName",
-    "albumName",
-    "totalPlays",
-    "totalMinutes",
-    "avgPlayDuration",
-    "skipPercentage",
-    "firstPlay",
-    "lastPlay",
-  ];
-
-  const [visibleColumns, setVisibleColumns] = useState<(keyof ExtendedTrack)[]>(
-    defaultColumns
-  );
-  const [showColumnSelector, setShowColumnSelector] = useState(false);
-
-  // Inteligentny prefetching dla top utworów - użyjemy useMemo dla stability
-  const topTracksForPrefetch = useMemo(() => {
-    if (tracks.length === 0) return [];
-    return tracks
-      .filter((t) => t.totalPlays > 10) // Tylko utwory z więcej niż 10 odtworzeń
-      .sort((a, b) => b.totalPlays - a.totalPlays)
-      .slice(0, 3);
-  }, [tracks]);
-
-  const prefetchPopularTracks = useCallback(async () => {
-    if (topTracksForPrefetch.length === 0) return;
-
-    for (const track of topTracksForPrefetch) {
-      const cacheKey = `${track.trackId}-${profileId || "all"}`;
-
-      // Skip if already cached
-      if (timelineCache.has(cacheKey)) continue;
-
-      try {
-        const params = new URLSearchParams();
-        if (profileId) {
-          params.append("profileId", profileId);
-        }
-
-        const response = await apiFetch(
-          `/api/tracks/${track.trackId}/timeline?${params}`
-        );
-        if (response.ok) {
-          const data = await response.json();
-          setTimelineCache((prev) =>
-            new Map(prev).set(cacheKey, data.data || [])
-          );
-        }
-      } catch (error) {
-        // Silent fail for prefetch
-      }
-
-      // Small delay between prefetch requests
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-  }, [topTracksForPrefetch, profileId, timelineCache]);
-
-  // Prefetch po załadowaniu utworów - MUSI BYĆ PRZED WARUNKOWYMI RETURNAMI
-  useEffect(() => {
-    if (topTracksForPrefetch.length > 0) {
-      // Delay prefetch by 1 second to not interfere with main UI
-      const timer = setTimeout(prefetchPopularTracks, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [prefetchPopularTracks, topTracksForPrefetch.length, currentSort]);
-
-  // Jeśli wybrano utwór do szczegółów, pokaż TrackDetails
-  if (selectedTrackForDetails) {
-    return (
-      <TrackDetails
-        trackId={selectedTrackForDetails}
-        profileId={profileId}
-        onBack={() => setSelectedTrackForDetails(null)}
-      />
-    );
-  }
-
-  const toggleTrackExpansion = async (trackId: string) => {
-    if (expandedTrack === trackId) {
-      setExpandedTrack(null);
-      return;
-    }
-
-    setExpandedTrack(trackId);
-
-    // Check cache first
-    const cacheKey = `${trackId}-${profileId || "all"}`;
-    if (timelineCache.has(cacheKey)) {
-      setTrackTimelineData(timelineCache.get(cacheKey)!);
-      return;
-    }
-
-    // Show loading state
-    setTimelineLoading(trackId);
-    setTrackTimelineData([]);
-
-    // Fetch timeline data for track with timeout
-    try {
-      const params = new URLSearchParams();
-      if (profileId) {
-        params.append("profileId", profileId);
-      }
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
-
-      const response = await apiFetch(
-        `/api/tracks/${trackId}/timeline?${params}`,
-        {
-          signal: controller.signal,
-        }
-      );
-
-      clearTimeout(timeoutId);
-
-      if (response.ok) {
-        const data = await response.json();
-        const timelineData = data.data || [];
-
-        setTrackTimelineData(timelineData);
-        // Cache result
-        setTimelineCache((prev) => new Map(prev).set(cacheKey, timelineData));
-      } else {
-        console.error(
-          "Timeline response not ok:",
-          response.status,
-          response.statusText
-        );
-        setTrackTimelineData([]);
-      }
-    } catch (error) {
-      if (error instanceof Error && error.name === "AbortError") {
-        console.warn("Timeline request timed out");
-      } else {
-        console.error("Error fetching track timeline:", error);
-      }
-      setTrackTimelineData([]);
-    } finally {
-      setTimelineLoading(null);
-    }
-  };
-
-  const toggleColumnVisibility = (columnKey: keyof ExtendedTrack) => {
-    setVisibleColumns((prev) =>
-      prev.includes(columnKey)
-        ? prev.filter((k) => k !== columnKey)
-        : [...prev, columnKey]
-    );
-  };
-
-  const resetColumnsToDefault = () => {
-    setVisibleColumns([...defaultColumns]);
-  };
-
-  if (loading) {
-    return (
-      <Card>
-        <CardContent className="p-8">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-2 text-muted-foreground">{t("loading")}</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center space-x-2">
-              <Play className="h-5 w-5" />
-              <span>{t("tracks")}</span>
-              {pagination && (
-                <span className="text-sm text-muted-foreground">
-                  ({pagination.total.toLocaleString()} {t("tracksCount")})
-                </span>
-              )}
-            </CardTitle>
-            <CardDescription>{t("clickHeaders")}</CardDescription>{" "}
-          </div>
-          <div className="flex items-center space-x-2">
-            {/* Wybór kolumn */}
-            <Button
-              onClick={() => setShowColumnSelector(!showColumnSelector)}
-              className="px-3 py-1 text-xs"
-            >
-              <Settings2 className="h-4 w-4 mr-1" />
-              {t("columns")}
-            </Button>
-          </div>
+export function TracksList({ tracks, loading, error, onRetry, profileId, pagination, onPageChange, onPageSizeChange, onSort, currentSort, toolbar }: TracksListProps) {
+    const { t, language } = useLanguage()
+    const { formatCellValue, getAvailableColumns } = useTrackColumns()
+    const [params, setParams] = useSearchParams()
+    const selected = params.get('track')
+    const [visibleColumns, setColumns] = useState<(keyof ExtendedTrack)[]>(() => {
+        try { const value = JSON.parse(localStorage.getItem('music-columns') || 'null'); return Array.isArray(value) ? ['trackName', ...value.filter((key: keyof ExtendedTrack) => key !== 'trackName' && getAvailableColumns().some(c => c.key === key))] : defaultColumns } catch { return defaultColumns }
+    })
+    const [dense, setDense] = useState(() => localStorage.getItem('music-density') === 'dense')
+    const [columnsOpen, setColumnsOpen] = useState(false)
+    const panel = useRef<HTMLDivElement>(null)
+    const opener = useRef<HTMLElement | null>(null)
+    useEffect(() => { localStorage.setItem('music-columns', JSON.stringify(visibleColumns)) }, [visibleColumns])
+    useEffect(() => { localStorage.setItem('music-density', dense ? 'dense' : 'comfortable') }, [dense])
+    const close = () => setParams(current => { const next = new URLSearchParams(current); next.delete('track'); return next }, { replace: true, preventScrollReset: true })
+    useEffect(() => {
+        if (!selected) return
+        opener.current = document.activeElement as HTMLElement
+        const previousOverflow = document.body.style.overflow
+        document.body.style.overflow = 'hidden'
+        panel.current?.focus()
+        return () => { document.body.style.overflow = previousOverflow; opener.current?.focus({ preventScroll: true }) }
+    }, [selected])
+    const open = (id: string) => setParams(current => { const next = new URLSearchParams(current); next.set('track', id); return next }, { preventScrollReset: true })
+    const controls = <>
+        <Button variant="outline" aria-expanded={columnsOpen} onClick={() => setColumnsOpen(!columnsOpen)}><Settings2 className="mr-2 h-4 w-4" />{t('columns')}</Button>
+        <Button className="hidden sm:inline-flex" variant="ghost" aria-pressed={dense} onClick={() => setDense(!dense)}>{language === 'pl' ? 'Gęstość' : 'Density'}</Button>
+    </>
+    const numeric = (key: string) => ['totalPlays','totalMinutes','avgPlayDuration','skipPercentage'].includes(key)
+    return <section className="space-y-3" aria-label={t('tracks')}>
+        {toolbar ? toolbar(controls) : <div className="flex justify-end gap-2">{controls}</div>}
+        {columnsOpen && <ColumnSelector visibleColumns={visibleColumns} onChangeVisibility={key => { if (key !== 'trackName') setColumns(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]) }} onReset={() => setColumns(defaultColumns)} />}
+        <div className="overflow-hidden rounded-lg border border-border bg-card">
+            {error ? <div role="alert" className="p-8 text-center"><p>{language === 'pl' ? 'Nie udało się pobrać utworów.' : 'Could not load tracks.'}</p><Button variant="outline" className="mt-3" onClick={onRetry}>{language === 'pl' ? 'Spróbuj ponownie' : 'Try again'}</Button></div> : loading ? <div role="status" className="p-10 text-center text-muted-foreground">{t('loading')}</div> : !tracks.length ? <div className="p-10 text-center text-muted-foreground">{t('noTracks')}</div> : <>
+                <div className="hidden max-h-[calc(100vh-390px)] min-h-48 overflow-auto md:block">
+                    <table className="w-full text-sm"><TracksTableHeaders visibleColumns={visibleColumns} currentSort={currentSort} onSort={onSort} /><tbody>
+                        {tracks.map(track => <tr key={track.trackId} className="border-b border-border last:border-0 hover:bg-muted/50">
+                            {visibleColumns.map(key => <td key={key} className={`${dense ? 'px-4 py-0.5' : 'px-4 py-1.5'} ${numeric(key) ? 'text-right tabular-nums whitespace-nowrap' : ''}`}>
+                                {key === 'trackName' ? <div className="flex min-w-48 items-center gap-3"><div className="min-w-0 flex-1"><button className="block max-w-[35vw] truncate text-left font-semibold hover:underline" onClick={() => open(track.trackId)}>{track.trackName}</button><p className="truncate text-xs text-muted-foreground">{track.artistName}</p></div>{spotifyUrl(track.uri) && <a href={spotifyUrl(track.uri)} target="_blank" rel="noreferrer" title={language === 'pl' ? 'Otwórz w Spotify' : 'Open in Spotify'} className="rounded p-2 text-muted-foreground hover:text-primary"><ExternalLink className="h-3.5 w-3.5" /><span className="sr-only">{language === 'pl' ? 'Otwórz w Spotify' : 'Open in Spotify'}</span></a>}</div> : <span className={key === 'albumName' ? 'line-clamp-1 max-w-80 text-muted-foreground' : ''}>{formatCellValue(track,key)}</span>}
+                            </td>)}
+                        </tr>)}
+                    </tbody></table>
+                </div>
+                <ul className="divide-y divide-border md:hidden">{tracks.map(track => <li key={track.trackId} className="flex items-center gap-3 p-4"><button className="min-w-0 flex-1 text-left" onClick={() => open(track.trackId)}><span className="block truncate font-medium">{track.trackName}</span><span className="block truncate text-sm text-muted-foreground">{track.artistName}</span><span className="block truncate text-xs text-muted-foreground">{track.albumName}</span></button><div className="text-right text-sm tabular-nums"><p>{track.totalPlays.toLocaleString()} {t('plays')}</p><p className="text-xs text-muted-foreground">{Math.round(track.totalMinutes).toLocaleString()} min</p></div></li>)}</ul>
+            </>}
+            {pagination && <div className="border-t border-border px-4 pb-3"><PaginationControls pagination={pagination} onPageChange={onPageChange} onPageSizeChange={onPageSizeChange} /></div>}
         </div>
-
-        {/* Selektor kolumn */}
-        {showColumnSelector && (
-          <ColumnSelector
-            visibleColumns={visibleColumns}
-            onChangeVisibility={toggleColumnVisibility}
-            onReset={resetColumnsToDefault}
-          />
-        )}
-      </CardHeader>
-      <CardContent>
-        {tracks.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">{t("noTracks")}</p>
-          </div>
-        ) : (
-          <>
-            {/* Tabela */}
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[600px]">
-                <TracksTableHeaders
-                  visibleColumns={visibleColumns}
-                  currentSort={currentSort}
-                  onSort={onSort}
-                />
-                <tbody>
-                  {tracks.map((track) => (
-                    <Fragment key={track.trackId}>
-                      <TrackRow
-                        track={track}
-                        visibleColumns={visibleColumns}
-                        isExpanded={expandedTrack === track.trackId}
-                        onToggleExpand={() => toggleTrackExpansion(track.trackId)}
-                        onSelectDetails={setSelectedTrackForDetails}
-                        timelineData={trackTimelineData}
-                        timelineLoading={timelineLoading === track.trackId}
-                      />
-                    </Fragment>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Paginacja */}
-            {pagination && (
-              <PaginationControls
-                pagination={pagination}
-                onPageChange={onPageChange}
-                onPageSizeChange={onPageSizeChange}
-              />
-            )}
-          </>
-        )}
-      </CardContent>
-    </Card>
-  );
+        {selected && <div className="fixed inset-0 z-50 flex justify-end bg-background/60" onMouseDown={event => { if (event.target === event.currentTarget) close() }}>
+            <div ref={panel} role="dialog" aria-modal="true" aria-label={language === 'pl' ? 'Szczegóły utworu' : 'Track details'} tabIndex={-1} className="h-full w-full overflow-y-auto border-l border-border bg-background p-4 shadow-xl sm:w-[460px] sm:p-5" onKeyDown={event => {
+                if (event.key === 'Escape') { event.stopPropagation(); close() }
+                if (event.key === 'Tab') { const nodes = Array.from(panel.current?.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input,select,[tabindex="0"]') || []); const first = nodes[0]; const last = nodes[nodes.length-1]; if (event.shiftKey && (document.activeElement === first || document.activeElement === panel.current)) { event.preventDefault(); last?.focus() } else if (!event.shiftKey && (document.activeElement === last || document.activeElement === panel.current)) { event.preventDefault(); first?.focus() } }
+            }}><div className="mb-4 flex items-center justify-between"><span className="text-sm text-muted-foreground">{language === 'pl' ? 'Szczegóły utworu' : 'Track details'}</span><Button variant="ghost" size="icon" onClick={close} aria-label={t('close')}><X className="h-4 w-4" /></Button></div><TrackDetails trackId={selected} profileId={profileId} onBack={close} /></div>
+        </div>}
+    </section>
 }

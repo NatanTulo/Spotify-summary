@@ -1,4 +1,5 @@
-import { Filter, SortAsc, SortDesc } from 'lucide-react'
+import { Select } from '@/components/ui/Select'
+import { SortAsc, SortDesc } from 'lucide-react'
 import { CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useLanguage } from '../../context/LanguageContext'
@@ -16,11 +17,11 @@ interface PodcastListHeaderProps {
     setLimit: (l: number) => void
 }
 
-export function PodcastListHeader({ 
-    search, setSearch, onSearch, 
-    order, onToggleOrder, 
-    sortBy, onSortChange, 
-    limit, setLimit 
+export function PodcastListHeader({
+    search, setSearch,
+    order, onToggleOrder,
+    sortBy, onSortChange,
+    limit, setLimit
 }: PodcastListHeaderProps) {
     const { t } = useLanguage()
 
@@ -31,48 +32,48 @@ export function PodcastListHeader({
                     <CardTitle>{t('shows') || 'Shows'}</CardTitle>
                     <CardDescription>{t('clickToExpand') || 'Click a show to see played episodes'}</CardDescription>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                     <div className="relative">
                         <input
+                            aria-label={t('search')}
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === 'Enter') onSearch() }}
                             placeholder={t('search') || 'Search shows'}
-                            className="border border-border bg-background text-foreground placeholder:text-muted-foreground rounded px-3 py-1 text-sm focus:outline-hidden focus:ring-2 focus:ring-primary/40"
+                            className="border border-border bg-background text-foreground placeholder:text-muted-foreground rounded px-3 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-primary/40"
                         />
                     </div>
-                    <Button onClick={onSearch} variant="secondary" className="px-3 py-1 text-xs text-foreground" title={t('filter') || 'Filter'}>
-                        <Filter className="h-4 w-4" />
-                    </Button>
                     <Button
                         onClick={onToggleOrder}
                         variant="secondary"
                         className="px-3 py-1 text-xs text-foreground"
+                        aria-label={t('toggleSortOrder')}
                         title={t('toggleSortOrder') || 'Toggle sort order'}
                     >
                         {order === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
                     </Button>
-                    <select
+                    <Select
                         value={sortBy}
-                        onChange={(e) => onSortChange(e.target.value as SortKey)}
-                        className="border border-border bg-background text-foreground rounded px-2 py-1 text-sm focus:outline-hidden focus:ring-2 focus:ring-primary/40"
+                        onValueChange={(value) => onSortChange(value as SortKey)}
+                        className="border border-border bg-background text-foreground rounded px-2 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-primary/40"
+                        aria-label={t('sortBy')}
                         title={t('sortBy') || 'Sort by'}
                     >
                         <option value="plays">{t('totalPlays') || 'Plays'}</option>
                         <option value="time">{t('totalMinutes') || 'Time'}</option>
                         <option value="lastPlayed">{t('lastPlayed') || 'Last played'}</option>
                         <option value="name">{t('name') || 'Name'}</option>
-                    </select>
-                    <select
+                    </Select>
+                    <Select
                         value={String(limit)}
-                        onChange={(e) => setLimit(parseInt(e.target.value, 10))}
-                        className="border border-border bg-background text-foreground rounded px-2 py-1 text-sm focus:outline-hidden focus:ring-2 focus:ring-primary/40"
+                        onValueChange={(value) => setLimit(parseInt(value, 10))}
+                        className="border border-border bg-background text-foreground rounded px-2 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-primary/40"
+                        aria-label={t('pageSize')}
                         title={t('pageSize') || 'Page size'}
                     >
                         {[25, 50, 100].map(sz => (
                             <option key={sz} value={sz}>{sz}/{t('page') || 'Page'}</option>
                         ))}
-                    </select>
+                    </Select>
                 </div>
             </div>
         </CardHeader>

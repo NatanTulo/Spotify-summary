@@ -10,6 +10,26 @@ import { literal } from 'sequelize'
 console.log('Stats router loaded')
 const router: Router = express.Router()
 
+// Library bounds deliberately ignore the current analysis range.
+router.get('/library-range', async (req, res) => {
+    try {
+        const profileId = req.query.profileId
+        const filter = profileId && profileId !== 'all' ? 'WHERE "profileId" = :profileId' : ''
+        const sources = ['plays', 'podcast_plays', 'audiobook_plays'].map(table =>
+            `SELECT MIN(timestamp) AS first, MAX(timestamp) AS last, EXTRACT(YEAR FROM timestamp AT TIME ZONE 'UTC')::int AS year FROM ${table} ${filter} GROUP BY year`
+        ).join(' UNION ALL ')
+        const rows = await sequelize.query<{ first: string | null; last: string | null; years: number[] | null }>(
+            `SELECT MIN(first) AS first, MAX(last) AS last, ARRAY_AGG(DISTINCT year ORDER BY year DESC) AS years FROM (${sources}) AS history`,
+            { replacements: filter ? { profileId } : {}, type: QueryTypes.SELECT }
+        )
+        const result = rows[0]
+        res.json({ success: true, data: { first: result?.first || null, last: result?.last || null, years: result?.years || [] } })
+    } catch (error) {
+        console.error('Error fetching library range:', error)
+        res.status(500).json({ success: false, error: 'Failed to fetch library range', code: 'LIBRARY_RANGE_ERROR' })
+    }
+})
+
 // Test route
 router.get('/test', (_req, res) => {
     res.json({ message: 'Stats router working' })

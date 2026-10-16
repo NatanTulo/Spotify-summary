@@ -1,5 +1,5 @@
 import { apiFetch } from '../../../lib/api'
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLanguage } from '../../../context/LanguageContext';
 import { Profile, ImportProgress, AvailableProfile } from '../types';
 
@@ -8,17 +8,21 @@ export const useProfileManagement = (
     selectedProfileId?: string | null,
     onProfileSelect?: (id: string | null) => void
 ) => {
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
+    const [error, setError] = useState<string | null>(null);
+    const [progressErrors, setProgressErrors] = useState<Record<string, string>>({});
     const [profiles, setProfiles] = useState<Profile[]>([]);
     const [availableProfiles, setAvailableProfiles] = useState<AvailableProfile[]>([]);
     const [isLoadingProfiles, setIsLoadingProfiles] = useState(false);
     const [importingProfile, setImportingProfile] = useState<string | null>(null);
     const [activeImports, setActiveImports] = useState<Set<string>>(new Set());
     const [importProgress, setImportProgress] = useState<Record<string, ImportProgress>>({});
+    const refreshedResults = useRef(new Set<string>());
 
     const fetchImportProgress = useCallback(async (profileName: string) => {
         try {
-            const response = await apiFetch(`/api/import/progress/${profileName}`);
+            const response = await apiFetch(`/api/import/progress/${encodeURIComponent(profileName)}`);
+            setProgressErrors(previous => { const next = { ...previous }; delete next[profileName]; return next; });
             if (response.ok) {
                 const data = await response.json();
                 if (data.success && data.data) {
@@ -28,25 +32,19 @@ export const useProfileManagement = (
                     }));
 
                     if (!data.data.isRunning) {
-                        setTimeout(() => {
-                            setImportProgress((prev) => {
-                                const newProgress = { ...prev };
-                                delete newProgress[profileName];
-                                return newProgress;
-                            });
-                            setActiveImports((prev) => {
-                                const newSet = new Set(prev);
-                                newSet.delete(profileName);
-                                return newSet;
-                            });
-                        }, 3000);
+                        setActiveImports(prev => {
+                            if (!prev.has(profileName)) return prev;
+                            const next = new Set(prev);
+                            next.delete(profileName);
+                            return next;
+                        });
                     } else {
                         setActiveImports((prev) => new Set([...prev, profileName]));
                     }
                 }
             }
         } catch (error) {
-            console.error("Error fetching import progress:", error);
+            setProgressErrors(previous => ({ ...previous, [profileName]: `${profileName}: ${error instanceof Error ? error.message : 'Progress unavailable'}` }));
         }
     }, []);
 
@@ -54,6 +52,7 @@ export const useProfileManagement = (
         try {
             console.log("🔍 Checking for active imports...");
             const response = await apiFetch("/api/import/progress");
+            setProgressErrors(previous => { const next = { ...previous }; delete next.discovery; return next; });
             if (response.ok) {
                 const data = await response.json();
                 if (data.success && data.data) {
@@ -61,6 +60,7 @@ export const useProfileManagement = (
                     const activeImportSet = new Set<string>();
 
                     data.data.forEach((progress: ImportProgress) => {
+                        activeProgressMap[progress.profileName] = progress;
                         if (progress.isRunning) {
                             console.log(`📥 Found active import for profile: ${progress.profileName}`);
                             activeProgressMap[progress.profileName] = progress;
@@ -73,13 +73,13 @@ export const useProfileManagement = (
                     
                     if (currentActiveCount !== newActiveCount || 
                         !Array.from(activeImportSet).every(name => activeImports.has(name))) {
-                        setImportProgress(activeProgressMap);
                         setActiveImports(activeImportSet);
                     }
+                    setImportProgress(previous => ({ ...previous, ...activeProgressMap }));
                 }
             }
         } catch (error) {
-            console.error("Error checking active imports:", error);
+            setProgressErrors(previous => ({ ...previous, discovery: error instanceof Error ? error.message : 'Import status unavailable' }));
         }
     }, [activeImports]);
 
@@ -88,17 +88,20 @@ export const useProfileManagement = (
             setIsLoadingProfiles(true);
         }
         
+        setError(null);
         try {
             const [profilesRes, availableRes] = await Promise.all([
                 apiFetch("/api/import/profiles"),
                 apiFetch("/api/import/available"),
             ]);
 
+            if (!profilesRes.ok || !availableRes.ok) throw new Error(language === "pl" ? "Nie udało się pobrać profili lub folderów. Odśwież listę, aby spróbować ponownie." : "Could not load profiles or folders. Refresh the list to retry.");
             let profilesChanged = false;
             let availableProfilesChanged = false;
 
             if (profilesRes.ok) {
                 const profilesData = await profilesRes.json();
+                if (!Array.isArray(profilesData.data)) throw new Error(language === 'pl' ? 'Nieprawidłowa odpowiedź listy profili. Odśwież listę.' : 'Invalid profile list response. Refresh the list.');
                 const newProfiles: Profile[] = profilesData.data || [];
                 
                 const profilesEqual = profiles.length === newProfiles.length && 
@@ -117,31 +120,13 @@ export const useProfileManagement = (
                     profilesChanged = true;
                     onProfilesChanged?.();
 
-                    // Auto-recompute stats if needed
-                    try {
-                        const missingPodcastStats = newProfiles.filter(p =>
-                            !p.statistics || p.statistics.totalPodcastPlays === undefined
-                        );
-                        if (missingPodcastStats.length > 0) {
-                            await Promise.all(
-                                missingPodcastStats.map(p =>
-                                    apiFetch(`/api/import/profile/${encodeURIComponent(p.name)}/update-stats`, { method: 'POST' })
-                                        .catch(err => console.error('Failed to recompute stats for', p.name, err))
-                                )
-                            );
-                            await new Promise(res => setTimeout(res, 300));
-                            // Recursive call with forceRefresh true
-                            // Using a flag to differentiate recursive call might be cleaner but this works
-                            // Be careful with infinite recursion - missingPodcastStats should be empty next time
-                        }
-                    } catch (e) {
-                        console.error('Auto-recompute stats failed:', e);
-                    }
+
                 }
             }
 
             if (availableRes.ok) {
                 const availableData = await availableRes.json();
+                if (!Array.isArray(availableData.data)) throw new Error(language === 'pl' ? 'Nieprawidłowa odpowiedź listy folderów. Odśwież listę.' : 'Invalid folder list response. Refresh the list.');
                 const newAvailableProfiles = availableData.data || [];
                 
                 if (JSON.stringify(newAvailableProfiles) !== JSON.stringify(availableProfiles)) {
@@ -154,54 +139,55 @@ export const useProfileManagement = (
                 await checkActiveImports();
             }
         } catch (error) {
-            console.error("Error fetching profiles:", error);
+            setError(error instanceof Error ? error.message : (language === "pl" ? "Nie udało się pobrać profili." : "Could not load profiles."));
         } finally {
             if (forceRefresh || profiles.length === 0) {
                 setIsLoadingProfiles(false);
             }
         }
-    }, [profiles, availableProfiles, activeImports.size, checkActiveImports, onProfilesChanged]);
+    }, [profiles, availableProfiles, activeImports.size, checkActiveImports, onProfilesChanged, language]);
 
     const handleImportProfile = async (profileName: string) => {
         setImportingProfile(profileName);
+        setError(null);
         try {
-            const response = await apiFetch(`/api/import/profile/${profileName}`, {
-                method: "POST",
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                if (data.success && data.data.importStarted) {
-                    setActiveImports((prev) => new Set([...prev, profileName]));
-                    fetchImportProgress(profileName);
-                }
-                setTimeout(() => fetchProfiles(true), 2000);
+            const response = await apiFetch(`/api/import/profile/${encodeURIComponent(profileName)}`, { method: "POST" });
+            const data = await response.json();
+            if (!response.ok || !data.success) throw new Error(data.message || data.error || (language === 'pl' ? 'Nie udało się rozpocząć importu.' : 'Could not start import.'));
+            if (data.data?.importStarted) {
+                setActiveImports(prev => new Set([...prev, profileName]));
+                void fetchImportProgress(profileName);
             }
-        } catch (error) {
-            console.error("Error importing profile:", error);
-        } finally {
-            setImportingProfile(null);
+            setTimeout(() => { void fetchProfiles(true); }, 2000);
+            return true;
+        } catch (cause) {
+            setError(cause instanceof Error ? cause.message : (language === 'pl' ? 'Błąd importu. Spróbuj ponownie.' : 'Import failed. Try again.'));
+            return false;
+        } finally { setImportingProfile(null); }
+    };
+
+    const handleClearProfile = async (profileId: string): Promise<boolean> => {
+        if (!confirm(t("confirmDeleteProfileData"))) return false;
+        setError(null);
+        try {
+            const response = await apiFetch(`/api/import/clear?profileId=${encodeURIComponent(profileId)}`, { method: "DELETE" });
+            const data = await response.json();
+            if (!response.ok || data.success !== true) throw new Error(data.message || data.error || (language === 'pl' ? 'Nie udało się usunąć profilu.' : 'Could not delete profile.'));
+            if (selectedProfileId === profileId) onProfileSelect?.(null);
+            await fetchProfiles(true);
+            return true;
+        } catch (cause) {
+            setError(cause instanceof Error ? cause.message : (language === 'pl' ? 'Nie udało się usunąć profilu. Spróbuj ponownie.' : 'Could not delete profile. Try again.'));
+            return false;
         }
     };
 
-    const handleClearProfile = async (profileId: string) => {
-        if (!confirm(t("confirmDeleteProfileData"))) return;
-
-        try {
-            const response = await apiFetch(`/api/import/clear?profileId=${profileId}`, {
-                method: "DELETE",
-            });
-
-            if (response.ok) {
-                await fetchProfiles(true);
-                if (selectedProfileId === profileId && onProfileSelect) {
-                    onProfileSelect(null);
-                }
-            }
-        } catch (error) {
-            console.error("Error clearing profile:", error);
-        }
-    };
+    useEffect(() => {
+        const finished = Object.values(importProgress).filter(progress => !progress.isRunning && !refreshedResults.current.has(`${progress.profileName}:${progress.startTime}`));
+        if (finished.length === 0) return;
+        finished.forEach(progress => refreshedResults.current.add(`${progress.profileName}:${progress.startTime}`));
+        void fetchProfiles(true);
+    }, [importProgress, fetchProfiles]);
 
     // Effects for polling
     useEffect(() => {
@@ -238,6 +224,12 @@ export const useProfileManagement = (
     }, []); // Initial load
 
     return {
+        error,
+        progressError: Object.values(progressErrors).join(' '),
+        retryProgress: async () => {
+            await checkActiveImports();
+            await Promise.all([...activeImports].map(fetchImportProgress));
+        },
         profiles,
         availableProfiles,
         isLoadingProfiles,

@@ -19,7 +19,7 @@ export const AvailableProfilesList: React.FC<AvailableProfilesListProps> = ({
     importingProfile,
     onImportProfile
 }) => {
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
 
     if (availableProfiles.length === 0) return null;
 
@@ -30,6 +30,7 @@ export const AvailableProfilesList: React.FC<AvailableProfilesListProps> = ({
                 <CardDescription>{t("availableDataImportDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
+                <p className="mb-4 max-w-3xl text-sm text-muted-foreground">{language === 'pl' ? 'Foldery pochodzą z lokalnego katalogu data. Import zastępuje historię wybranego profilu danymi z folderu. Przed rozpoczęciem sprawdź, czy folder zawiera wszystkie pliki historii.' : 'Folders come from the local data directory. Import replaces the selected profile history with the folder contents. Check that the folder contains all history files before starting.'}</p>
                 <div className="grid gap-4 md:grid-cols-2">
                     {availableProfiles.map((profile) => {
                         const progress = importProgress[profile.name];
@@ -42,13 +43,13 @@ export const AvailableProfilesList: React.FC<AvailableProfilesListProps> = ({
                                 key={profile.name}
                                 className="border rounded-lg p-4 space-y-2"
                             >
-                                <div className="flex items-center justify-between">
-                                    <h4 className="font-medium">{profile.name}</h4>
+                                <div className="flex flex-wrap items-center justify-between gap-3">
+                                    <h4 className="min-w-0 break-all font-medium">{profile.name}</h4>
                                     <Button
                                         variant="outline"
                                         size="sm"
                                         onClick={() => onImportProfile(profile.name)}
-                                        disabled={isImporting}
+                                        disabled={isImporting || profile.files.length === 0}
                                     >
                                         {isImporting ? t("importingStatus") : t("importAction")}
                                     </Button>
@@ -60,7 +61,7 @@ export const AvailableProfilesList: React.FC<AvailableProfilesListProps> = ({
                                 </p>
 
                                 {/* Progress Bar */}
-                                {progress && progress.isRunning && (
+                                {progress && (
                                     <div className="space-y-2 pt-2 border-t">
                                         <div className="flex items-center justify-between text-sm">
                                             <span className="text-muted-foreground">
@@ -92,6 +93,8 @@ export const AvailableProfilesList: React.FC<AvailableProfilesListProps> = ({
                                                 {t("recordsStats")}
                                             </p>
                                         )}
+                                        {progress.error && <p role="alert" className="text-sm text-destructive">{progress.error}</p>}
+                                        {progress.status === 'cancelled' && <p className="text-sm">{t('importCancelled')}</p>}
                                     </div>
                                 )}
                             </div>

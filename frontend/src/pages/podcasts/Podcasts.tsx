@@ -1,4 +1,6 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
+import { Button } from '../../components/ui/button'
 import { useProfile } from '../../context/ProfileContext'
 import { useLanguage } from '../../context/LanguageContext'
 import { Card, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
@@ -11,8 +13,9 @@ import { PodcastsInsightsTab } from './tabs/PodcastsInsightsTab'
 
 const Podcasts: React.FC = () => {
     const { selectedProfile } = useProfile()
-    const { t } = useLanguage()
-    
+    const { t, language } = useLanguage()
+    const pl = language === 'pl'
+
     const {
         loading,
         error,
@@ -23,6 +26,7 @@ const Podcasts: React.FC = () => {
         timelineStats,
         timeOfDayStats,
         dayOfWeekStats,
+        refreshData,
     } = usePodcastsData(selectedProfile)
 
     if (loading) {
@@ -30,8 +34,8 @@ const Podcasts: React.FC = () => {
             <div className="container mx-auto p-6">
                 <div className="text-center">
                     <h1 className="text-3xl font-bold mb-4">{t('podcastsTitle') || 'Podcasts'}</h1>
-                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
-                    <p className="mt-4 text-muted-foreground">{t('loading') || 'Loading...'}</p>
+
+                    <p role="status" className="mt-4 text-muted-foreground">{t('loading') || 'Loading...'}</p>
                 </div>
             </div>
         )
@@ -42,13 +46,16 @@ const Podcasts: React.FC = () => {
             <div className="container mx-auto p-6">
                 <div className="text-center">
                     <h1 className="text-3xl font-bold mb-4">{t('podcastsTitle') || 'Podcasts'}</h1>
-                    <div className="bg-destructive/15 text-destructive px-4 py-3 rounded-lg">
-                        {error}
+                    <div role="alert" className="border border-destructive/40 bg-card px-4 py-3 rounded-lg">
+                        <p>{pl ? 'Nie udało się pobrać podcastów.' : 'Podcasts could not be loaded.'}</p>
+                        <Button className="mt-3" variant="outline" onClick={() => void refreshData()}>{pl ? 'Spróbuj ponownie' : 'Try again'}</Button>
                     </div>
                 </div>
             </div>
         )
     }
+
+    if (overviewStats?.totalPodcastPlays === 0) return <section className="space-y-4"><h1 className="text-3xl font-bold tracking-tight">{t('podcastsTitle')}</h1><div className="rounded-xl border bg-card p-6"><h2 className="text-lg font-semibold">{pl ? 'Brak podcastów w tym okresie' : 'No podcasts in this period'}</h2><p className="mt-2 max-w-xl text-sm text-muted-foreground">{pl ? 'Wybierz inny zakres dat lub sprawdź, czy import zawiera historię podcastów.' : 'Choose another date range or check whether your import includes podcast history.'}</p><Link to="/data" className="mt-4 inline-flex min-h-10 items-center text-sm font-medium text-primary hover:underline">{pl ? 'Dane i import' : 'Data and import'}</Link></div></section>
 
     return (
         <div className="space-y-4 sm:space-y-6">
@@ -61,10 +68,10 @@ const Podcasts: React.FC = () => {
 
             {/* Overview Stats */}
             {overviewStats && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                     <Card>
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-2xl font-bold text-primary">
+                            <CardTitle className="text-3xl font-semibold tabular-nums">
                                 {overviewStats.totalPodcastPlays.toLocaleString()}
                             </CardTitle>
                             <CardDescription>
@@ -74,7 +81,7 @@ const Podcasts: React.FC = () => {
                     </Card>
                     <Card>
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-2xl font-bold text-primary">
+                            <CardTitle className="text-3xl font-semibold tabular-nums">
                                 {overviewStats.totalPodcastMinutes.toLocaleString()}
                             </CardTitle>
                             <CardDescription>
@@ -84,7 +91,7 @@ const Podcasts: React.FC = () => {
                     </Card>
                     <Card>
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-2xl font-bold text-primary">
+                            <CardTitle className="text-3xl font-semibold tabular-nums">
                                 {overviewStats.uniqueShows}
                             </CardTitle>
                             <CardDescription>
@@ -94,7 +101,7 @@ const Podcasts: React.FC = () => {
                     </Card>
                     <Card>
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-2xl font-bold text-primary">
+                            <CardTitle className="text-3xl font-semibold tabular-nums">
                                 {overviewStats.uniqueEpisodes}
                             </CardTitle>
                             <CardDescription>
@@ -106,7 +113,7 @@ const Podcasts: React.FC = () => {
             )}
 
             <Tabs defaultValue="shows" className="space-y-4">
-                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+                <TabsList className="grid h-auto w-full grid-cols-2 gap-1 sm:grid-cols-4">
                     <TabsTrigger value="shows" className="text-xs sm:text-sm">
                         <span className="hidden sm:inline">{t('showsAndEpisodes') || 'Shows & Episodes'}</span>
                         <span className="sm:hidden">{t('shows') || 'Shows'}</span>
@@ -115,11 +122,11 @@ const Podcasts: React.FC = () => {
                         <span className="hidden sm:inline">{t('overview') || 'Overview'}</span>
                         <span className="sm:hidden">{t('overviewShort') || 'Overview'}</span>
                     </TabsTrigger>
-                    <TabsTrigger value="charts" className="text-xs sm:text-sm hidden sm:flex">
+                    <TabsTrigger value="charts" className="text-xs sm:text-sm">
                         <span className="hidden sm:inline">{t('charts') || 'Charts'}</span>
                         <span className="sm:hidden">{t('chartsShort') || 'Charts'}</span>
                     </TabsTrigger>
-                    <TabsTrigger value="insights" className="text-xs sm:text-sm hidden sm:flex">
+                    <TabsTrigger value="insights" className="text-xs sm:text-sm">
                         <span className="hidden sm:inline">{t('insights') || 'Insights'}</span>
                         <span className="sm:hidden">{t('insightsShort') || 'Insights'}</span>
                     </TabsTrigger>
@@ -141,7 +148,7 @@ const Podcasts: React.FC = () => {
                         dayOfWeekStats={dayOfWeekStats}
                     />
                 </TabsContent>
-                
+
                 <TabsContent value="insights" className="space-y-4">
                     <PodcastsInsightsTab dailyStats={dailyStats} />
                 </TabsContent>

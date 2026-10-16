@@ -49,6 +49,7 @@ export function ThemeToggle() {
             size="icon"
             onClick={toggleTheme}
             title={getTooltip()}
+            aria-label={getTooltip()}
             className="h-8 w-8 sm:h-9 sm:w-9"
         >
             {getIcon()}

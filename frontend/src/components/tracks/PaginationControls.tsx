@@ -1,3 +1,4 @@
+import { Select } from '@/components/ui/Select'
 import { countLabel } from '../../lib/countLabel'
 import { PaginationState } from "./types";
 import { useLanguage } from "../../context/LanguageContext";
@@ -24,10 +25,10 @@ export function PaginationControls({
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">{t("perPage")}</span>
-          <select
+          <Select
             aria-label={t("perPage")}
             value={pagination.limit}
-            onChange={(e) => onPageSizeChange?.(parseInt(e.target.value))}
+            onValueChange={(value) => onPageSizeChange?.(parseInt(value))}
             className="text-sm border rounded px-2 py-1 bg-background"
           >
             <option value={10}>10</option>
@@ -36,7 +37,7 @@ export function PaginationControls({
             <option value={100}>100</option>
             <option value={200}>200</option>
             <option value={500}>500</option>
-          </select>
+          </Select>
         </div>
       </div>
       {pagination.pages > 1 && (

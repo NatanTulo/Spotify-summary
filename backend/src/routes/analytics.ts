@@ -25,11 +25,40 @@ async function summary(range: DateRange, profileId: number | null): Promise<Peri
     }
 }
 
+// Calendar requests specify a full UTC year independently of the comparison period.
+async function calendarSummary(range: DateRange, profileId: number | null): Promise<CalendarDay[]> {
+    return sequelize.query<CalendarDay>(`SELECT to_char(p.timestamp AT TIME ZONE 'UTC','YYYY-MM-DD') AS date, COUNT(*)::integer AS plays,
+        ROUND(SUM(p."msPlayed")/60000.0)::integer AS minutes FROM (
+        SELECT "profileId",timestamp,"msPlayed" FROM plays UNION ALL SELECT "profileId",timestamp,"msPlayed" FROM podcast_plays
+        UNION ALL SELECT "profileId",timestamp,"msPlayed" FROM audiobook_plays) p WHERE ${profileWhere}
+        AND p.timestamp >= (:dateFrom::date::timestamp AT TIME ZONE 'UTC')
+        AND p.timestamp < ((:dateTo::date + interval '1 day') AT TIME ZONE 'UTC')
+        GROUP BY 1 ORDER BY 1`, { replacements: { ...range, profileId }, type: QueryTypes.SELECT })
+}
+router.get('/calendar', async (req, res, next) => {
+    const dateFrom = String(req.query.dateFrom || '')
+    const dateTo = String(req.query.dateTo || '')
+    if (!/^\d{4}-01-01$/.test(dateFrom) || dateFrom.startsWith('0000') || dateTo !== `${dateFrom.slice(0, 4)}-12-31`) {
+        res.status(400).json({ success: false, code: 'INVALID_CALENDAR_RANGE', error: 'Calendar requires a full year from January 1 to December 31' })
+        return
+    }
+    try {
+        const profileId = req.query.profileId && req.query.profileId !== 'all' ? Number(req.query.profileId) : null
+        const data = await calendarSummary({ dateFrom, dateTo }, profileId)
+        res.json({ success: true, data })
+    } catch (error) { next(error) }
+})
+
 router.get('/insights', async (req, res, next) => {
     try {
         const profileId = req.query.profileId && req.query.profileId !== 'all' ? Number(req.query.profileId) : null
-        const today = iso(new Date())
-        const dateTo = String(req.query.dateTo || (req.query.dateFrom && String(req.query.dateFrom) > today ? req.query.dateFrom : today))
+        // Read the import endpoint from unscoped raw tables, rather than anchoring an archive to today.
+        const [bounds] = req.query.dateTo ? [] : await sequelize.query<{ last: string | null }>(`SELECT to_char(MAX(p.timestamp) AT TIME ZONE 'UTC','YYYY-MM-DD') AS last FROM (
+            SELECT "profileId",timestamp FROM plays UNION ALL SELECT "profileId",timestamp FROM podcast_plays
+            UNION ALL SELECT "profileId",timestamp FROM audiobook_plays) p WHERE ${profileWhere}`,
+            { replacements: { profileId }, type: QueryTypes.SELECT })
+        const latest = bounds?.last || iso(new Date())
+        const dateTo = String(req.query.dateTo || (req.query.dateFrom && String(req.query.dateFrom) > latest ? req.query.dateFrom : latest))
         const dateFrom = String(req.query.dateFrom || shift(dateTo, -29))
         const days = Math.round((Date.parse(dateTo) - Date.parse(dateFrom)) / 86400000) + 1
         const currentRange = { dateFrom, dateTo }
@@ -41,11 +70,7 @@ router.get('/insights', async (req, res, next) => {
         const replacements = { ...currentRange, profileId }
         const [current, previous, calendar, discoveries] = await Promise.all([
             summary(currentRange, profileId), summary(previousRange, profileId),
-            sequelize.query<CalendarDay>(`SELECT to_char(p.timestamp AT TIME ZONE 'UTC','YYYY-MM-DD') AS date, COUNT(*)::integer AS plays,
-                ROUND(SUM(p."msPlayed")/60000.0)::integer AS minutes FROM (
-                SELECT "profileId",timestamp,"msPlayed" FROM plays UNION ALL SELECT "profileId",timestamp,"msPlayed" FROM podcast_plays
-                UNION ALL SELECT "profileId",timestamp,"msPlayed" FROM audiobook_plays) p WHERE ${profileWhere} AND ${inRange}
-                GROUP BY 1 ORDER BY 1`, { replacements, type: QueryTypes.SELECT }),
+            calendarSummary(currentRange, profileId),
             sequelize.query<ArtistDiscovery>(`WITH first_plays AS (
                 SELECT ar.id, ar.name, MIN(p.timestamp) AS first_played, COUNT(*)::integer AS plays
                 FROM plays p JOIN tracks t ON t.id=p."trackId" JOIN albums a ON a.id=t."albumId" JOIN artists ar ON ar.id=a."artistId"

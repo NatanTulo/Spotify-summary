@@ -29,7 +29,7 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
                 <CardDescription>{t("profileSelectionDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="segmented">
+                <div className="segmented max-w-full">
                     <Button
                         className={`segmented-btn ${selectedProfileId === null ? 'segmented-btn-active' : ''}`}
                         variant={selectedProfileId === null ? 'default' : 'outline-solid'}

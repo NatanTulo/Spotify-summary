@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useApiQuery } from '../lib/api'
 export type SortKey = 'name' | 'plays' | 'time' | 'lastPlayed'
 export type SortOrder = 'asc' | 'desc'
@@ -20,11 +20,13 @@ interface ShowRow {
 
 export const usePodcastShows = (selectedProfile: string | null) => {
     const [search, setSearch] = useState('')
+    const [debouncedSearch, setDebouncedSearch] = useState('')
+    useEffect(() => { const timer = window.setTimeout(() => setDebouncedSearch(search), 250); return () => window.clearTimeout(timer) }, [search])
     const [sortBy, setSortBy] = useState<SortKey>('plays')
     const [order, setOrder] = useState<SortOrder>('desc')
     const [limit, setLimit] = useState(50)
     const [offset, setOffset] = useState(0)
-    const params = new URLSearchParams({ profileId: selectedProfile || 'all', search, sortBy, order, limit: String(limit), offset: String(offset) })
+    const params = new URLSearchParams({ profileId: selectedProfile || 'all', search: debouncedSearch, sortBy, order, limit: String(limit), offset: String(offset) })
     const query = useApiQuery<{ shows: ShowRow[]; total: number }>(`/api/podcasts/shows?${params}`)
     const total = query.data?.data.total || 0
     return {

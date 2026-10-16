@@ -45,17 +45,17 @@ export function TracksTableHeaders({
   };
 
   return (
-    <thead>
+    <thead className="sticky top-0 z-10 bg-card">
       <tr className="border-b">
         {visibleColumns.map((columnKey) => {
           const config = getColumnConfig(columnKey);
           if (!config) return null;
 
           return (
-            <th key={columnKey} className="text-left p-2">
+            <th key={columnKey} scope="col" aria-sort={currentSort?.field === columnKey ? (currentSort.order === 'asc' ? 'ascending' : 'descending') : 'none'} className={`px-4 py-3 text-xs text-muted-foreground ${['totalPlays','totalMinutes','avgPlayDuration','skipPercentage'].includes(columnKey) ? 'text-right' : 'text-left'}`}>
               {config.sortable ? (
                 <button
-                  className="flex items-center space-x-1 font-semibold hover:bg-transparent"
+                  className="inline-flex items-center gap-1 font-medium hover:text-foreground"
                   onClick={() => handleSort(columnKey)}
                 >
                   <span>{t(config.labelKey)}</span>

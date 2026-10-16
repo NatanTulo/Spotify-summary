@@ -1,6 +1,5 @@
-import { apiFetch } from '../lib/api'
 import { useState, useEffect } from 'react'
-
+import { useApiQuery } from '../lib/api'
 export interface DetailedTrack {
     trackId: string
     trackName: string
@@ -40,47 +39,9 @@ export interface Play {
     skipped?: boolean
 }
 
-export const useTrackDetails = (trackId: string, profileId?: string) => {
-    const [track, setTrack] = useState<DetailedTrack | null>(null)
-    const [plays, setPlays] = useState<Play[]>([])
-    const [timelineData, setTimelineData] = useState<any[]>([])
-    const [loading, setLoading] = useState(true)
-    const [timelineLoading, setTimelineLoading] = useState(true)
-    const [playsLoading, setPlaysLoading] = useState(false)
-    const [playsPagination, setPlaysPagination] = useState({
-        page: 1,
-        limit: 50,
-        total: 0,
-        pages: 0
-    })
 
-    useEffect(() => {
-        if (!trackId) return
-        
-        const fetchData = async () => {
-            setLoading(true)
-            await Promise.all([
-                fetchTrackDetails(),
-                fetchTrackPlays(1),
-                fetchTrackTimeline()
-            ])
-            setLoading(false)
-        }
-        
-        fetchData()
-    }, [trackId, profileId])
-
-    const fetchTrackDetails = async () => {
-        try {
-            const params = new URLSearchParams()
-            if (profileId) params.set('profileId', profileId)
-            const response = await apiFetch(`/api/tracks/${trackId}?${params}`)
-            if (response.ok) {
-                const data = await response.json()
-                const rawTrack = data.data
-                
-                // Map API response to expected format
-                const mappedTrack: DetailedTrack = {
+function mapTrack(rawTrack: any): DetailedTrack {
+    return {
                     trackId: rawTrack.id.toString(),
                     trackName: rawTrack.name,
                     artistName: rawTrack.album?.artist?.name || '',
@@ -109,82 +70,24 @@ export const useTrackDetails = (trackId: string, profileId?: string) => {
                     offline: rawTrack.recentPlays?.[0]?.offline,
                     incognitoMode: rawTrack.recentPlays?.[0]?.incognitoMode,
                 }
-                
-                setTrack(mappedTrack)
-            }
-        } catch (error) {
-            console.error('Error fetching track details:', error)
-        }
-    }
-
-    const fetchTrackTimeline = async () => {
-        try {
-            setTimelineLoading(true)
-            
-            const params = new URLSearchParams()
-            if (profileId) {
-                params.append('profileId', profileId)
-            }
-
-            // Add timeout for request
-            const controller = new AbortController()
-            const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
-
-            const response = await apiFetch(`/api/tracks/${trackId}/timeline?${params}`, {
-                signal: controller.signal
-            })
-            
-            clearTimeout(timeoutId)
-
-            if (response.ok) {
-                const data = await response.json()
-                const timelineData = data.data || []
-                setTimelineData(timelineData)
-                
-
-            }
-        } catch (error) {
-            if (error instanceof Error && error.name === 'AbortError') {
-                console.log('Timeline request was aborted due to timeout')
-            } else {
-                console.error('Error fetching track timeline:', error)
-            }
-        } finally {
-            setTimelineLoading(false)
-        }
-    }
-
-    const fetchTrackPlays = async (page = 1) => {
-        try {
-            setPlaysLoading(true)
-            const params = new URLSearchParams()
-            if (profileId) {
-                params.append('profileId', profileId)
-            }
-            params.append('page', page.toString())
-            params.append('limit', '50')
-
-            const response = await apiFetch(`/api/tracks/${trackId}/plays?${params}`)
-            if (response.ok) {
-                const data = await response.json()
-                setPlays(data.data || [])
-                setPlaysPagination(data.pagination || { page: 1, limit: 50, total: 0, pages: 0 })
-            }
-        } catch (error) {
-            console.error('Error fetching track plays:', error)
-        } finally {
-            setPlaysLoading(false)
-        }
-    }
-
+}
+export const useTrackDetails = (trackId: string, profileId?: string) => {
+    const [page, setPage] = useState(1)
+    useEffect(() => setPage(1), [trackId, profileId])
+    const params = new URLSearchParams()
+    if (profileId) params.set('profileId', profileId)
+    const base = `/api/tracks/${encodeURIComponent(trackId)}`
+    const details = useApiQuery<any>(`${base}?${params}`, !!trackId)
+    const timeline = useApiQuery<any[]>(`${base}/timeline?${params}`, !!trackId)
+    params.set('page', String(page)); params.set('limit', '50')
+    const plays = useApiQuery<Play[]>(`${base}/plays?${params}`, !!trackId)
     return {
-        track,
-        plays,
-        timelineData,
-        loading,
-        timelineLoading,
-        playsLoading,
-        playsPagination,
-        fetchTrackPlays
+        track: details.data?.data ? mapTrack(details.data.data) : null,
+        plays: plays.data?.data || [], timelineData: timeline.data?.data || [],
+        loading: details.isPending, error: details.error, retry: () => details.refetch(),
+        timelineLoading: timeline.isPending, timelineError: timeline.error, retryTimeline: () => timeline.refetch(),
+        playsLoading: plays.isPending, playsError: plays.error, retryPlays: () => plays.refetch(),
+        playsPagination: plays.data?.pagination || { page, limit: 50, total: 0, pages: 0 },
+        fetchTrackPlays: setPage,
     }
 }

@@ -5,22 +5,22 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "../../lib/utils"
 
 const buttonVariants = cva(
-    "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 will-change-transform",
+    "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
     {
         variants: {
             variant: {
-                default: "bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98]",
+                default: "bg-primary text-primary-foreground hover:bg-primary/90",
                 destructive:
-                    "bg-destructive text-destructive-foreground hover:bg-destructive/90 active:scale-[0.98]",
+                    "bg-destructive text-destructive-foreground hover:bg-destructive/90",
                 outline:
-                    "border border-input bg-background hover:bg-accent hover:text-accent-foreground active:scale-[0.98]",
+                    "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
                 "outline-solid":
-                    "border border-border bg-transparent hover:bg-muted/50 active:scale-[0.98]",
+                    "border border-border bg-transparent hover:bg-muted/50",
                 secondary:
-                    "bg-secondary text-secondary-foreground hover:bg-secondary/80 active:scale-[0.98]",
-                ghost: "hover:bg-accent hover:text-accent-foreground active:scale-[0.98]",
+                    "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+                ghost: "hover:bg-accent hover:text-accent-foreground",
                 link: "text-primary underline-offset-4 hover:underline",
-                spotify: "bg-spotify-green text-white hover:bg-spotify-green/90 shadow-[0_6px_20px_rgba(29,185,84,0.35)]",
+                spotify: "bg-spotify-green text-white hover:bg-spotify-green/90 ",
             },
             size: {
                 default: "h-10 px-4 py-2",

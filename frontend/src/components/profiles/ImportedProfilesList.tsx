@@ -17,7 +17,7 @@ export const ImportedProfilesList: React.FC<ImportedProfilesListProps> = ({
     selectedProfileId,
     onClearProfile
 }) => {
-    const { t, formatDate: localizedFormatDate } = useLanguage();
+    const { t, language, formatDate: localizedFormatDate } = useLanguage();
 
     if (profiles.length === 0) return null;
 
@@ -42,8 +42,8 @@ export const ImportedProfilesList: React.FC<ImportedProfilesListProps> = ({
                         <div
                             key={profile._id}
                             className={`border rounded-lg p-4 space-y-3 transition-colors ${selectedProfileId === profile._id
-                                ? "border-blue-500 bg-blue-50 dark:bg-blue-950/20"
-                                : "hover:border-gray-300"
+                                ? "border-primary bg-accent/30"
+                                : "border-border"
                                 }`}
                         >
                             <div className="flex items-center justify-between">
@@ -51,13 +51,7 @@ export const ImportedProfilesList: React.FC<ImportedProfilesListProps> = ({
                                     <User className="h-4 w-4" />
                                     {profile.name}
                                 </h4>
-                                <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    onClick={() => onClearProfile(profile._id)}
-                                >
-                                    {t("removeAction")}
-                                </Button>
+
                             </div>
 
                             {profile.lastImport && (
@@ -82,6 +76,11 @@ export const ImportedProfilesList: React.FC<ImportedProfilesListProps> = ({
                         </div>
                     ))}
                 </div>
+                <section className="mt-6 space-y-3 border-t border-destructive/40 pt-5">
+                    <h3 className="font-semibold">{language === 'pl' ? 'Usuń historię profilu' : 'Delete profile history'}</h3>
+                    <p className="max-w-3xl text-sm text-muted-foreground">{language === 'pl' ? 'Usunięcie profilu trwale usuwa jego historię z tej aplikacji. Pliki źródłowe pozostają w folderze data. Każde usunięcie wymaga potwierdzenia.' : 'Deleting a profile permanently removes its history from this app. Source files remain in the data folder. Each deletion requires confirmation.'}</p>
+                    <div className="flex flex-wrap gap-3">{profiles.map(profile => <Button key={profile._id} variant="outline" size="sm" className="border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => onClearProfile(profile._id)}>{t('removeAction')}: {profile.name}</Button>)}</div>
+                </section>
             </CardContent>
         </Card>
     )

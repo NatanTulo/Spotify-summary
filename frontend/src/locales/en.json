@@ -11,7 +11,7 @@
   "appTitle": "Spotify Analytics",
   "appDescription": "Analysis of Spotify GDPR Export data",
   "footerCredit": "Educational project - Natan Tułodziecki",
-  "dataManagement": "Data Management",
+  "dataManagement": "Data and import",
   "importData": "Import data",
   "selectProfile": "Select profile",
   "noProfileSelected": "No profile selected",

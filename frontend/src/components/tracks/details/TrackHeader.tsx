@@ -12,7 +12,7 @@ export function TrackHeader({ trackName, artistName, albumName, onBack }: TrackH
     const { t } = useLanguage()
     
     return (
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col items-start gap-3">
             <button
                 onClick={onBack}
                 className="flex items-center gap-2 px-3 py-2 text-sm border rounded-md hover:bg-accent hover:text-accent-foreground"
@@ -21,7 +21,7 @@ export function TrackHeader({ trackName, artistName, albumName, onBack }: TrackH
                 {t('back')}
             </button>
             <div>
-                <h1 className="text-2xl font-bold">{trackName}</h1>
+                <h2 className="text-2xl font-bold">{trackName}</h2>
                 <p className="text-muted-foreground">{artistName} • {albumName}</p>
             </div>
         </div>

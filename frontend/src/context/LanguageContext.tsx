@@ -19,7 +19,8 @@ const LanguageContext = createContext<LanguageContextType | undefined>(
 );
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguage] = useState<Language>("pl");
+  const [language, updateLanguage] = useState<Language>(() => localStorage.getItem('language') === 'en' ? 'en' : 'pl');
+  const setLanguage = (value: Language) => { localStorage.setItem('language', value); updateLanguage(value); };
 
   const t = (key: TranslationKey | string): string => {
     return translations[language][key] || key;
@@ -40,11 +41,11 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
     if (includeTime) {
       return `${dateObj.toLocaleDateString(
-        locale
-      )} ${dateObj.toLocaleTimeString(locale)}`;
+        locale, { timeZone: 'UTC' }
+      )} ${dateObj.toLocaleTimeString(locale, { timeZone: 'UTC' })}`;
     }
 
-    return dateObj.toLocaleDateString(locale);
+    return dateObj.toLocaleDateString(locale, { timeZone: 'UTC' });
   };
 
   return (

@@ -33,14 +33,17 @@ const DEFAULT_ORDER: Record<SortKey, SortOrder> = {
 }
 
 export function PodcastShowRow({ show, selectedProfile, onEpisodeSelect }: PodcastShowRowProps) {
-    const { t } = useLanguage()
+    const { t, language } = useLanguage()
+    const pl = language === 'pl'
     const [expanded, setExpanded] = useState(false)
     const [episodes, setEpisodes] = useState<EpisodeRow[]>([])
     const [loadingEpisodes, setLoadingEpisodes] = useState(false)
+    const [error, setError] = useState(false)
     const [episodeSort, setEpisodeSort] = useState<{ sortBy: SortKey; order: SortOrder }>({ sortBy: 'plays', order: 'desc' })
 
     const fetchEpisodes = async (s: SortKey, o: SortOrder) => {
         setLoadingEpisodes(true)
+        setError(false)
         try {
             const params = new URLSearchParams({
                 limit: '500',
@@ -53,6 +56,8 @@ export function PodcastShowRow({ show, selectedProfile, onEpisodeSelect }: Podca
             if (json.success) {
                 setEpisodes(json.data.episodes)
             }
+        } catch {
+            setError(true)
         } finally {
             setLoadingEpisodes(false)
         }
@@ -88,12 +93,13 @@ export function PodcastShowRow({ show, selectedProfile, onEpisodeSelect }: Podca
     return (
         <div className="py-3 border-b last:border-0">
             <button
+                aria-expanded={expanded}
                 onClick={toggleExpand}
-                className="w-full flex items-center justify-between hover:bg-muted/50 rounded px-2 py-1"
+                className="w-full flex flex-wrap items-center justify-between gap-2 hover:bg-muted/50 rounded px-2 py-1"
             >
-                <div className="flex items-center gap-2">
+                <div className="flex min-w-0 items-center gap-2">
                     {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                    <span className="font-medium text-left">{show.name}</span>
+                    <span className="font-medium text-left break-words">{show.name}</span>
                 </div>
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <span>{show.playCount.toLocaleString()} {t('plays') || 'plays'}</span>
@@ -105,13 +111,13 @@ export function PodcastShowRow({ show, selectedProfile, onEpisodeSelect }: Podca
             </button>
 
             {expanded && (
-                <div className="mt-2 ml-6 border-l pl-4">
+                <div className="mt-2 border-l pl-3 sm:ml-6 overflow-x-auto">
                     {loadingEpisodes ? (
-                        <div className="text-sm text-muted-foreground py-2">{t('loading') || 'Loading...'}</div>
-                    ) : episodes.length === 0 ? (
+                        <div role="status" className="text-sm text-muted-foreground py-2">{t('loading') || 'Loading...'}</div>
+                    ) : error ? <div role="alert" className="space-y-2 py-3 text-sm"><p>{pl ? 'Nie udało się pobrać odcinków.' : 'Episodes could not be loaded.'}</p><button type="button" className="min-h-9 text-primary underline" onClick={() => void fetchEpisodes(episodeSort.sortBy, episodeSort.order)}>{pl ? 'Spróbuj ponownie' : 'Try again'}</button></div> : episodes.length === 0 ? (
                         <div className="text-sm text-muted-foreground py-2">{t('noEpisodes') || 'No played episodes'}</div>
                     ) : (
-                        <table className="w-full text-sm">
+                        <table className="w-full min-w-[520px] text-sm">
                             <thead>
                                 <tr className="text-muted-foreground select-none">
                                     <th className="text-left py-1 pr-2 font-medium">{t('episode') || 'Episode'}</th>
@@ -121,16 +127,17 @@ export function PodcastShowRow({ show, selectedProfile, onEpisodeSelect }: Podca
                                         return (
                                             <th
                                                 key={col}
-                                                onClick={() => handleSort(col)}
+                                                scope="col"
+                                                aria-sort={active ? (episodeSort.order === 'asc' ? 'ascending' : 'descending') : 'none'}
                                                 className="text-right py-1 pr-2 cursor-pointer hover:text-foreground transition-colors group"
                                                 title={t('toggleSortOrder') || 'Toggle sort order'}
                                             >
-                                                <span className={active ? 'text-foreground font-semibold inline-flex items-center gap-1' : 'inline-flex items-center gap-1'}>
+                                                <button type="button" onClick={() => handleSort(col)} className={active ? 'text-foreground font-semibold inline-flex items-center gap-1' : 'inline-flex items-center gap-1'}>
                                                     {label}
                                                     {active && (
                                                         <span className="text-xs opacity-70">{(episodeSort.order === 'asc') ? '▲' : '▼'}</span>
                                                     )}
-                                                </span>
+                                                </button>
                                             </th>
                                         )
                                     })}
@@ -142,7 +149,7 @@ export function PodcastShowRow({ show, selectedProfile, onEpisodeSelect }: Podca
                                         <td className="py-1 pr-2">
                                             <button
                                                 onClick={() => onEpisodeSelect({ id: ep.id, name: ep.name, showName: show.name })}
-                                                className="text-left hover:underline text-blue-600 dark:text-blue-400"
+                                                className="text-left hover:underline text-primary"
                                             >
                                                 {ep.name}
                                             </button>

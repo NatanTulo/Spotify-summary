@@ -13,7 +13,7 @@ const PlaysSummaryRow: React.FC<PlaysSummaryRowProps> = ({ musicPlays, podcastPl
   return (
     <div
       className={
-        `rounded-md border px-3 py-2 bg-white/70 dark:bg-white/5 backdrop-blur-sm ${className}`
+        `rounded-md border px-3 py-2 bg-card ${className}`
       }
     >
       <div className="w-full text-center text-[11px] sm:text-xs font-medium text-muted-foreground">
@@ -21,14 +21,14 @@ const PlaysSummaryRow: React.FC<PlaysSummaryRowProps> = ({ musicPlays, podcastPl
       </div>
       <div className="mt-1 flex items-center justify-center gap-4 sm:gap-6">
         <div className="flex items-center gap-2 text-sm sm:text-base">
-          <Play className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400" />
-          <span className="font-semibold">{musicPlays.toLocaleString()}</span>
+          <Play className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+          <span className="font-semibold tabular-nums">{musicPlays.toLocaleString()}</span>
           <span className="text-muted-foreground">{t("songsStats")}</span>
         </div>
         <div className="flex items-center gap-2 text-sm sm:text-base">
-          <Podcast className="h-4 w-4 sm:h-5 sm:w-5 text-violet-600 dark:text-violet-400" />
-          <span className="font-semibold">{podcastPlays.toLocaleString()}</span>
-          <span className="text-muted-foreground">{t("videoplaysStats")}</span>
+          <Podcast className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+          <span className="font-semibold tabular-nums">{podcastPlays.toLocaleString()}</span>
+          <span className="text-muted-foreground">{t("podcastplaysStats")}</span>
         </div>
       </div>
     </div>

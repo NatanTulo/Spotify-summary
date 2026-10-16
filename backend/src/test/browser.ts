@@ -25,7 +25,7 @@ try {
     await migrate()
     await fs.mkdir(path.join(dataDir, 'E2E'), { recursive: true })
     const record = (name: string, date: string) => ({ ts: `${date}T12:00:00Z`, ms_played: 60000, master_metadata_track_name: name, master_metadata_album_artist_name: 'Browser Artist', master_metadata_album_album_name: 'Browser Album' })
-    await fs.writeFile(path.join(dataDir, 'E2E', 'Streaming_History_Audio_0.json'), JSON.stringify([record('Needle', '2026-10-01'), record('Needle', '2026-10-01'), record('Different', '2026-09-01')]))
+    await fs.writeFile(path.join(dataDir, 'E2E', 'Streaming_History_Audio_0.json'), JSON.stringify([record('Needle', '2026-10-01'), record('Needle', '2026-10-01'), record('Different', '2026-09-01'), record('Archive', '2024-03-15')]))
     const log = await fs.open(path.join(dataDir, 'server.log'), 'w')
     server = spawn(process.execPath, ['dist/index.js'], { cwd: process.cwd(), env: { ...process.env, NODE_ENV: 'production', PORT: '5107', SPOTIFY_DATA_DIR: dataDir }, windowsHide: true, stdio: ['ignore', log.fd, log.fd] })
     let ready = false

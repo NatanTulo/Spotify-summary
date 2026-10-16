@@ -9,17 +9,7 @@ const Card = React.forwardRef<
     <div
         ref={ref}
         className={cn(
-            [
-                // Base look
-                "rounded-xl border bg-card/60 backdrop-blur-sm supports-backdrop-filter:bg-card/60 text-card-foreground",
-                // Light mode shadows
-                "shadow-[0_10px_30px_rgba(0,0,0,0.08)] hover:shadow-[0_16px_40px_rgba(0,0,0,0.12)]",
-                // Dark mode: deeper shadow + subtle ring/glow on hover
-                "dark:shadow-[0_8px_24px_rgba(0,0,0,0.45)] dark:hover:shadow-[0_16px_48px_rgba(0,0,0,0.6)]",
-                "dark:hover:ring-1 dark:hover:ring-white/10 dark:hover:bg-white/5",
-                // Transitions
-                "transition-colors"
-            ].join(' '),
+            "rounded-xl border border-border bg-card text-card-foreground",
             className
         )}
         {...props}
@@ -46,7 +36,7 @@ const CardTitle = React.forwardRef<
     <h3
         ref={ref}
         className={cn(
-            "text-2xl font-semibold leading-none tracking-tight",
+            "text-lg font-semibold leading-tight tracking-tight",
             className
         )}
         {...props}

@@ -2,7 +2,6 @@ import { Disc } from "lucide-react";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "./ui/card";
@@ -21,6 +20,8 @@ interface Album {
 interface AlbumsListProps {
   albums: Album[];
   loading?: boolean;
+  error?: Error | null;
+  onRetry?: () => void;
   pagination?: PaginationState;
   onPageChange?: (page: number) => void;
   onPageSizeChange?: (pageSize: number) => void;
@@ -34,13 +35,15 @@ interface AlbumsListProps {
 export function AlbumsList({
   albums,
   loading = false,
+  error, onRetry,
   pagination,
   onPageChange,
   onPageSizeChange,
   onSort,
   currentSort,
 }: AlbumsListProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  if (error) return <div role="alert" className="py-8 text-center"><p>{language === "pl" ? "Nie udało się pobrać albumów." : "Could not load albums."}</p><button className="mt-3 rounded border px-3 py-2" onClick={onRetry}>{language === "pl" ? "Spróbuj ponownie" : "Try again"}</button></div>;
 
   if (loading) {
     return (
@@ -68,7 +71,7 @@ export function AlbumsList({
                 </span>
               )}
             </CardTitle>
-            <CardDescription>{t("clickHeaders")}</CardDescription>
+
         </div>
       </CardHeader>
       <CardContent>
@@ -79,8 +82,8 @@ export function AlbumsList({
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[600px]">
-                <thead>
+              <table className="w-full min-w-[480px]">
+                <thead className="sticky top-0 bg-card">
                   <tr className="border-b">
                     <th className="p-2 text-left font-medium text-muted-foreground cursor-pointer" onClick={() => onSort?.('name', currentSort?.field === 'name' && currentSort.order === 'asc' ? 'desc' : 'asc')}>
                       {t("album")} {currentSort?.field === 'name' && (currentSort.order === 'asc' ? '↑' : '↓')}

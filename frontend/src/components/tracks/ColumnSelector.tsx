@@ -38,6 +38,7 @@ export function ColumnSelector({
           >
             <input
               type="checkbox"
+              disabled={column.key === "trackName"}
               checked={visibleColumns.includes(column.key)}
               onChange={() => onChangeVisibility(column.key)}
               className="rounded"

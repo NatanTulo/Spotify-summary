@@ -13,12 +13,15 @@ const envelope = z.discriminatedUnion('success', [
     z.object({ success: z.literal(false), error: z.string(), code: z.string() }),
 ])
 export function setRequestRange(value: typeof range) { range = value }
-export function scopedUrl(url: string): string {
+export function scopedUrl(url: string, rangeOverride?: typeof range): string {
     const parsed = new URL(url, window.location.origin)
     parsed.searchParams.delete('_t')
-    if (!parsed.pathname.startsWith('/api/import')) {
-        if (range.dateFrom) parsed.searchParams.set('dateFrom', range.dateFrom)
-        if (range.dateTo) parsed.searchParams.set('dateTo', range.dateTo)
+    if (!parsed.pathname.startsWith('/api/import') && parsed.pathname !== '/api/stats/library-range') {
+        const scope = rangeOverride ?? range
+        for (const key of ['dateFrom', 'dateTo'] as const) {
+            if (scope[key]) parsed.searchParams.set(key, scope[key])
+            else if (rangeOverride) parsed.searchParams.delete(key)
+        }
     }
     return parsed.pathname + parsed.search
 }
@@ -30,9 +33,9 @@ export async function request<T>(url: string, signal?: AbortSignal): Promise<Api
     if (!response.ok || body.success === false) throw new Error(body.success === false ? body.error : `HTTP ${response.status}`)
     return body
 }
-export function useApiQuery<T>(url: string, enabled = true) {
+export function useApiQuery<T>(url: string, enabled = true, rangeOverride?: typeof range) {
     useDateRange()
-    const key = scopedUrl(url)
+    const key = scopedUrl(url, rangeOverride)
     return useQuery({ queryKey: ['api', key], queryFn: ({ signal }) => request<T>(key, signal), enabled })
 }
 

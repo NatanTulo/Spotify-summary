@@ -1,3 +1,4 @@
+import { useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { BarChart3, PieChart, TrendingUp, Music, Percent, Disc } from 'lucide-react'
@@ -14,7 +15,9 @@ import { InsightsTab } from './tabs/InsightsTab'
 
 export default function Analytics() {
     const { selectedProfile } = useProfile()
-    const { t } = useLanguage()
+    const { t, language } = useLanguage()
+    const [params, setParams] = useSearchParams()
+    const tab = ['tracks','albums','overview','charts','insights'].includes(params.get('tab') || '') ? params.get('tab')! : 'tracks'
 
     const {
         yearlyStats,
@@ -30,6 +33,7 @@ export default function Analytics() {
     const {
         tracks,
         loading: tracksLoading,
+        error: tracksError,
         pagination,
         filters,
         setFilters,
@@ -44,14 +48,11 @@ export default function Analytics() {
     const availablePlatforms = metadata.platforms
 
     return (
-        <div className="space-y-4 sm:space-y-6">
+        <div className="space-y-3">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{t('analyticsTitle')}</h1>
-                    <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
-                        {t('analyticsDescription')}
-                    </p>
+                    <h1 className="text-2xl font-bold tracking-tight text-foreground">{language === 'pl' ? 'Muzyka' : 'Music'}</h1>
                 </div>
                 <div className="flex items-center gap-3">
                     <Button
@@ -68,8 +69,8 @@ export default function Analytics() {
             </div>
 
             {/* Tabs */}
-            <Tabs defaultValue="tracks" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+            <Tabs value={tab} onValueChange={value => setParams(current => { const next = new URLSearchParams(current); next.set('tab', value); return next })} className="space-y-3">
+                <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-transparent p-0">
                     <TabsTrigger value="tracks" className="flex items-center justify-center space-x-1 sm:space-x-2">
                         <Music className="h-3 w-3 sm:h-4 sm:w-4" />
                         <span className="text-xs sm:text-sm">{t('tracksList')}</span>
@@ -86,7 +87,7 @@ export default function Analytics() {
                         <PieChart className="h-3 w-3 sm:h-4 sm:w-4" />
                         <span className="text-xs sm:text-sm">{t('charts')}</span>
                     </TabsTrigger>
-                    <TabsTrigger value="insights" className="hidden sm:flex items-center justify-center space-x-1 sm:space-x-2">
+                    <TabsTrigger value="insights" className="flex items-center justify-center space-x-1 sm:space-x-2">
                         <Percent className="h-3 w-3 sm:h-4 sm:w-4" />
                         <span className="text-xs sm:text-sm">{t('insights')}</span>
                     </TabsTrigger>
@@ -117,6 +118,7 @@ export default function Analytics() {
                     <TracksTab
                         tracks={tracks}
                         loading={tracksLoading}
+                        error={tracksError}
                         pagination={pagination}
                         filters={filters}
                         selectedProfile={selectedProfile}
@@ -126,7 +128,7 @@ export default function Analytics() {
                         onPageChange={handlePageChange}
                         onPageSizeChange={handlePageSizeChange}
                         onSort={handleSort}
-                        onApplyFilters={() => fetchTracks(1)}
+                        onApplyFilters={() => fetchTracks()}
                         onResetFilters={() => {
                             setFilters({
                                 search: '',
@@ -140,7 +142,6 @@ export default function Analytics() {
                                 showSkipped: false,
                                 showShuffle: false
                             })
-                            fetchTracks(1)
                         }}
                     />
                 </TabsContent>

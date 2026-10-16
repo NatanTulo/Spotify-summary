@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect } from 'react'
+import { Suspense, lazy } from 'react'
 import { AdvancedFilters } from '@/components/filters/AdvancedFilters'
 import { useAlbumsData } from '../hooks/useAlbumsData'
 import { useFilterMetadata } from '@/hooks/useFilterMetadata'
@@ -19,6 +19,7 @@ export function AlbumsTab({ selectedProfile }: AlbumsTabProps) {
     const {
         albums,
         loading,
+        error,
         pagination,
         filters,
         setFilters,
@@ -30,17 +31,13 @@ export function AlbumsTab({ selectedProfile }: AlbumsTabProps) {
 
     const { metadata } = useFilterMetadata(selectedProfile)
 
-    useEffect(() => {
-        fetchAlbums()
-    }, [fetchAlbums])
-
     return (
-        <div className="space-y-6">
+        <div className="space-y-3">
              <AdvancedFilters
                 contentType="albums"
                 filters={filters}
                 onFiltersChange={setFilters}
-                onApply={() => fetchAlbums(1)}
+                onApply={() => fetchAlbums()}
                 onReset={() => {
                      setFilters({
                         search: '',
@@ -54,7 +51,6 @@ export function AlbumsTab({ selectedProfile }: AlbumsTabProps) {
                         showSkipped: false,
                         showShuffle: false
                     })
-                    fetchAlbums(1)
                 }}
                 countries={metadata.countries}
                 platforms={metadata.platforms}
@@ -63,6 +59,8 @@ export function AlbumsTab({ selectedProfile }: AlbumsTabProps) {
                 <AlbumsList
                     albums={albums}
                     loading={loading}
+                    error={error}
+                    onRetry={() => fetchAlbums()}
                     pagination={pagination}
                     onPageChange={handlePageChange}
                     onPageSizeChange={handlePageSizeChange}

@@ -21,7 +21,6 @@ export function TrackTimeline({
   isLoading,
   data,
   trackName,
-  totalPlays,
 }: TrackTimelineProps) {
   const { t, formatDate: localizedFormatDate } = useLanguage();
   const [extendToToday, setExtendToToday] = useState<boolean>(false);
@@ -44,21 +43,15 @@ export function TrackTimeline({
   };
 
   const filteredData = getFilteredTimelineData(data);
-  const displayedPlays = filteredData.reduce((sum, day) => sum + day.plays, 0);
+
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h4 className="font-semibold text-sm">
+      <div className="flex flex-col items-start gap-2">
+        <h4 className="font-semibold text-sm break-words">
           {t("timelineTitle")}: {trackName}
         </h4>
         <div className="flex items-center gap-3">
-          {data && data.length > 0 && (
-            <span className="text-xs text-muted-foreground font-mono">
-              Timeline: {displayedPlays} / Total: {totalPlays}
-              {displayedPlays !== totalPlays && " ⚠️"}
-            </span>
-          )}
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -92,7 +85,7 @@ export function TrackTimeline({
       ) : (
         <div className="h-64">
           <ResponsiveContainer width="100%" height={256} minWidth={0}>
-            <BarChart data={filteredData}>
+            <BarChart data={filteredData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis
                 dataKey="date"
@@ -100,13 +93,16 @@ export function TrackTimeline({
                 type="category"
                 tick={{ fill: "hsl(var(--foreground))" }}
                 axisLine={{ stroke: "hsl(var(--border))" }}
-                interval="preserveStartEnd"
+                interval={Math.max(0, Math.ceil(filteredData.length / 3) - 1)}
+                minTickGap={35}
                 tickFormatter={(value) => {
                   const date = new Date(value);
                   return `${date.getDate()}/${date.getMonth() + 1}`;
                 }}
               />
               <YAxis
+                width={32}
+                allowDecimals={false}
                 fontSize={12}
                 tick={{ fill: "hsl(var(--foreground))" }}
                 axisLine={{ stroke: "hsl(var(--border))" }}
@@ -124,6 +120,7 @@ export function TrackTimeline({
                   border: "1px solid hsl(var(--border))",
                   borderRadius: "var(--radius)",
                   color: "hsl(var(--foreground))",
+                  fontSize: 12,
                 }}
               />
               <Bar dataKey="plays" fill="hsl(var(--primary))" />

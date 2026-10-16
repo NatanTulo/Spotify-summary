@@ -1,6 +1,6 @@
 import { useDateRange } from './context/DateRangeContext'
 import { DateRangeBar } from './components/DateRangeBar'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useLocation, Link } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
 import Layout from './components/Layout'
 import { LanguageProvider } from './context/LanguageContext'
@@ -11,24 +11,23 @@ const Dashboard = lazy(() => import('./pages/Dashboard'))
 const MusicAnalytics = lazy(() => import('./pages/music/Analytics'))
 const Podcasts = lazy(() => import('./pages/podcasts/Podcasts'))
 const Audiobooks = lazy(() => import('./pages/audiobooks/Audiobooks'))
+const DataManagement = lazy(() => import('./pages/DataManagement'))
 
 // Loading component
 const LoadingSpinner = () => (
-    <div className="flex items-center justify-center h-64">
-        <div className="relative h-10 w-10">
-            <div className="absolute inset-0 rounded-full bg-linear-to-tr from-primary/60 via-spotify-green/60 to-chart-4/60 animate-pulse blur-[2px]" />
-            <div className="absolute inset-[2px] rounded-full bg-background border border-border" />
-        </div>
+    <div role="status" aria-label="Loading" className="flex items-center justify-center h-64">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-primary" />
     </div>
 )
 
 function App() {
     const { range, revision } = useDateRange()
+    const { pathname } = useLocation()
     return (
         <ErrorBoundary>
             <LanguageProvider>
                 <Layout>
-                    <DateRangeBar />
+                    {pathname.replace(/\/$/, '') !== '/data' && <DateRangeBar />}
                     <Suspense key={`${range.dateFrom}:${range.dateTo}:${revision}`} fallback={<LoadingSpinner />}>
                         <Routes>
                             <Route path="/" element={<Dashboard />} />
@@ -37,6 +36,8 @@ function App() {
                             <Route path="/analytics" element={<MusicAnalytics />} />
                             <Route path="/podcasts" element={<Podcasts />} />
                             <Route path="/audiobooks" element={<Audiobooks />} />
+                            <Route path="/data" element={<DataManagement />} />
+                            <Route path="*" element={<div className="py-16 text-center"><h1 className="text-2xl font-semibold">404</h1><Link className="text-primary underline" to="/">Spotify Analytics</Link></div>} />
                         </Routes>
                     </Suspense>
                 </Layout>

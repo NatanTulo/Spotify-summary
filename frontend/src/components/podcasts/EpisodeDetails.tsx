@@ -1,5 +1,4 @@
-import { apiFetch } from '../../lib/api'
-import { useState, useEffect } from 'react'
+import { useApiQuery } from '../../lib/api'
 import { ArrowLeft, Play } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
@@ -36,37 +35,10 @@ interface EpisodeDetailsProps {
 
 export function EpisodeDetails({ episodeId, episodeName, showName, profileId, onBack }: EpisodeDetailsProps) {
     const { t } = useLanguage()
-    const [plays, setPlays] = useState<EpisodePlay[]>([])
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
-
-    useEffect(() => {
-        fetchEpisodePlays()
-    }, [episodeId, profileId])
-
-    const fetchEpisodePlays = async () => {
-        setLoading(true)
-        setError(null)
-
-        try {
-            const response = await apiFetch(`/api/podcasts/${profileId}/episode/${episodeId}/plays`)
-            if (!response.ok) {
-                throw new Error('Failed to fetch episode plays')
-            }
-
-            const data = await response.json()
-            if (data.success) {
-                setPlays(data.data.plays)
-            } else {
-                throw new Error(data.error || 'Failed to fetch episode plays')
-            }
-        } catch (err) {
-            console.error('Error fetching episode plays:', err)
-            setError(err instanceof Error ? err.message : 'Unknown error occurred')
-        } finally {
-            setLoading(false)
-        }
-    }
+    const query = useApiQuery<{ plays: EpisodePlay[] }>(`/api/podcasts/${profileId}/episode/${episodeId}/plays`)
+    const plays = query.data?.data.plays || []
+    const loading = query.isPending
+    const error = query.error?.message
 
     const formatDuration = (msPlayed: number) => {
         const minutes = Math.floor(msPlayed / 60000)
@@ -125,18 +97,18 @@ export function EpisodeDetails({ episodeId, episodeName, showName, profileId, on
                     </div>
 
                     {error && (
-                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
-                            <div className="flex items-center gap-2 text-red-800 dark:text-red-200">
+                        <div role="alert" className="bg-card border border-destructive/40 rounded-lg p-4 mb-4">
+                            <div className="flex items-center gap-2 text-foreground">
                                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                                <p className="font-medium">{error}</p>
+                                <p className="font-medium">{error}</p><Button variant="outline" onClick={() => void query.refetch()}>{t('refresh')}</Button>
                             </div>
                         </div>
                     )}
 
                     {loading ? (
-                        <div className="flex items-center justify-center h-32">
+                        <div role="status" className="flex items-center justify-center h-32">
                             <p className="text-muted-foreground">{t('loading') || 'Loading...'}</p>
                         </div>
                     ) : (
@@ -161,10 +133,10 @@ export function EpisodeDetails({ episodeId, episodeName, showName, profileId, on
                                             )}
                                         </div>
                                         <div className="text-sm text-muted-foreground">
-                                            {play.skipped && <span className="text-orange-500">⏭ {t('skipped') || 'Skipped'}</span>}
-                                            {play.offline && <span className="text-blue-500">📱 {t('offline') || 'Offline'}</span>}
-                                            {play.shuffle && <span className="text-blue-500">🔀 {t('shuffle') || 'Shuffle'}</span>}
-                                            {play.incognitoMode && <span className="text-purple-500">🕵️ {t('incognitoMode') || 'Incognito'}</span>}
+                                            {play.skipped && <span className="text-muted-foreground">⏭ {t('skipped') || 'Skipped'}</span>}
+                                            {play.offline && <span className="text-muted-foreground">📱 {t('offline') || 'Offline'}</span>}
+                                            {play.shuffle && <span className="text-muted-foreground">🔀 {t('shuffle') || 'Shuffle'}</span>}
+                                            {play.incognitoMode && <span className="text-muted-foreground">🕵️ {t('incognitoMode') || 'Incognito'}</span>}
                                         </div>
                                     </div>
                                     {(play.reasonStart || play.reasonEnd) && (
@@ -182,7 +154,7 @@ export function EpisodeDetails({ episodeId, episodeName, showName, profileId, on
                         </div>
                     )}
 
-                    {!loading && plays.length === 0 && (
+                    {!loading && !error && plays.length === 0 && (
                         <p className="text-muted-foreground text-center py-8">
                             {t('noPlaysFound') || 'No plays found for this episode'}
                         </p>

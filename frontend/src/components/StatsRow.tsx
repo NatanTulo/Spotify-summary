@@ -42,7 +42,7 @@ export const StatsRow: React.FC<StatsRowProps> = ({
 
   if (showPlays) {
     items.push(
-      <div key="plays" className={`flex items-center gap-1 whitespace-nowrap truncate ${textSize}`}>
+      <div key="plays" className={`flex items-center gap-1 whitespace-nowrap ${textSize}`}>
         <Play className={`${iconSize}`} />
         {(stats.totalPlays ?? 0).toLocaleString()} {t("playsStats")}
       </div>
@@ -51,7 +51,7 @@ export const StatsRow: React.FC<StatsRowProps> = ({
 
   if (showMinutes) {
     items.push(
-      <div key="minutes" className={`flex items-center gap-1 whitespace-nowrap truncate ${textSize}`}>
+      <div key="minutes" className={`flex items-center gap-1 whitespace-nowrap ${textSize}`}>
         <Clock className={`${iconSize}`} />
         {formatDuration(stats.totalMinutes ?? 0)}
       </div>
@@ -59,14 +59,14 @@ export const StatsRow: React.FC<StatsRowProps> = ({
   }
 
   items.push(
-    <div key="tracks" className={`flex items-center gap-1 whitespace-nowrap truncate ${textSize}`}>
+    <div key="tracks" className={`flex items-center gap-1 whitespace-nowrap ${textSize}`}>
       <Music className={`${iconSize}`} />
       {(stats.uniqueTracks ?? 0).toLocaleString()} {t("songsStats")}
     </div>
   );
 
   items.push(
-    <div key="artists" className={`flex items-center gap-1 whitespace-nowrap truncate ${textSize}`}>
+    <div key="artists" className={`flex items-center gap-1 whitespace-nowrap ${textSize}`}>
       <User className={`${iconSize}`} />
       {(stats.uniqueArtists ?? 0).toLocaleString()} {t("artistsStats")}
     </div>
@@ -74,7 +74,7 @@ export const StatsRow: React.FC<StatsRowProps> = ({
 
   if (showAlbums) {
     items.push(
-      <div key="albums" className={`flex items-center gap-1 whitespace-nowrap truncate ${textSize}`}>
+      <div key="albums" className={`flex items-center gap-1 whitespace-nowrap ${textSize}`}>
         <Disc className={`${iconSize}`} />
         {(stats.uniqueAlbums ?? 0).toLocaleString()} {t("albumsStats")}
       </div>
@@ -83,7 +83,7 @@ export const StatsRow: React.FC<StatsRowProps> = ({
 
   if ((stats.totalPodcastPlays ?? 0) > 0 && showPodcastPlays) {
     items.push(
-      <div key="podcastplays" className={`flex items-center gap-1.5 whitespace-nowrap truncate ${textSize}`}>
+      <div key="podcastplays" className={`flex items-center gap-1.5 whitespace-nowrap ${textSize}`}>
         <Podcast className={`${iconSize} relative top-px`} />
         {(stats.totalPodcastPlays ?? 0).toLocaleString()} {t("podcastplaysStats")}
       </div>
@@ -91,7 +91,7 @@ export const StatsRow: React.FC<StatsRowProps> = ({
   }
   if ((stats.uniqueShows ?? 0) > 0) {
     items.push(
-      <div key="shows" className={`flex items-center gap-1.5 whitespace-nowrap truncate ${textSize}`}>
+      <div key="shows" className={`flex items-center gap-1.5 whitespace-nowrap ${textSize}`}>
         <Tv className={`${iconSize} relative top-px`} />
         {(stats.uniqueShows ?? 0).toLocaleString()} {t("showsStats")}
       </div>
@@ -99,7 +99,7 @@ export const StatsRow: React.FC<StatsRowProps> = ({
   }
   if ((stats.uniqueEpisodes ?? 0) > 0) {
     items.push(
-      <div key="episodes" className={`flex items-center gap-1.5 whitespace-nowrap truncate ${textSize}`}>
+      <div key="episodes" className={`flex items-center gap-1.5 whitespace-nowrap ${textSize}`}>
         <List className={`${iconSize} relative top-px`} />
         {(stats.uniqueEpisodes ?? 0).toLocaleString()} {t("episodesStats")}
       </div>
@@ -107,7 +107,7 @@ export const StatsRow: React.FC<StatsRowProps> = ({
   }
 
   return (
-    <div className={`grid gap-2 grid-cols-2 sm:grid-cols-3 ${className}`}>
+    <div className={`flex flex-wrap gap-x-5 gap-y-2 tabular-nums text-muted-foreground ${className}`}>
       {items}
     </div>
   );
