@@ -46,7 +46,7 @@ const Layout = ({ children }: LayoutProps) => {
             <header className="sticky top-0 z-40 border-b bg-card/60 backdrop-blur-xl supports-backdrop-filter:bg-card/60">
                 <div className="container mx-auto px-2 sm:px-4 py-2 sm:py-3">
                     <div className="relative flex items-center justify-between">
-                        <div className="absolute inset-0 -z-10 pointer-events-none">
+                        <div className="absolute inset-0 -z-10 pointer-events-none overflow-hidden">
                             {/* Usunięto zielone blob-y przy tytule i na środku dla czystszego wyglądu */}
                             <div className="blob w-48 h-48 -right-16 -bottom-24 bg-chart-4/25 animate-blob [animation-delay:3s]" />
                         </div>

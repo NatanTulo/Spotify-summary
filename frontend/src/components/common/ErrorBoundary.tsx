@@ -41,7 +41,7 @@ export class ErrorBoundary extends Component<Props, State> {
                     <p className="text-muted-foreground mb-6 max-w-md">
                         Wystąpił nieoczekiwany błąd w aplikacji. Przepraszamy za utrudnienia.
                     </p>
-                    {process.env.NODE_ENV === 'development' && (
+                    {import.meta.env.DEV && (
                         <pre className="bg-muted p-4 rounded text-left text-sm mb-6 overflow-auto max-w-full">
                             {this.state.error?.message}
                         </pre>

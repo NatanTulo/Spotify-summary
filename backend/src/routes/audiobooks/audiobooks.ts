@@ -16,10 +16,7 @@ router.get('/:profileId', async (req, res) => {
 
         const whereCondition: any = {}
         if (search) {
-            whereCondition[Op.or] = [
-                { name: { [Op.iLike]: `%${search}%` } },
-                { author: { [Op.iLike]: `%${search}%` } }
-            ]
+            whereCondition.name = { [Op.iLike]: `%${search}%` }
         }
 
         // If profileId is 'all', get audiobooks for all profiles

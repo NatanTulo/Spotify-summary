@@ -37,6 +37,7 @@ export function AlbumsTab({ selectedProfile }: AlbumsTabProps) {
     return (
         <div className="space-y-6">
              <AdvancedFilters
+                contentType="albums"
                 filters={filters}
                 onFiltersChange={setFilters}
                 onApply={() => fetchAlbums(1)}

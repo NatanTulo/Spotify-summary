@@ -38,8 +38,15 @@ export const useAlbumsData = (profileId: string | null) => {
                 page: page.toString(),
                 limit: (limit || pagination.limit).toString(),
                 search: filters.search,
+                minPlays: String(filters.minPlays),
+                ...(filters.country && { country: filters.country }),
+                ...(filters.platform && { platform: filters.platform }),
+                ...(filters.dateFrom && { dateFrom: filters.dateFrom }),
+                ...(filters.dateTo && { dateTo: filters.dateTo }),
                 sortBy: filters.sortBy,
                 sortOrder: filters.sortOrder,
+                showSkipped: String(filters.showSkipped),
+                showShuffle: String(filters.showShuffle),
                 ...(profileId && { profileId: profileId })
             })
 

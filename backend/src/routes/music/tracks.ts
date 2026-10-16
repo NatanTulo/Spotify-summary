@@ -6,53 +6,69 @@ import { Album } from '../../models/music/Album.js'
 import { Artist } from '../../models/music/Artist.js'
 import { Play } from '../../models/music/Play.js'
 import { Profile } from '../../models/common/Profile.js'
+import { InvalidListQueryError, parseListQuery } from '../../utils/listQuery.js'
+import { parseTrackFilters } from '../../utils/trackFilters.js'
 
 const router: Router = express.Router()
 
 // GET /api/tracks - Lista utworów z filtrowaniem i paginacją
 router.get('/', async (req, res) => {
     try {
-        const {
-            page = 1,
-            limit = 20,
-            search = '',
-            sortBy = 'id',
-            sortOrder = 'DESC',
-            profileId
-        } = req.query
-
-        const pageNum = parseInt(page as string, 10)
-        const limitNum = parseInt(limit as string, 10)
-        const profileIdNum = profileId ? parseInt(profileId as string, 10) : null
+        const { sortBy = 'id' } = req.query
+        const { pageNum, limitNum, profileIdNum, search, sortOrder } = parseListQuery(req.query)
+        const filters = parseTrackFilters(req.query)
+        const playConditions = [...filters.conditions]
+        if (profileIdNum) playConditions.push('"profileId" = :profileId')
+        const replacements = { ...filters.replacements, search: `%${search}%`, profileId: profileIdNum }
 
         // Build search condition for tracks
         const searchCondition = search ? `
-            AND (t.name ILIKE '%${search}%' 
-                 OR al.name ILIKE '%${search}%' 
-                 OR ar.name ILIKE '%${search}%')
+            AND (t.name ILIKE :search
+                 OR al.name ILIKE :search
+                 OR ar.name ILIKE :search)
         ` : ''
 
-        // Build ORDER BY clause
-        let orderBy = ''
-        if (sortBy === 'totalPlays') {
-            orderBy = `ORDER BY total_plays ${sortOrder}`
-        } else if (sortBy === 'totalMinutes') {
-            orderBy = `ORDER BY total_minutes ${sortOrder}`
-        } else if (sortBy === 'name') {
-            orderBy = `ORDER BY t.name ${sortOrder}`
-        } else if (sortBy === 'artist') {
-            orderBy = `ORDER BY ar.name ${sortOrder}`
-        } else if (sortBy === 'firstPlay') {
-            orderBy = `ORDER BY p.first_play ${sortOrder}`
-        } else if (sortBy === 'lastPlay') {
-            orderBy = `ORDER BY p.last_play ${sortOrder}`
-        } else {
-            orderBy = `ORDER BY t.id ${sortOrder}`
+        const sortColumns: Record<string, string> = {
+            id: 't.id', name: 't.name', trackName: 't.name',
+            artist: 'ar.name', artistName: 'ar.name', albumName: 'al.name',
+            totalPlays: 'p.total_plays', totalMinutes: 'p.total_minutes',
+            avgPlayDuration: 'p.avg_play_duration', skipPercentage: 'p.skip_percentage',
+            firstPlay: 'p.first_play', lastPlay: 'p.last_play',
         }
+        const sortColumn = typeof sortBy === 'string' && Object.prototype.hasOwnProperty.call(sortColumns, sortBy) ? sortColumns[sortBy] : 't.id'
+        const orderBy = `ORDER BY ${sortColumn} ${sortOrder}, t.id ASC`
 
         // Use raw query to get tracks with aggregated play statistics
+        const matchingTracksQuery = `
+            FROM tracks t
+            JOIN albums al ON t."albumId" = al.id
+            JOIN artists ar ON al."artistId" = ar.id
+            JOIN (
+                SELECT
+                    "trackId",
+                    COUNT(*) as total_plays,
+                    ROUND((SUM("msPlayed") / 60000.0)::numeric, 2) as total_minutes,
+                    ROUND(AVG("msPlayed")::numeric / 1000, 0) as avg_play_duration,
+                    ROUND(
+                        (COUNT(CASE WHEN skipped = true THEN 1 END)::float / 
+                        NULLIF(COUNT(*), 0) * 100)::numeric, 
+                        2
+                    ) as skip_percentage,
+                    MIN(timestamp) as first_play,
+                    MAX(timestamp) as last_play,
+                    ARRAY_AGG(DISTINCT platform ORDER BY platform) FILTER (WHERE platform IS NOT NULL) as platforms,
+                    ARRAY_AGG(DISTINCT country ORDER BY country) FILTER (WHERE country IS NOT NULL) as countries,
+                    ARRAY_AGG(DISTINCT "reasonStart" ORDER BY "reasonStart") FILTER (WHERE "reasonStart" IS NOT NULL) as reason_start,
+                    ARRAY_AGG(DISTINCT "reasonEnd" ORDER BY "reasonEnd") FILTER (WHERE "reasonEnd" IS NOT NULL) as reason_end
+                FROM plays 
+                ${playConditions.length ? `WHERE ${playConditions.join(' AND ')}` : ''}
+                GROUP BY "trackId"
+            ) p ON t.id = p."trackId"
+            WHERE p.total_plays >= :minPlays ${searchCondition}
+        `
+
         const tracksQuery = `
-            SELECT 
+            SELECT
                 t.id,
                 t.name as "trackName",
                 t.duration,
@@ -71,54 +87,25 @@ router.get('/', async (req, res) => {
                 p.countries as "countries",
                 p.reason_start as "reasonStart",
                 p.reason_end as "reasonEnd"
-            FROM tracks t
-            JOIN albums al ON t."albumId" = al.id
-            JOIN artists ar ON al."artistId" = ar.id
-            LEFT JOIN (
-                SELECT 
-                    "trackId",
-                    COUNT(*) as total_plays,
-                    ROUND((SUM("msPlayed") / 60000.0)::numeric, 2) as total_minutes,
-                    ROUND(AVG("msPlayed")::numeric / 1000, 0) as avg_play_duration,
-                    ROUND(
-                        (COUNT(CASE WHEN skipped = true THEN 1 END)::float / 
-                        NULLIF(COUNT(*), 0) * 100)::numeric, 
-                        2
-                    ) as skip_percentage,
-                    MIN(timestamp) as first_play,
-                    MAX(timestamp) as last_play,
-                    ARRAY_AGG(DISTINCT platform ORDER BY platform) FILTER (WHERE platform IS NOT NULL) as platforms,
-                    ARRAY_AGG(DISTINCT country ORDER BY country) FILTER (WHERE country IS NOT NULL) as countries,
-                    ARRAY_AGG(DISTINCT "reasonStart" ORDER BY "reasonStart") FILTER (WHERE "reasonStart" IS NOT NULL) as reason_start,
-                    ARRAY_AGG(DISTINCT "reasonEnd" ORDER BY "reasonEnd") FILTER (WHERE "reasonEnd" IS NOT NULL) as reason_end
-                FROM plays 
-                ${profileIdNum ? `WHERE "profileId" = :profileId` : ''}
-                GROUP BY "trackId"
-            ) p ON t.id = p."trackId"
-            WHERE 1=1 ${searchCondition}
+            ${matchingTracksQuery}
             ${orderBy}
             LIMIT :limit OFFSET :offset
         `
 
-        const countQuery = `
-            SELECT COUNT(*) as total
-            FROM tracks t
-            JOIN albums al ON t."albumId" = al.id
-            JOIN artists ar ON al."artistId" = ar.id
-            WHERE 1=1 ${searchCondition}
-        `
+        const countQuery = `SELECT COUNT(*) as total ${matchingTracksQuery}`
 
         const tracks = await sequelize.query(tracksQuery, {
             type: QueryTypes.SELECT,
             replacements: {
-                profileId: profileIdNum,
+                ...replacements,
                 limit: limitNum,
                 offset: (pageNum - 1) * limitNum
             }
         })
 
         const countResult = await sequelize.query(countQuery, {
-            type: QueryTypes.SELECT
+            type: QueryTypes.SELECT,
+            replacements,
         }) as any[]
 
         const totalCount = parseInt(countResult[0]?.total || '0')
@@ -171,7 +158,7 @@ router.get('/', async (req, res) => {
         })
     } catch (error) {
         console.error('Error fetching tracks:', error)
-        res.status(500).json({
+        res.status(error instanceof InvalidListQueryError ? 400 : 500).json({
             success: false,
             error: 'Failed to fetch tracks',
             message: error instanceof Error ? error.message : 'Unknown error'
@@ -356,7 +343,7 @@ router.get('/:id/timeline', async (req, res) => {
         // Complete timeline query - shows ALL activity from first to last play (or today)
         const timelineQuery = `
             WITH track_stats AS (
-                SELECT 
+                SELECT
                     MIN(timestamp)::date as first_play_date,
                     MAX(timestamp)::date as last_play_date,
                     COUNT(*) as total_plays
@@ -377,7 +364,7 @@ router.get('/:id/timeline', async (req, res) => {
                 WHERE (SELECT total_plays FROM track_stats) > 0
             ),
             daily_plays AS (
-                SELECT 
+                SELECT
                     DATE(timestamp) as play_date,
                     COUNT(*) as daily_count,
                     SUM("msPlayed") as daily_ms
@@ -386,7 +373,7 @@ router.get('/:id/timeline', async (req, res) => {
                 ${profileCondition}
                 GROUP BY DATE(timestamp)
             )
-            SELECT 
+            SELECT
                 ds.play_date as date,
                 COALESCE(dp.daily_count, 0) as plays,
                 ROUND((COALESCE(dp.daily_ms, 0) / 60000.0)::numeric, 1) as minutes

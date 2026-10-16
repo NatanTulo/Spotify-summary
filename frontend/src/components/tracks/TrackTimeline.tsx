@@ -113,7 +113,7 @@ export function TrackTimeline({
               />
               <Tooltip
                 labelFormatter={(value) =>
-                  `${t("date")}: ${localizedFormatDate(value)}`
+                  `${t("date")}: ${localizedFormatDate(typeof value === 'string' ? value : undefined)}`
                 }
                 formatter={(((value: any, name: string) => [
                   value,

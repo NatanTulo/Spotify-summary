@@ -56,7 +56,7 @@ describe('StatsRow component', () => {
     expect(screen.getByText(/3000 min/, { exact: false })).toBeInTheDocument()
     expect(screen.getByText(/500/, { exact: false })).toBeInTheDocument()
     expect(screen.getByText(/200/, { exact: false })).toBeInTheDocument()
-    expect(screen.getByText(/100/, { exact: false })).toBeInTheDocument()
+    expect(screen.getByText(/^100\s+albumsStats$/)).toBeInTheDocument()
   })
 
   it('hides specific stats when props are passed', () => {
@@ -99,7 +99,7 @@ describe('StatsRow component', () => {
     )
 
     expect(screen.getByText(/50/, { exact: false })).toBeInTheDocument()
-    expect(screen.getByText(/5/, { exact: false })).toBeInTheDocument()
+    expect(screen.getByText(/^5\s+showsStats$/)).toBeInTheDocument()
     expect(screen.getByText(/20/, { exact: false })).toBeInTheDocument()
   })
 })

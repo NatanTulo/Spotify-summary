@@ -224,6 +224,7 @@
   "totalPodcastPlaysCard": "Podcast plays",
   "podcastMinutesCard": "Podcast minutes",
   "avgSession": "Average session",
+  "durationMinutesSeconds": "min:sec per play",
   "perSession": "Per session",
   "topCountries": "Most listened in",
   "analyticsTitle": "Analytics",

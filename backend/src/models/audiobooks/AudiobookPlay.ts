@@ -1,6 +1,7 @@
 import { Table, Column, Model, DataType, CreatedAt, UpdatedAt, PrimaryKey, AutoIncrement, ForeignKey, BelongsTo } from 'sequelize-typescript'
 import { Audiobook } from './Audiobook.js'
 import { Profile } from '../common/Profile.js'
+import type { NonAttribute } from 'sequelize'
 
 @Table({
     tableName: 'audiobook_plays',
@@ -153,7 +154,8 @@ export class AudiobookPlay extends Model {
     updatedAt!: Date
 
     @BelongsTo(() => Audiobook)
-    audiobook!: Audiobook
+    // Avoid eager decorator metadata access across the Audiobook/plays ESM cycle.
+    audiobook!: NonAttribute<Audiobook>
 
     @BelongsTo(() => Profile)
     profile!: Profile

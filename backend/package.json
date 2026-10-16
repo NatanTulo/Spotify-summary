@@ -8,30 +8,31 @@
         "dev": "tsx watch src/index.ts",
         "build": "tsc",
         "start": "node dist/index.js",
-        "import-data": "tsx src/scripts/importData.ts",
+        "import-data": "tsx src/scripts/runImport.ts",
         "import": "tsx src/scripts/runImport.ts",
         "test": "vitest"
     },
     "dependencies": {
-        "@types/pg": "^8.16.0",
-        "compression": "^1.8.1",
+        "compression": "^1.8.2",
         "cors": "^2.8.6",
-        "dotenv": "^17.2.3",
-        "express": "^5.2.1",
-        "express-rate-limit": "^8.2.1",
-        "helmet": "^8.1.0",
-        "pg": "^8.18.0",
+        "dotenv": "^18.0.8",
+        "express": "^5.3.0",
+        "express-rate-limit": "^8.7.1",
+        "helmet": "^8.3.0",
+        "pg": "^8.23.1",
         "reflect-metadata": "^0.2.2",
-        "sequelize": "^6.37.7",
+        "sequelize": "^6.37.8",
         "sequelize-typescript": "^2.1.6"
     },
     "devDependencies": {
         "@types/compression": "^1.8.1",
         "@types/cors": "^2.8.19",
         "@types/express": "^5.0.6",
-        "@types/node": "^25.1.0",
-        "tsx": "^4.21.0",
-        "typescript": "^5.9.3",
-        "vitest": "^4.0.18"
-    }
+        "@types/node": "^24.19.2",
+        "tsx": "^4.23.15",
+        "typescript": "^6.0.3",
+        "vitest": "^5.0.5",
+        "@types/pg": "^8.23.1"
+    },
+    "private": true
 }

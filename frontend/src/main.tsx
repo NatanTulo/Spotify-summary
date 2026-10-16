@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter } from 'react-router-dom'
 import { ProfileProvider } from './context/ProfileContext'
 import App from './App.tsx'
+import '@fontsource-variable/inter/wght.css'
 import './index.css'
 
 const queryClient = new QueryClient({

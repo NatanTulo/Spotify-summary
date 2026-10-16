@@ -217,6 +217,7 @@
   "totalPodcastPlaysCard": "Odtworzeń podcastów",
   "podcastMinutesCard": "Minuty podcastów",
   "avgSession": "Średnia sesja",
+  "durationMinutesSeconds": "min:sek na odtworzenie",
   "perSession": "Na sesję",
   "topCountries": "Najczęściej słuchasz",
   "analyticsTitle": "Analytics",

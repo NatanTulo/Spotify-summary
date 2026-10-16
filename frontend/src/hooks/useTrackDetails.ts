@@ -75,7 +75,9 @@ export const useTrackDetails = (trackId: string, profileId?: string) => {
 
     const fetchTrackDetails = async () => {
         try {
-            const response = await fetch(`/api/tracks/${trackId}`)
+            const params = new URLSearchParams()
+            if (profileId) params.set('profileId', profileId)
+            const response = await fetch(`/api/tracks/${trackId}?${params}`)
             if (response.ok) {
                 const data = await response.json()
                 const rawTrack = data.data

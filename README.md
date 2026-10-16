@@ -4,7 +4,9 @@
 
 Nowoczesna aplikacja webowa do analizy danych ze Spotify GDPR Export z pełnym systemem tłumaczeń (PL/EN). React + TypeScript + PostgreSQL.
 
-**Aplikacja jest tylko do odczytu** - analizuje dane bez możliwości ich modyfikacji.
+Aplikacja analizuje eksport Spotify i pozwala importować oraz usuwać dane profili. Backend jest przeznaczony do pracy lokalnej; obecnie nie ma logowania ani uprawnień do profili.
+
+Aktualizacja zależności i plan dalszych prac: [raport utrzymaniowy — październik 2026](docs/maintenance-2026-10.md).
 
 ## ✨ Główne funkcjonalności
 
@@ -24,25 +26,22 @@ Nowoczesna aplikacja webowa do analizy danych ze Spotify GDPR Export z pełnym s
 
 ## 🏗️ Architektura techniczna
 
-- **Frontend:** React 19.1 + TypeScript 5.8 + Vite 7.0 + Tailwind CSS 3.4
-- **Backend:** Node.js 22.17+ + Express 4.21 + TypeScript 5.8
-- **Database:** PostgreSQL 16.9+ z Sequelize 6.37 ORM + optymalizowane indeksy + Sequelize-TypeScript 2.1
-- **UI Library:** Radix UI (@radix-ui) + shadcn/ui components + Lucide React 0.525
-- **Charts:** Recharts 3.0 z interaktywnymi wykresami i zoom
-- **State Management:** React Context + TanStack Query 5.81 + React Router DOM 7.6
-- **Security:** Helmet 8.1, CORS 2.8, Express Rate Limit 7.5, Compression 1.8
-- **Testing:** Vitest 4.0 (Frontend JSDOM, Backend Node), React Testing Library
-- **Dev Tools:** tsx 4.20, ESLint 9.30, pnpm, TypeScript 5.8
-- **Styling:** Tailwind CSS 3.4 + PostCSS 8.5 + Autoprefixer 10.4 + CVA 0.7
-- **Date Handling:** date-fns 4.1 z pełną lokalizacją PL/EN
-- **HTTP Client:** Axios 1.10 z interceptorami i error handling
-- **Caching:** In-memory cache z TTL, timeline prefetching, TanStack Query cache
+- **Frontend:** React 19.3 + TypeScript 6.0 + Vite 8.3 (Rolldown) + Tailwind CSS 4.3
+- **Backend:** Node.js 24.22 LTS + Express 5.3 + TypeScript 6.0
+- **Baza:** PostgreSQL + Sequelize 6.37.8 + sequelize-typescript 2.1
+- **UI:** Radix UI, komponenty shadcn/ui i Lucide React
+- **Wykresy:** Recharts 3.10
+- **Stan i routing:** React Context, TanStack Query 5, React Router 7
+- **Bezpieczeństwo:** Helmet 8.3, CORS, express-rate-limit 8.7, compression 1.8
+- **Narzędzia:** pnpm 10.34.7 (jeden workspace), ESLint 10, tsx 4.23
+- **Testy:** Vitest 5, Testing Library, jsdom 30, coverage V8
 
 ## 🚀 Szybka instalacja
 
 ### 1. Wymagania
 
-- **pnpm**: https://pnpm.io/installation (automatycznie zainstaluje Node.js)
+- **Node.js 24 LTS** i **pnpm**: https://pnpm.io/installation
+- Repozytorium przypina pnpm 10.34.7 oraz automatycznie pobiera Node 24.22.0 do poleceń projektu. `.nvmrc` wskazuje tę samą wersję.
 - **PostgreSQL**: https://www.postgresql.org/download/
 
 ### 2. Konfiguracja PostgreSQL
@@ -68,12 +67,10 @@ git clone https://github.com/NatanTulo/Spotify-summary
 cd spotify-summary
 
 # Instalacja Node.js przez pnpm (jeśli nie masz)
-pnpm env use --global lts
+pnpm env use --global 24.22.0
 
 # Instalacja zależności
 pnpm install
-cd backend && pnpm install && cd ..
-cd frontend && pnpm install && cd ..
 
 # Konfiguracja backendu - skopiuj .env.example do .env i ustaw hasło PostgreSQL
 cp backend/.env.example backend/.env
@@ -109,7 +106,7 @@ data/
 
 **⚠️ Ważne:** Nazwa folderu będzie używana jako nazwa profilu w aplikacji. Zmień domyślną nazwę `Spotify Extended Streaming History` na coś bardziej przyjaznego, np. imię, nazwę konta czy pseudonim.
 
-### 6. Uruchomienie
+### 5. Uruchomienie
 
 **Tryb rozwoju (z hot reload):**
 
@@ -137,6 +134,10 @@ Aplikacja w trybie produkcyjnym będzie dostępna pod:
 
 ## 📁 Import danych
 
+CLI: `pnpm import-data` wykrywa profile w `data/`, tworzy brakujące tabele i importuje ich historię. Opcjonalnie można podać inny katalog: `pnpm import-data /sciezka/do/data`. Ponowny import zastępuje historię danego profilu, więc przed nim warto wykonać kopię bazy. Import nie jest jeszcze atomowy.
+
+Przy pustej bazie uruchom najpierw import CLI lub tryb development; sam `pnpm start` nie tworzy schematu.
+
 1. **Tryb dev:** Uruchom `pnpm run dev` → otwórz http://localhost:3000
 2. **Tryb prod:** Uruchom `pnpm start` → otwórz http://localhost:5000
 3. Kliknij **"Importuj dane"** w górnym menu
@@ -163,7 +164,11 @@ pnpm run build           # Buduje frontend + backend
 pnpm start               # Uruchamia aplikację produkcyjną (port 5000 - frontend + API)
 
 # Testy
-pnpm test                # Uruchom wszystkie testy (Vitest workspace)
+pnpm test                # Uruchom testy w trybie watch (projekty frontend/backend)
+pnpm test:run            # Jednorazowe uruchomienie testów
+pnpm test:coverage       # Raport pokrycia całego kodu
+pnpm check               # Lint + testy + build obu części
+pnpm audit               # Znane podatności zależności
 pnpm run test:ui         # Uruchom testy w trybie UI (Vitest)
 
 # Dodatkowe komendy
@@ -180,18 +185,18 @@ pnpm run preview         # Preview frontend po build
 
 ```
 Spotify-summary/
-├── package.json           # Root scripts + npm-run-all (pnpm compatible)
+├── package.json           # Root scripts + pnpm workspace
 ├── README.md             # Dokumentacja projektu
 ├── .github/              # GitHub configuration & Copilot instructions
 ├── .vscode/              # VS Code workspace configuration
-├── frontend/             # React 19.1 + TypeScript 5.8 + Vite 7.0
+├── frontend/             # React 19.3 + TypeScript 6.0 + Vite 8.3
 │   ├── src/
 │   │   ├── components/   # UI komponenty (charts, filters, theme, ui/)
 │   │   ├── pages/        # Dashboard, music/, podcasts/, audiobooks/
 │   │   ├── context/      # LanguageContext, ProfileContext
 │   │   ├── hooks/        # Custom hooks (useTheme)
 │   │   └── lib/         # Utilities (utils.ts)
-├── backend/              # Node.js 22.17+ + Express 4.21 + TypeScript 5.8
+├── backend/              # Node.js 24.22 + Express 5.3 + TypeScript 6.0
 │   ├── src/
 │   │   ├── models/       # Sequelize models (music/, podcasts/, audiobooks/, stats/, common/)
 │   │   ├── routes/       # API endpoints (music/, podcasts/, audiobooks/, import.ts, stats.ts)
@@ -206,7 +211,7 @@ Spotify-summary/
 
 **Health & System:**
 
-- `GET /api/health` - Status aplikacji i połączenia z bazą danych
+- `GET /api/health` - Status procesu aplikacji (bez sprawdzania połączenia z bazą danych)
 
 **Import & Profile Management:**
 
@@ -320,9 +325,8 @@ cd backend && npx tsc --noEmit
 # Test kompilacji frontend
 cd frontend && pnpm run build
 
-# Jeśli błędy - wyczyść cache
-rm -rf node_modules pnpm-lock.yaml
-pnpm install
+# Przy podejrzeniu uszkodzonej instalacji zachowaj lockfile
+pnpm install --force --frozen-lockfile
 ```
 
 ### Problemy z profilami
@@ -334,17 +338,10 @@ pnpm install
 ### Czyszczenie i reinstalacja
 
 ```bash
-# Wyczyść cache pnpm
-rm -rf node_modules pnpm-lock.yaml
-rm -rf frontend/node_modules frontend/pnpm-lock.yaml
-rm -rf backend/node_modules backend/pnpm-lock.yaml
-pnpm install
+# Odtwórz instalację z wersji zapisanych w repozytorium
+pnpm install --force --frozen-lockfile
 
-# Reset bazy danych (jeśli potrzebne)
-# W aplikacji: "Zarządzaj danymi" → "Wyczyść wszystkie dane"
-
-# Alternatywnie przez SQL
-psql -U postgres -d spotify_analytics -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+# Usuwanie danych wykonuj przez interfejs aplikacji po zrobieniu kopii bazy.
 ```
 
 ## 💡 Przydatne wskazówki

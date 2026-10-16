@@ -109,22 +109,6 @@ export function ListeningTimelineChart({ data }: ListeningTimelineProps) {
     };
   }, []);
 
-  if (!data || data.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("listeningTimeline")}</CardTitle>
-          <CardDescription>{t("dailyMusicActivity")}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-[400px] text-muted-foreground">
-            {t("noDataToDisplay")}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   // Dane do wyświetlenia - agregujemy także w powiększeniu jeśli zakres nadal zbyt duży
   const { displayData, displayAggregated } = React.useMemo(() => {
     if (
@@ -152,6 +136,22 @@ export function ListeningTimelineChart({ data }: ListeningTimelineProps) {
     }
     return { displayData: aggregatedData, displayAggregated: useAggregation };
   }, [zoomState, baseData, aggregatedData, useAggregation, aggregateBuckets, topDays]);
+
+  if (!data || data.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("listeningTimeline")}</CardTitle>
+          <CardDescription>{t("dailyMusicActivity")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center h-[400px] text-muted-foreground">
+            {t("noDataToDisplay")}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   // Sterowanie tickami osi X w zależności od gęstości danych
   const dense = displayData.length <= 120;

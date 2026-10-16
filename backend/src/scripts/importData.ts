@@ -1,5 +1,6 @@
 import fs from 'fs'
 import path from 'path'
+import { pathToFileURL } from 'node:url'
 import dotenv from 'dotenv'
 import { connectDB, sequelize } from '../config/database.js'
 import { QueryTypes } from 'sequelize'
@@ -92,9 +93,6 @@ class SpotifyDataImporter {
             // Initialize importers after profile is ready
             this.initializeImporters();
 
-            // Clear existing data for this profile (optional - remove in production)
-            await this.clearExistingData()
-
             // Find all JSON files
             const files = this.findJsonFiles()
             console.log(`📄 Found ${files.length} JSON files`)
@@ -110,6 +108,9 @@ class SpotifyDataImporter {
 
             // Szacuj całkowitą liczbę rekordów (szybkie przejrzenie plików)
             const estimatedTotal = this.estimateTotalRecords(files)
+
+            // Validate every source file before replacing the profile's old history.
+            await this.clearExistingData()
 
             // Rozpocznij śledzenie progress
             if (this.profileName) {
@@ -500,7 +501,7 @@ class SpotifyDataImporter {
 }
 
 // Jeśli skrypt jest uruchamiany bezpośrednio
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
     const args = process.argv.slice(2)
     const profileName = args[0]
     

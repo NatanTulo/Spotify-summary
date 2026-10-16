@@ -1,42 +1,41 @@
 import express, { Router } from 'express'
 import { sequelize } from '../../config/database.js'
 import { QueryTypes } from 'sequelize'
+import { InvalidListQueryError, parseListQuery } from '../../utils/listQuery.js'
+import { parseTrackFilters } from '../../utils/trackFilters.js'
 
 const router: Router = express.Router()
 
 // GET /api/albums - Lista albumów z filtrowaniem i paginacją
 router.get('/', async (req, res) => {
     try {
-        const {
-            page = 1,
-            limit = 20,
-            search = '',
-            sortBy = 'plays',
-            sortOrder = 'DESC',
-            profileId
-        } = req.query
-
-        const pageNum = parseInt(page as string, 10)
-        const limitNum = parseInt(limit as string, 10)
-        const profileIdNum = profileId && profileId !== 'all' ? parseInt(profileId as string, 10) : null
+        const { sortBy = 'plays' } = req.query
+        const { pageNum, limitNum, profileIdNum, search, sortOrder } = parseListQuery(req.query)
+        const filters = parseTrackFilters(req.query)
+        const playConditions = [...filters.conditions]
+        if (profileIdNum) playConditions.push('p."profileId" = :profileId')
+        const replacements = { ...filters.replacements, search: `%${search}%`, profileId: profileIdNum }
 
         // Build WHERE clauses
         const searchCondition = search ? `
-            AND (al.name ILIKE '%${search}%' OR ar.name ILIKE '%${search}%')
+            AND (al.name ILIKE :search OR ar.name ILIKE :search)
         ` : ''
 
-        const profileCondition = profileIdNum ? `AND p."profileId" = :profileId` : ''
+        const profileCondition = playConditions.length ? `AND ${playConditions.join(' AND ')}` : ''
 
         // Build ORDER BY clause
         let orderBy = ''
         switch (sortBy) {
             case 'name':
+            case 'trackName':
                 orderBy = `ORDER BY al.name ${sortOrder}`
                 break
             case 'artist':
+            case 'artistName':
                 orderBy = `ORDER BY ar.name ${sortOrder}`
                 break
             case 'minutes':
+            case 'totalMinutes':
                 orderBy = `ORDER BY total_ms_played ${sortOrder}`
                 break
             case 'plays':
@@ -57,25 +56,29 @@ router.get('/', async (req, res) => {
             LEFT JOIN plays p ON p."trackId" = t.id ${profileCondition}
             WHERE 1=1 ${searchCondition}
             GROUP BY al.id, al.name, ar.name
-            HAVING COUNT(p.id) > 0
+            HAVING COUNT(p.id) > 0 AND COUNT(p.id) >= :minPlays
             ${orderBy}
             LIMIT :limit OFFSET :offset
         `
 
         const countQuery = `
-            SELECT COUNT(DISTINCT al.id) as total
+            SELECT COUNT(*) as total FROM (
+            SELECT al.id
             FROM albums al
             JOIN artists ar ON al."artistId" = ar.id
             JOIN tracks t ON t."albumId" = al.id
             LEFT JOIN plays p ON p."trackId" = t.id ${profileCondition}
             WHERE 1=1 ${searchCondition}
             AND p.id IS NOT NULL
+            GROUP BY al.id
+            HAVING COUNT(p.id) >= :minPlays
+            ) AS matching_albums
         `
 
         const albums = await sequelize.query(albumsQuery, {
             type: QueryTypes.SELECT,
             replacements: {
-                profileId: profileIdNum,
+                ...replacements,
                 limit: limitNum,
                 offset: (pageNum - 1) * limitNum
             }
@@ -83,9 +86,7 @@ router.get('/', async (req, res) => {
 
         const countResult = await sequelize.query(countQuery, {
             type: QueryTypes.SELECT,
-            replacements: {
-                profileId: profileIdNum
-            }
+            replacements,
         }) as any[]
 
         const totalCount = parseInt(countResult[0]?.total || '0')
@@ -111,7 +112,7 @@ router.get('/', async (req, res) => {
 
     } catch (error) {
         console.error('Error fetching albums:', error)
-        res.status(500).json({
+        res.status(error instanceof InvalidListQueryError ? 400 : 500).json({
             success: false,
             error: 'Failed to fetch albums',
             message: error instanceof Error ? error.message : 'Unknown error'

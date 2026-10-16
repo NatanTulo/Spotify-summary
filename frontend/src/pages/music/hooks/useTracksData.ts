@@ -33,6 +33,8 @@ export const useTracksData = (profileId: string | null) => {
                 minPlays: filters.minPlays.toString(),
                 sortBy: filters.sortBy,
                 sortOrder: filters.sortOrder,
+                showSkipped: String(filters.showSkipped),
+                showShuffle: String(filters.showShuffle),
                 ...(filters.country && { country: filters.country }),
                 ...(filters.platform && { platform: filters.platform }),
                 ...(filters.dateFrom && { dateFrom: filters.dateFrom }),

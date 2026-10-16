@@ -6,6 +6,7 @@ import { useProfile } from '../../context/ProfileContext'
 import { useLanguage } from '../../context/LanguageContext'
 import { useAnalyticsData } from './hooks/useAnalyticsData'
 import { useTracksData } from './hooks/useTracksData'
+import { useFilterMetadata } from '../../hooks/useFilterMetadata'
 import { OverviewTab } from './tabs/OverviewTab'
 import { ChartsTab } from './tabs/ChartsTab'
 import { TracksTab } from './tabs/TracksTab'
@@ -39,10 +40,9 @@ export default function Analytics() {
         handleSort
     } = useTracksData(selectedProfile)
 
-    // availableCountries and availablePlatforms logic was missing in original file state management
-    // Assuming they are static or fetched elsewhere, for now using empty arrays or props drilling could be improved
-    const availableCountries: string[] = []
-    const availablePlatforms: string[] = []
+    const { metadata } = useFilterMetadata(selectedProfile)
+    const availableCountries = metadata.countries
+    const availablePlatforms = metadata.platforms
 
     useEffect(() => {
         fetchTracks()

@@ -24,6 +24,7 @@ interface AdvancedFiltersProps {
     onReset: () => void
     countries?: string[]
     platforms?: string[]
+    contentType?: 'tracks' | 'albums'
 }
 
 export function AdvancedFilters({
@@ -32,7 +33,8 @@ export function AdvancedFilters({
     onApply,
     onReset,
     countries = [],
-    platforms = []
+    platforms = [],
+    contentType = 'tracks'
 }: AdvancedFiltersProps) {
     const [isExpanded, setIsExpanded] = useState(false)
     const { t } = useLanguage()
@@ -188,12 +190,12 @@ export function AdvancedFilters({
                                     value={filters.sortBy}
                                     onChange={(e) => updateFilter('sortBy', e.target.value)}
                                 >
-                                    <option value="totalPlays">{t('totalPlays')}</option>
-                                    <option value="totalMinutes">{t('totalMinutes')}</option>
-                                    <option value="trackName">{t('trackName')}</option>
-                                    <option value="artistName">{t('artistName')}</option>
-                                    <option value="avgPlayDuration">{t('avgPlayDuration')}</option>
-                                    <option value="skipPercentage">{t('skipPercentage')}</option>
+                                    <option value={contentType === 'albums' ? 'plays' : 'totalPlays'}>{t('totalPlays')}</option>
+                                    <option value={contentType === 'albums' ? 'minutes' : 'totalMinutes'}>{t('totalMinutes')}</option>
+                                    <option value={contentType === 'albums' ? 'name' : 'trackName'}>{t(contentType === 'albums' ? 'album' : 'trackName')}</option>
+                                    <option value={contentType === 'albums' ? 'artist' : 'artistName'}>{t('artistName')}</option>
+                                    {contentType === 'tracks' && <option value="avgPlayDuration">{t('avgPlayDuration')}</option>}
+                                    {contentType === 'tracks' && <option value="skipPercentage">{t('skipPercentage')}</option>}
                                 </select>
                             </div>
 

@@ -1,4 +1,5 @@
-import { Sequelize } from 'sequelize-typescript'
+import 'dotenv/config'
+import { Sequelize, type SequelizeOptions } from 'sequelize-typescript'
 import { Artist } from '../models/music/Artist.js'
 import { Album } from '../models/music/Album.js'
 import { Track } from '../models/music/Track.js'
@@ -14,13 +15,8 @@ import { PodcastPlay } from '../models/podcasts/PodcastPlay.js'
 import { Audiobook } from '../models/audiobooks/Audiobook.js'
 import { AudiobookPlay } from '../models/audiobooks/AudiobookPlay.js'
 
-const sequelize = new Sequelize({
+const options: SequelizeOptions = {
     dialect: 'postgres',
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '5432'),
-    username: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || 'admin',
-    database: process.env.DB_NAME || 'spotify_analytics',
     models: [
         Artist,
         Album,
@@ -49,7 +45,18 @@ const sequelize = new Sequelize({
         underscored: false,
         freezeTableName: true
     }
-})
+}
+
+const sequelize = process.env.DATABASE_URL
+    ? new Sequelize(process.env.DATABASE_URL, options)
+    : new Sequelize({
+        ...options,
+        host: process.env.DB_HOST || 'localhost',
+        port: parseInt(process.env.DB_PORT || '5432', 10),
+        username: process.env.DB_USER || 'postgres',
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME || 'spotify_analytics',
+    })
 
 export const connectDB = async (): Promise<void> => {
     try {
