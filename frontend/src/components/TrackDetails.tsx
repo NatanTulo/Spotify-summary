@@ -10,8 +10,9 @@ interface TrackDetailsProps {
     trackId: string
     profileId?: string
     onBack: () => void
+    inline?: boolean
 }
-export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) {
+export function TrackDetails({ trackId, profileId, onBack, inline = false }: TrackDetailsProps) {
     const { t, language } = useLanguage()
     const {
         error, retry, timelineError, retryTimeline, playsError, retryPlays,
@@ -38,13 +39,13 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
     }
     if (error || !track) return <div role="alert" className="space-y-3 py-8 text-center"><p>{language === 'pl' ? 'Nie udało się pobrać szczegółów utworu.' : 'Could not load track details.'}</p><Button variant="outline" onClick={() => retry()}>{language === 'pl' ? 'Spróbuj ponownie' : 'Try again'}</Button><Button variant="ghost" onClick={onBack}>{t('back')}</Button></div>
     return (
-        <div className="space-y-4">
-            <TrackHeader
+        <div className={inline ? "space-y-3" : "space-y-4"}>
+            {!inline && <TrackHeader
                 trackName={track.trackName}
                 artistName={track.artistName}
                 albumName={track.albumName}
                 onBack={onBack}
-            />
+            />}
             <TrackStats
                 totalPlays={track.totalPlays}
                 totalMinutes={track.totalMinutes}
@@ -52,7 +53,7 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
                 skipPercentage={track.skipPercentage}
             />
             <Card>
-                <CardContent className="pt-6">
+                <CardContent className={inline ? "p-3" : "pt-6"}>
                  {timelineError ? <Button variant="outline" onClick={() => retryTimeline()}>{language === 'pl' ? 'Ponów pobieranie historii' : 'Retry listening history'}</Button> : <TrackTimeline
                     isLoading={timelineLoading}
                     data={timelineData}
@@ -61,12 +62,14 @@ export function TrackDetails({ trackId, profileId, onBack }: TrackDetailsProps) 
                 />}
                 </CardContent>
             </Card>
+            <details open={inline ? undefined : true}><summary className="cursor-pointer py-2 text-sm font-medium text-primary">{language === 'pl' ? 'Pokaż historię odtworzeń' : 'Show playback history'}</summary>
             {playsError ? <Button variant="outline" onClick={() => retryPlays()}>{language === 'pl' ? 'Ponów pobieranie odtworzeń' : 'Retry plays'}</Button> : <TrackRecentPlays
                 plays={plays}
                 loading={playsLoading}
                 pagination={playsPagination}
                 onPageChange={fetchTrackPlays}
             />}
+            </details>
         </div>
     )
 }

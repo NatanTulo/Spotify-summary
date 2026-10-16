@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -22,7 +22,8 @@ export function TrackTimeline({
   data,
   trackName,
 }: TrackTimelineProps) {
-  const { t, formatDate: localizedFormatDate } = useLanguage();
+  const { t, language, formatDate: localizedFormatDate } = useLanguage();
+  const extendId = useId();
   const [extendToToday, setExtendToToday] = useState<boolean>(false);
 
   const getFilteredTimelineData = (data: any[]) => {
@@ -46,8 +47,8 @@ export function TrackTimeline({
 
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col items-start gap-2">
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
         <h4 className="font-semibold text-sm break-words">
           {t("timelineTitle")}: {trackName}
         </h4>
@@ -55,13 +56,13 @@ export function TrackTimeline({
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
-              id={`extend-to-today-timeline`}
+              id={extendId}
               checked={extendToToday}
               onChange={(e) => setExtendToToday(e.target.checked)}
               className="rounded border-gray-300 text-primary focus:ring-primary focus:ring-offset-0"
             />
             <label
-              htmlFor={`extend-to-today-timeline`}
+              htmlFor={extendId}
               className="text-xs text-muted-foreground cursor-pointer"
             >
               {t("extendToToday")}
@@ -83,8 +84,8 @@ export function TrackTimeline({
           {t("noTimelineData")}
         </div>
       ) : (
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height={256} minWidth={0}>
+        <div className="h-40 w-full sm:h-44" data-testid="track-timeline-chart">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
             <BarChart data={filteredData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis
@@ -93,11 +94,11 @@ export function TrackTimeline({
                 type="category"
                 tick={{ fill: "hsl(var(--foreground))" }}
                 axisLine={{ stroke: "hsl(var(--border))" }}
-                interval={Math.max(0, Math.ceil(filteredData.length / 3) - 1)}
-                minTickGap={35}
+                interval="preserveStartEnd"
+                minTickGap={55}
                 tickFormatter={(value) => {
                   const date = new Date(value);
-                  return `${date.getDate()}/${date.getMonth() + 1}`;
+                  return date.toLocaleDateString(language, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
                 }}
               />
               <YAxis
@@ -123,7 +124,7 @@ export function TrackTimeline({
                   fontSize: 12,
                 }}
               />
-              <Bar dataKey="plays" fill="hsl(var(--primary))" />
+              <Bar dataKey="plays" fill="hsl(var(--primary))" minPointSize={2} isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>
         </div>

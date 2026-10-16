@@ -4,6 +4,12 @@ Wdrożenie wykonali równolegle trzej agenci GPT-6.1-Sol z reasoning medium, z i
 
 ## Uzupełnienie — 17 października 2026
 
+### Przywrócenie rozwijanych wierszy utworów
+
+Szczegóły ponownie rozwijają się pod klikniętym wierszem listy muzyki, na całą szerokość tabeli. Kliknięcie albumu, liczby lub pustego miejsca również rozwija wiersz; link Spotify zachowuje własne działanie. Ponowne kliknięcie zwija szczegóły. Dostępne są Enter/Spacja, Escape i przeglądarkowe Wstecz. Na telefonie rozwija się element listy. Wykres ma większą wysokość i daty z rokiem; dodatkowa historia odtworzeń jest zwijana osobno.
+
+Weryfikacja tej zmiany: pnpm check — lint, 97 testów i build obu części; pnpm test:e2e — 4 testy. Test przeglądarkowy sprawdza wykres szerszy niż 1400 px na ekranie 1920×1080, umieszczenie pod wierszem oraz brak poziomego przepełnienia na telefonie.
+
 - W nagłówku dodano „Kolory”: pięć palet i własny HEX, zapis wyboru lokalnie. Tła, obramowania, tekst, akcenty i kolory wykresów powstają z wybranego odcienia osobno dla obu motywów. Kontrast obliczany z luminancji; testy obejmują 360 odcieni oraz skrajne kolory. Domyślna paleta jest morska.
 - Listy wyboru zastąpiono stylizowanym komponentem Radix Select z obsługą klawiatury, zaznaczenia i przewijania.
 - „Dopasuj rankingi do zakresu wykresu” jest domyślnie włączone i zapamiętywane. Przybliżenie suwakiem, datami lub wyborem dnia aktualizuje tylko rankingi utworów i artystów. Wyłączenie opcji i reset przybliżenia przywracają właściwy pełny zakres.
