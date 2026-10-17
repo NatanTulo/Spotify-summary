@@ -48,7 +48,8 @@ test('local import → profile → search → chart, date scope and mobile', asy
     const details = page.getByRole('region', { name: 'Szczegóły utworu' })
     await expect(details).toBeVisible()
     await expect(page).toHaveURL(/track=\d+/)
-    await expect(details.getByRole('heading', { name: 'Needle', exact: true })).toBeVisible()
+    // Inline details inherit the track identity from the selected table row.
+    await expect(details.getByRole('heading', { name: 'Needle', exact: true })).toHaveCount(0)
     const chart = details.getByTestId('track-timeline-chart')
     await expect(chart).toBeVisible()
     expect((await details.boundingBox())!.y).toBeGreaterThan((await selectedRow.boundingBox())!.y)
